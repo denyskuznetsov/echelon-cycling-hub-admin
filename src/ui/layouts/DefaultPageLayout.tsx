@@ -9,10 +9,12 @@
  */
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { FeatherLogOut } from "@subframe/core";
 import { FeatherSettings } from "@subframe/core";
 import { FeatherUser } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
+import { createClient } from "@/src/utils/supabase/client";
 import { Avatar } from "../components/Avatar";
 import { Button } from "../components/Button";
 import { DropdownMenu } from "../components/DropdownMenu";
@@ -32,6 +34,21 @@ const DefaultPageLayoutRoot = React.forwardRef<
   { children, className, ...otherProps }: DefaultPageLayoutRootProps,
   ref
 ) {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    const supabase = createClient();
+    const { error } = await supabase.auth.signOut();
+
+    if (error) {
+      console.error("Error signing out:", error);
+      return;
+    }
+
+    router.push("/login");
+    router.refresh();
+  };
+
   return (
     <div
       className={SubframeUtils.twClassNames(
@@ -50,9 +67,6 @@ const DefaultPageLayoutRoot = React.forwardRef<
         }
         rightSlot={
           <>
-            <div className="flex items-center justify-end gap-2">
-              <Button variant="neutral-secondary">Logout</Button>
-            </div>
             <SubframeCore.DropdownMenu.Root>
               <SubframeCore.DropdownMenu.Trigger asChild={true}>
                 <Avatar image="https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/fychrij7dzl8wgq2zjq9.avif">
@@ -73,7 +87,10 @@ const DefaultPageLayoutRoot = React.forwardRef<
                     <DropdownMenu.DropdownItem icon={<FeatherSettings />}>
                       Settings
                     </DropdownMenu.DropdownItem>
-                    <DropdownMenu.DropdownItem icon={<FeatherLogOut />}>
+                    <DropdownMenu.DropdownItem
+                      icon={<FeatherLogOut />}
+                      onClick={handleLogout}
+                    >
                       Log out
                     </DropdownMenu.DropdownItem>
                   </DropdownMenu>
