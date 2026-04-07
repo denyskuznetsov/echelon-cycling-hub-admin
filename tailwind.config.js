@@ -3,6 +3,7 @@ module.exports = {
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
+    "./src/ui/**/*.{tsx,ts,js,jsx}"
   ],
   theme: {
     extend: {
@@ -13,4 +14,5 @@ module.exports = {
     },
   },
   plugins: [],
+  presets: [require("./src/ui/tailwind.config.js")]
 }

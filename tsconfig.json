@@ -20,6 +20,7 @@
     ],
     "paths": {
       "@/*": ["./*"],
+      "@/ui/*": ["./src/ui/*"],
       "@/subframe/*": ["./src/subframe/*"]
     }
   },
