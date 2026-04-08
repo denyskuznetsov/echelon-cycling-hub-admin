@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/src/utils/supabase/client";
+import { validatePassword } from "@/src/utils/validation";
 import { Button } from "@/ui/components/Button";
 import { LinkButton } from "@/ui/components/LinkButton";
 import { TextField } from "@/ui/components/TextField";
@@ -20,8 +21,19 @@ function SignUpPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSignUp = async () => {
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (isLoading) return;
+
+    const trimmedPassword = password.trim();
+    const { isValid, errorMessage: passwordErrorMessage } = validatePassword(
+      trimmedPassword
+    );
+
+    if (!isValid) {
+      setErrorMessage(passwordErrorMessage);
+      return;
+    }
 
     setErrorMessage("");
     setIsLoading(true);
@@ -30,7 +42,7 @@ function SignUpPage() {
       const supabase = createClient();
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
-        password,
+        password: trimmedPassword,
         options: {
           data: {
             company: company.trim(),
@@ -111,7 +123,10 @@ function SignUpPage() {
               </LinkButton>
             </div>
           </div>
-          <div className="flex w-full flex-col items-start justify-center gap-4">
+          <form
+            className="flex w-full flex-col items-start justify-center gap-4"
+            onSubmit={handleSignUp}
+          >
             <TextField
               className="h-auto w-full flex-none"
               label=""
@@ -166,7 +181,7 @@ function SignUpPage() {
                 <div className="flex items-center gap-1">
                   <FeatherCheck className="text-body font-body text-success-700" />
                   <span className="text-caption font-caption text-default-font">
-                    Minimum 8 characters
+                    Minimum 6 characters
                   </span>
                 </div>
               </div>
@@ -185,7 +200,7 @@ function SignUpPage() {
                 </div>
               </div>
             </div>
-            <Button disabled={isLoading} onClick={handleSignUp}>
+            <Button type="submit" disabled={isLoading}>
               {isLoading ? "Signing up..." : "Sign up"}
             </Button>
             {errorMessage ? (
@@ -193,7 +208,7 @@ function SignUpPage() {
                 {errorMessage}
               </span>
             ) : null}
-          </div>
+          </form>
         </div>
       </div>
     </div>

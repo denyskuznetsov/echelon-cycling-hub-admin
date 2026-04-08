@@ -56,7 +56,8 @@ function VerificationPage() {
     }
   };
 
-  const handleVerify = async () => {
+  const handleVerify = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (isLoading) return;
 
     if (!email) {
@@ -192,7 +193,10 @@ function VerificationPage() {
               </LinkButton>
             </div>
           </div>
-          <div className="flex w-full flex-col items-start justify-center gap-4">
+          <form
+            className="flex w-full flex-col items-start justify-center gap-4"
+            onSubmit={handleVerify}
+          >
             <span className="text-body font-body text-subtext-color">
               Enter the 6-digit verification code that was sent to your email
               address.
@@ -219,8 +223,8 @@ function VerificationPage() {
             </div>
             <Button
               className="h-8 w-full flex-none"
+              type="submit"
               disabled={isLoading || !email}
-              onClick={handleVerify}
             >
               {isLoading ? "Verifying..." : "Verify code"}
             </Button>
@@ -248,7 +252,7 @@ function VerificationPage() {
                 Back to Sign In
               </LinkButton>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>

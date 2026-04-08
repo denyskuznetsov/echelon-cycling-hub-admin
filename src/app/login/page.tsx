@@ -18,7 +18,8 @@ function SignInPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
-  const handleSignIn = async () => {
+  const handleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (isLoading) return;
 
     setErrorMessage("");
@@ -106,7 +107,10 @@ function SignInPage() {
               </LinkButton>
             </div>
           </div>
-          <div className="flex w-full flex-col items-start justify-center gap-4">
+          <form
+            className="flex w-full flex-col items-start justify-center gap-4"
+            onSubmit={handleSignIn}
+          >
             <TextField
               className="h-auto w-full flex-none"
               label=""
@@ -147,8 +151,8 @@ function SignInPage() {
             </div>
             <Button
               className="h-8 w-full flex-none"
+              type="submit"
               disabled={isLoading}
-              onClick={handleSignIn}
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
@@ -157,7 +161,7 @@ function SignInPage() {
                 {errorMessage}
               </span>
             ) : null}
-          </div>
+          </form>
         </div>
       </div>
     </div>

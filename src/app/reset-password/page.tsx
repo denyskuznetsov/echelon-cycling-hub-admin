@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/src/utils/supabase/client";
+import { validatePassword } from "@/src/utils/validation";
 import { Button } from "@/ui/components/Button";
 import { LinkButton } from "@/ui/components/LinkButton";
 import { TextField } from "@/ui/components/TextField";
@@ -28,8 +29,12 @@ function ResetPasswordPage() {
     setErrorMessage("");
     setSuccessMessage("");
 
-    if (trimmedPassword.length < 8) {
-      setErrorMessage("Password must be at least 8 characters long.");
+    const { isValid, errorMessage: passwordErrorMessage } = validatePassword(
+      trimmedPassword
+    );
+
+    if (!isValid) {
+      setErrorMessage(passwordErrorMessage);
       return;
     }
 
@@ -179,7 +184,7 @@ function ResetPasswordPage() {
                   <div className="flex items-center gap-1">
                     <FeatherCheck className="text-body font-body text-success-700" />
                     <span className="text-caption font-caption text-default-font">
-                      Minimum 8 characters
+                      Minimum 6 characters
                     </span>
                   </div>
                 </div>

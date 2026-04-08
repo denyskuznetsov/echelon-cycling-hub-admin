@@ -17,7 +17,8 @@ function ForgotPasswordPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const handleSendResetLink = async () => {
+  const handleSendResetLink = async (e: React.FormEvent) => {
+    e.preventDefault();
     if (isLoading) return;
 
     const trimmedEmail = email.trim();
@@ -111,7 +112,10 @@ function ForgotPasswordPage() {
               </LinkButton>
             </div>
           </div>
-          <div className="flex w-full flex-col items-start justify-center gap-4">
+          <form
+            className="flex w-full flex-col items-start justify-center gap-4"
+            onSubmit={handleSendResetLink}
+          >
             <span className="text-body font-body text-subtext-color">
               Enter your email address and we&#39;ll send you a link to reset
               your password.
@@ -132,8 +136,8 @@ function ForgotPasswordPage() {
             </TextField>
             <Button
               className="h-8 w-full flex-none"
+              type="submit"
               disabled={isLoading}
-              onClick={handleSendResetLink}
             >
               {isLoading ? "Sending..." : "Send reset link"}
             </Button>
@@ -156,7 +160,7 @@ function ForgotPasswordPage() {
                 Back to Sign In
               </LinkButton>
             </div>
-          </div>
+          </form>
         </div>
       </div>
     </div>
