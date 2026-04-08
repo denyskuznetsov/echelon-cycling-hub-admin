@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/src/utils/supabase/client";
 import { Button } from "@/ui/components/Button";
@@ -9,7 +9,7 @@ import { TextField } from "@/ui/components/TextField";
 import { FeatherArrowLeft } from "@subframe/core";
 import { FeatherChevronRight } from "@subframe/core";
 
-function VerificationPage() {
+function VerificationContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email")?.trim() ?? "";
@@ -259,4 +259,14 @@ function VerificationPage() {
   );
 }
 
-export default VerificationPage;
+export default function VerificationPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center">Loading...</div>
+      }
+    >
+      <VerificationContent />
+    </Suspense>
+  );
+}

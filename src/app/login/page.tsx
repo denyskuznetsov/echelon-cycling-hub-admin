@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/src/utils/supabase/client";
 import { Button } from "@/ui/components/Button";
@@ -10,7 +10,7 @@ import { FeatherChevronRight } from "@subframe/core";
 import { FeatherLock } from "@subframe/core";
 import { FeatherMail } from "@subframe/core";
 
-function SignInPage() {
+function LoginContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -168,4 +168,14 @@ function SignInPage() {
   );
 }
 
-export default SignInPage;
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex h-screen w-full items-center justify-center">Loading...</div>
+      }
+    >
+      <LoginContent />
+    </Suspense>
+  );
+}
