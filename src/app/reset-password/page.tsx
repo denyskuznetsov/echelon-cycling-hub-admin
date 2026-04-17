@@ -55,7 +55,7 @@ function ResetPasswordPage() {
           error.message.toLowerCase().includes("invalid jwt")
         ) {
           setErrorMessage(
-            "This recovery link is invalid or expired. Request a new password reset link."
+            "This link is invalid or has expired. Please request a new password reset link or ask your admin to resend your invite."
           );
         } else {
           setErrorMessage(error.message);
@@ -63,9 +63,9 @@ function ResetPasswordPage() {
         return;
       }
 
-      setSuccessMessage("Password updated. Redirecting you to Sign In...");
+      setSuccessMessage("Password updated. Redirecting you to your dashboard...");
       setTimeout(() => {
-        router.push("/login");
+        router.push("/dashboard");
       }, 1200);
     } catch (error) {
       setErrorMessage(

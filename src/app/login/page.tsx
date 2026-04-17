@@ -1,12 +1,11 @@
 "use client";
 
-import React, { Suspense, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/src/utils/supabase/client";
 import { Button } from "@/ui/components/Button";
 import { LinkButton } from "@/ui/components/LinkButton";
 import { TextField } from "@/ui/components/TextField";
-import { FeatherChevronRight } from "@subframe/core";
 import { FeatherLock } from "@subframe/core";
 import { FeatherMail } from "@subframe/core";
 
@@ -17,6 +16,13 @@ function LoginContent() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const callbackError = searchParams.get("error");
+    if (callbackError) {
+      setErrorMessage(decodeURIComponent(callbackError));
+    }
+  }, [searchParams]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -94,18 +100,9 @@ function LoginContent() {
             <span className="w-full text-heading-2 font-heading-2 text-default-font">
               Welcome back
             </span>
-            <div className="flex w-full flex-wrap items-start gap-2">
-              <span className="text-body font-body text-subtext-color">
-                Don&#39;t have an account?
-              </span>
-              <LinkButton
-                variant="brand"
-                iconRight={<FeatherChevronRight />}
-                onClick={() => router.push("/signup")}
-              >
-                Sign Up
-              </LinkButton>
-            </div>
+            <span className="text-body font-body text-subtext-color">
+              Sign in to your account to continue.
+            </span>
           </div>
           <form
             className="flex w-full flex-col items-start justify-center gap-4"
