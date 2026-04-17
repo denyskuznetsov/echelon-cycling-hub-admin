@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
+import { getPostLoginPath } from "@/src/utils/auth/postLogin";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const tokenHash = searchParams.get("token_hash");
   const type = searchParams.get("type") as EmailOtpType | null;
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/dashboard";
+  const explicitNext = searchParams.get("next");
 
   const supabase = await createClient();
 
@@ -27,6 +28,13 @@ export async function GET(request: Request) {
   }
 
   if (!errorMessage) {
+    let next = explicitNext;
+    if (!next) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      next = user ? await getPostLoginPath(supabase, user.id) : "/dashboard";
+    }
     return NextResponse.redirect(`${origin}${next}`);
   }
 

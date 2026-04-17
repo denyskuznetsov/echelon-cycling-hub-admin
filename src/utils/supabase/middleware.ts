@@ -2,7 +2,6 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 const protectedRoutePrefixes = ["/dashboard", "/kanban", "/partner"];
-const authRoutePrefixes = ["/login"];
 
 function isRouteMatch(pathname: string, prefixes: string[]) {
   return prefixes.some(
@@ -44,7 +43,6 @@ export async function updateSession(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isProtectedRoute = isRouteMatch(pathname, protectedRoutePrefixes);
-  const isAuthRoute = isRouteMatch(pathname, authRoutePrefixes);
 
   if (!user && isProtectedRoute) {
     const url = request.nextUrl.clone();
@@ -53,12 +51,11 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  if (user && isAuthRoute) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
-    url.search = "";
-    return NextResponse.redirect(url);
-  }
+  // NOTE: we intentionally do NOT redirect authenticated users away from
+  // auth routes (/login, /forgot-password) here. Those pages' server
+  // components call requireAnonymous(), which is role-aware and routes
+  // users to their correct landing page (e.g. partners -> /partner).
+  // Handling it here would force a DB round-trip for role on every request.
 
   return response;
 }

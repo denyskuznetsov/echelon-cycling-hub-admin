@@ -1,5 +1,6 @@
 import "./globals.css"
 import type { Metadata } from "next"
+import { UserProvider } from "@/src/context/UserContext"
 
 export const metadata: Metadata = {
   title: "Echelon Cycling Hub Admin",
@@ -19,7 +20,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
 
-      <body>{children}</body>
+      <body>
+        <UserProvider>{children}</UserProvider>
+      </body>
     </html>
   )
 }
