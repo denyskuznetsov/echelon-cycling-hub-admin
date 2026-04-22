@@ -10,7 +10,12 @@ export async function GET() {
       );
     }
 
-    const url = `https://${slug}.booqable.com/api/4/orders?page%5Bsize%5D=1&page%5Bnumber%5D=1`;
+    const params = new URLSearchParams({
+      "page[size]": "1",
+      "page[number]": "1",
+      include: "customer,coupon",
+    });
+    const url = `https://${slug}.booqable.com/api/4/orders?${params.toString()}`;
     const res = await fetch(url, {
       headers: {
         "Content-Type": "application/json",
