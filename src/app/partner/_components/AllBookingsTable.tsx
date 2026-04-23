@@ -1,13 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { Avatar } from "@/ui/components/Avatar";
 import { Button } from "@/ui/components/Button";
 import { DropdownMenu } from "@/ui/components/DropdownMenu";
 import { IconButton } from "@/ui/components/IconButton";
+import { Pagination } from "@/ui/components/Pagination";
 import { Table } from "@/ui/components/Table";
 import { TextField } from "@/ui/components/TextField";
 import { FeatherChevronDown } from "@subframe/core";
+import { FeatherChevronLeft } from "@subframe/core";
+import { FeatherChevronRight } from "@subframe/core";
 import { FeatherEdit2 } from "@subframe/core";
 import { FeatherFlag } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
@@ -21,9 +25,17 @@ import { OrderStatusBadge } from "./OrderStatusBadge";
 
 interface AllBookingsTableProps {
   orders: PartnerOrder[];
+  currentPage: number;
+  totalPages: number;
 }
 
-export function AllBookingsTable({ orders }: AllBookingsTableProps) {
+export function AllBookingsTable({
+  orders,
+  currentPage,
+  totalPages,
+}: AllBookingsTableProps) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [search, setSearch] = useState("");
 
   const filtered = orders.filter((order) => {
@@ -32,6 +44,13 @@ export function AllBookingsTable({ orders }: AllBookingsTableProps) {
     const name = order.customers?.name ?? "";
     return name.toLowerCase().includes(needle);
   });
+
+  const handlePageChange = (newPage: number) => {
+    if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
+    router.push(`${pathname}?page=${newPage}`);
+  };
+
+  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -183,6 +202,40 @@ export function AllBookingsTable({ orders }: AllBookingsTableProps) {
             })}
           </Table>
         )}
+        {totalPages > 1 ? (
+          <Pagination
+            summary={`Page ${currentPage} of ${totalPages}`}
+            previousButton={
+              <IconButton
+                variant="neutral-secondary"
+                icon={<FeatherChevronLeft />}
+                disabled={currentPage === 1}
+                onClick={() => handlePageChange(currentPage - 1)}
+              />
+            }
+            pageButtons={pageNumbers.map((pageNumber) => (
+              <Button
+                key={pageNumber}
+                variant={
+                  pageNumber === currentPage
+                    ? "brand-primary"
+                    : "neutral-tertiary"
+                }
+                onClick={() => handlePageChange(pageNumber)}
+              >
+                {String(pageNumber)}
+              </Button>
+            ))}
+            nextButton={
+              <IconButton
+                variant="neutral-secondary"
+                icon={<FeatherChevronRight />}
+                disabled={currentPage === totalPages}
+                onClick={() => handlePageChange(currentPage + 1)}
+              />
+            }
+          />
+        ) : null}
       </div>
     </div>
   );

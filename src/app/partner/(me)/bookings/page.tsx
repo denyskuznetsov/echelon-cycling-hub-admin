@@ -1,25 +1,28 @@
 import React from "react";
-import { createClient } from "@/src/utils/supabase/server";
 import { AllBookingsTable } from "../../_components/AllBookingsTable";
 import { resolveMyPartner } from "../../_lib/resolvePartner";
-import type { PartnerOrder } from "../../_components/types";
+import {
+  ORDERS_PAGE_SIZE,
+  loadPartnerOrdersPage,
+} from "../../_lib/loadPartnerOverview";
 
-export default async function PartnerBookingsPage() {
+export default async function PartnerBookingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+
   const { partner } = await resolveMyPartner();
-  const partnerId = partner?.id ?? null;
+  const { orders, count } = await loadPartnerOrdersPage(partner?.id, page);
+  const totalPages = Math.ceil(count / ORDERS_PAGE_SIZE);
 
-  let allOrders: PartnerOrder[] = [];
-  if (partnerId) {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("orders")
-      .select(
-        "id, status, starts_at, stops_at, amount_in_cents, customers(name, email, phone)",
-      )
-      .eq("partner_id", partnerId)
-      .order("created_at", { ascending: false });
-    allOrders = (data as PartnerOrder[] | null) ?? [];
-  }
-
-  return <AllBookingsTable orders={allOrders} />;
+  return (
+    <AllBookingsTable
+      orders={orders}
+      currentPage={page}
+      totalPages={totalPages}
+    />
+  );
 }
