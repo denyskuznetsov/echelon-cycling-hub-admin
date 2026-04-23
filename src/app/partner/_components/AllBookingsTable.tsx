@@ -47,7 +47,8 @@ export function AllBookingsTable({
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
-    router.push(`${pathname}?page=${newPage}`);
+    const href = newPage === 1 ? pathname : `${pathname}?page=${newPage}`;
+    router.push(href);
   };
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
