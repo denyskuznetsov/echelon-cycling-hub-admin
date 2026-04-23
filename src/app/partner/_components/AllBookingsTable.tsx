@@ -160,7 +160,7 @@ export function AllBookingsTable({
                   <Table.Cell>
                     <div className="flex items-center gap-2">
                       <Avatar size="small" square={true}>
-                        {name.charAt(0).toUpperCase()}
+                        <span className="font-body-bold">{name.charAt(0).toUpperCase()}</span>
                       </Avatar>
                       <span className="whitespace-nowrap text-body-bold font-body-bold text-default-font">
                         {name}

@@ -51,11 +51,22 @@ const DefaultPageLayoutRoot = React.forwardRef<
 ) {
   const router = useRouter();
   const pathname = usePathname();
-  const { profile } = useUser();
+  const { user, profile } = useUser();
   const role = profile?.role;
   const visibleNavItems = role
     ? NAV_ITEMS.filter((item) => item.roles.includes(role))
     : [];
+  const profileName = [profile?.first_name, profile?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+  const avatarLabel = profileName || user?.email || "U";
+  const avatarInitial = avatarLabel.charAt(0).toUpperCase();
+  const userEmail = user?.email ?? "No email";
+  const isPartnersRoute =
+    pathname === "/partner" ||
+    pathname?.startsWith("/partner/") ||
+    pathname?.startsWith("/all-partners");
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -89,7 +100,11 @@ const DefaultPageLayoutRoot = React.forwardRef<
             {visibleNavItems.map((item) => (
               <TopbarWithRightNav.NavItem
                 key={item.label}
-                selected={!!item.href && pathname?.startsWith(item.href)}
+                selected={
+                  item.label === "Partners"
+                    ? isPartnersRoute
+                    : !!item.href && pathname?.startsWith(item.href)
+                }
                 onClick={
                   item.href ? () => router.push(item.href as string) : undefined
                 }
@@ -100,36 +115,41 @@ const DefaultPageLayoutRoot = React.forwardRef<
           </>
         }
         rightSlot={
-          <SubframeCore.DropdownMenu.Root>
-            <SubframeCore.DropdownMenu.Trigger asChild={true}>
-              <Avatar image="https://res.cloudinary.com/subframe/image/upload/v1711417507/shared/fychrij7dzl8wgq2zjq9.avif">
-                A
-              </Avatar>
-            </SubframeCore.DropdownMenu.Trigger>
-            <SubframeCore.DropdownMenu.Portal>
-              <SubframeCore.DropdownMenu.Content
-                side="bottom"
-                align="end"
-                sideOffset={4}
-                asChild={true}
-              >
-                <DropdownMenu className="z-20">
-                  <DropdownMenu.DropdownItem icon={<FeatherUser />}>
-                    Profile
-                  </DropdownMenu.DropdownItem>
-                  <DropdownMenu.DropdownItem icon={<FeatherSettings />}>
-                    Settings
-                  </DropdownMenu.DropdownItem>
-                  <DropdownMenu.DropdownItem
-                    icon={<FeatherLogOut />}
-                    onClick={handleLogout}
-                  >
-                    Log out
-                  </DropdownMenu.DropdownItem>
-                </DropdownMenu>
-              </SubframeCore.DropdownMenu.Content>
-            </SubframeCore.DropdownMenu.Portal>
-          </SubframeCore.DropdownMenu.Root>
+          <div className="flex items-center gap-2">
+            <TopbarWithRightNav.NavItem className="max-w-64 cursor-default hover:bg-transparent">
+              <span className="truncate">{userEmail}</span>
+            </TopbarWithRightNav.NavItem>
+            <SubframeCore.DropdownMenu.Root>
+              <SubframeCore.DropdownMenu.Trigger asChild={true}>
+                <Avatar>
+                  <span className="font-body-bold">{avatarInitial}</span>
+                </Avatar>
+              </SubframeCore.DropdownMenu.Trigger>
+              <SubframeCore.DropdownMenu.Portal>
+                <SubframeCore.DropdownMenu.Content
+                  side="bottom"
+                  align="end"
+                  sideOffset={4}
+                  asChild={true}
+                >
+                  <DropdownMenu className="z-20">
+                    {/* <DropdownMenu.DropdownItem icon={<FeatherUser />}>
+                      Profile
+                    </DropdownMenu.DropdownItem>
+                    <DropdownMenu.DropdownItem icon={<FeatherSettings />}>
+                      Settings
+                    </DropdownMenu.DropdownItem> */}
+                    <DropdownMenu.DropdownItem
+                      icon={<FeatherLogOut />}
+                      onClick={handleLogout}
+                    >
+                      Log out
+                    </DropdownMenu.DropdownItem>
+                  </DropdownMenu>
+                </SubframeCore.DropdownMenu.Content>
+              </SubframeCore.DropdownMenu.Portal>
+            </SubframeCore.DropdownMenu.Root>
+          </div>
         }
       />
       {children ? (
