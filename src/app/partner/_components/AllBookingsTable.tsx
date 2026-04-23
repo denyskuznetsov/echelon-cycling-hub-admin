@@ -7,9 +7,9 @@ import { Button } from "@/ui/components/Button";
 import { DropdownMenu } from "@/ui/components/DropdownMenu";
 import { IconButton } from "@/ui/components/IconButton";
 import { Pagination } from "@/ui/components/Pagination";
+import { Select } from "@/ui/components/Select";
 import { Table } from "@/ui/components/Table";
 import { TextField } from "@/ui/components/TextField";
-import { FeatherChevronDown } from "@subframe/core";
 import { FeatherChevronLeft } from "@subframe/core";
 import { FeatherChevronRight } from "@subframe/core";
 import { FeatherEdit2 } from "@subframe/core";
@@ -21,6 +21,7 @@ import {
   formatRentalPeriod,
 } from "@/src/utils/formatters";
 import type { PartnerBookingRow } from "./types";
+import type { BookingsTimeframe } from "../_lib/loadPartnerOverview";
 import { OrderStatusBadge } from "./OrderStatusBadge";
 
 interface AllBookingsTableProps {
@@ -28,6 +29,7 @@ interface AllBookingsTableProps {
   currentPage: number;
   totalPages: number;
   query: string;
+  timeframe: BookingsTimeframe;
 }
 
 const SEARCH_DEBOUNCE_MS = 300;
@@ -37,6 +39,7 @@ export function AllBookingsTable({
   currentPage,
   totalPages,
   query,
+  timeframe,
 }: AllBookingsTableProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -46,11 +49,16 @@ export function AllBookingsTable({
     setSearch(query);
   }, [query]);
 
-  const buildHref = (nextQuery: string, nextPage: number) => {
+  const buildHref = (
+    nextQuery: string,
+    nextPage: number,
+    nextTimeframe: BookingsTimeframe,
+  ) => {
     const params = new URLSearchParams();
     const trimmed = nextQuery.trim();
     if (trimmed) params.set("query", trimmed);
     if (nextPage !== 1) params.set("page", String(nextPage));
+    if (nextTimeframe !== "all-time") params.set("timeframe", nextTimeframe);
     const queryString = params.toString();
     return queryString ? `${pathname}?${queryString}` : pathname;
   };
@@ -59,16 +67,26 @@ export function AllBookingsTable({
     if (search === query) return;
 
     const handle = setTimeout(() => {
-      router.push(buildHref(search, 1));
+      router.push(buildHref(search, 1, timeframe));
     }, SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, query, pathname, router]);
+  }, [search, query, timeframe, pathname, router]);
 
   const handlePageChange = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
-    router.push(buildHref(query, newPage));
+    router.push(buildHref(query, newPage, timeframe));
+  };
+
+  const handleTimeframeChange = (newTimeframe: string) => {
+    const next = (
+      newTimeframe === "week" || newTimeframe === "month"
+        ? newTimeframe
+        : "all-time"
+    ) as BookingsTimeframe;
+    if (next === timeframe) return;
+    router.push(buildHref(query, 1, next));
   };
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -88,37 +106,15 @@ export function AllBookingsTable({
             }
           />
         </TextField>
-        <SubframeCore.DropdownMenu.Root>
-          <SubframeCore.DropdownMenu.Trigger asChild={true}>
-            <Button
-              variant="neutral-secondary"
-              iconRight={<FeatherChevronDown />}
-              onClick={() => {}}
-            >
-              Past month
-            </Button>
-          </SubframeCore.DropdownMenu.Trigger>
-          <SubframeCore.DropdownMenu.Portal>
-            <SubframeCore.DropdownMenu.Content
-              side="bottom"
-              align="end"
-              sideOffset={4}
-              asChild={true}
-            >
-              <DropdownMenu>
-                <DropdownMenu.DropdownItem icon={null}>
-                  Past week
-                </DropdownMenu.DropdownItem>
-                <DropdownMenu.DropdownItem icon={null}>
-                  Past month
-                </DropdownMenu.DropdownItem>
-                <DropdownMenu.DropdownItem icon={null}>
-                  All-time
-                </DropdownMenu.DropdownItem>
-              </DropdownMenu>
-            </SubframeCore.DropdownMenu.Content>
-          </SubframeCore.DropdownMenu.Portal>
-        </SubframeCore.DropdownMenu.Root>
+        <Select
+          className="w-40 flex-none"
+          value={timeframe}
+          onValueChange={handleTimeframeChange}
+        >
+          <Select.Item value="all-time">All-time</Select.Item>
+          <Select.Item value="month">Past month</Select.Item>
+          <Select.Item value="week">Past week</Select.Item>
+        </Select>
       </div>
       <div className="flex w-full flex-col items-start gap-6 overflow-hidden overflow-x-auto mobile:overflow-auto mobile:max-w-full">
         {orders.length === 0 ? (

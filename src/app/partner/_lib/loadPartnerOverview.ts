@@ -26,6 +26,7 @@ export async function loadPartnerOrdersPage(
   partnerId: string | null | undefined,
   page: number,
   query: string = "",
+  dateThreshold: string | null = null,
 ): Promise<{ orders: PartnerBookingRow[]; count: number }> {
   if (!partnerId) return { orders: [], count: 0 };
 
@@ -33,24 +34,50 @@ export async function loadPartnerOrdersPage(
   const to = from + ORDERS_PAGE_SIZE - 1;
 
   const supabase = await createClient();
-  let request = supabase
+  let queryBuilder = supabase
     .from("partner_bookings_view")
     .select("*", { count: "exact" })
-    .eq("partner_id", partnerId)
-    .order("created_at", { ascending: false });
+    .eq("partner_id", partnerId);
 
   const trimmed = query.trim();
   if (trimmed) {
     const escaped = trimmed.replace(/[,()]/g, "");
-    request = request.or(
+    queryBuilder = queryBuilder.or(
       `order_number_text.ilike.%${escaped}%,customer_name.ilike.%${escaped}%,customer_email.ilike.%${escaped}%`,
     );
   }
 
-  const { data, count } = await request.range(from, to);
+  if (dateThreshold) {
+    queryBuilder = queryBuilder.gte("created_at", dateThreshold);
+  }
+
+  const { data, count } = await queryBuilder
+    .order("created_at", { ascending: false })
+    .range(from, to);
 
   return {
     orders: (data as PartnerBookingRow[] | null) ?? [],
     count: count ?? 0,
   };
+}
+
+export type BookingsTimeframe = "week" | "month" | "all-time";
+
+export function resolveTimeframe(value: string | undefined): BookingsTimeframe {
+  if (value === "week" || value === "month") return value;
+  return "all-time";
+}
+
+export function computeDateThreshold(
+  timeframe: BookingsTimeframe,
+): string | null {
+  if (timeframe === "all-time") return null;
+
+  const now = new Date();
+  if (timeframe === "week") {
+    now.setUTCDate(now.getUTCDate() - 7);
+  } else {
+    now.setUTCMonth(now.getUTCMonth() - 1);
+  }
+  return now.toISOString();
 }
