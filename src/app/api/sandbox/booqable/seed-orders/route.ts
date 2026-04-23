@@ -99,6 +99,8 @@ export async function GET(_request: Request) {
                 .upsert(
                   {
                     booqable_customer_id: customer.id,
+                    created_at: customer.attributes.created_at,
+                    updated_at: customer.attributes.updated_at,
                     name: customer.attributes.name,
                     email: customer.attributes.email,
                     phone: customer.attributes.properties?.phone || null,
@@ -156,6 +158,8 @@ export async function GET(_request: Request) {
             status: order.attributes.status,
             starts_at: order.attributes.starts_at,
             stops_at: order.attributes.stops_at,
+            created_at: order.attributes.created_at,
+            updated_at: order.attributes.updated_at,
             fulfillment_type: order.attributes.fulfillment_type || null,
             delivery_address:
               order.attributes.properties?.delivery_address || null,
