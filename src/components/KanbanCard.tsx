@@ -68,10 +68,10 @@ export function KanbanCard({ task, index, onClick }: KanbanCardProps) {
               </Badge>
             </div>
             <div className="flex w-full flex-wrap items-center gap-2">
-              <Badge variant={task.dateBadgeVariant ?? "brand"}>
-                {task.dateBadge}
-              </Badge>
-              <Badge variant="neutral">{task.amount}</Badge>
+              {/* <Badge variant={task.dateBadgeVariant ?? "brand"}> */}
+                {/* {task.dateBadge}
+              </Badge> */}
+              {/* <Badge variant="neutral">{task.amount}</Badge> */}
             </div>
           </div>
         </div>
