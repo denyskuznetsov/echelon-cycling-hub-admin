@@ -1,5 +1,9 @@
 import { createClient } from "@/src/utils/supabase/server";
-import type { PartnerBookingRow, PartnerOrder } from "../_components/types";
+import type {
+  PartnerBookingRow,
+  PartnerDailyStat,
+  PartnerOrder,
+} from "../_components/types";
 
 const RECENT_ORDERS_LIMIT = 5;
 export const ORDERS_PAGE_SIZE = 10;
@@ -61,6 +65,21 @@ export async function loadPartnerOrdersPage(
   };
 }
 
+export async function loadPartnerDailyStats(
+  partnerId: string | null | undefined,
+  startDate: string | null,
+): Promise<PartnerDailyStat[]> {
+  if (!partnerId) return [];
+
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("get_partner_daily_stats", {
+    p_partner_id: partnerId,
+    p_start_date: startDate,
+  });
+
+  return (data as PartnerDailyStat[] | null) ?? [];
+}
+
 export type BookingsTimeframe = "week" | "month" | "all-time";
 
 export function resolveTimeframe(value: string | undefined): BookingsTimeframe {
@@ -80,4 +99,12 @@ export function computeDateThreshold(
     now.setUTCMonth(now.getUTCMonth() - 1);
   }
   return now.toISOString();
+}
+
+export function normalizeCommissionRate(
+  value: number | string | null | undefined,
+): number {
+  const parsed = Number(value ?? 0);
+  if (!Number.isFinite(parsed)) return 0;
+  return parsed <= 1 ? parsed * 100 : parsed;
 }

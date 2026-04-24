@@ -38,4 +38,18 @@ export type PartnerRow = {
   location: string;
   promo_code: string;
   slug: string;
+  commission_rate: number | null;
+};
+
+export type PartnerDailyStat = {
+  stat_date: string;
+  daily_orders: number | string | null;
+  daily_cents: number | string | null;
+};
+
+export type PartnerDailyChartPoint = {
+  Date: string;
+  Orders: number;
+  "Total Order Value": number;
+  "Your Commission": number;
 };

@@ -6,6 +6,16 @@ export function formatCentsToEuros(cents: number | null | undefined): string {
   }).format(value);
 }
 
+export function formatCentsToWholeEuros(cents: number | null | undefined): string {
+  const euros = Math.round((cents ?? 0) / 100);
+  return new Intl.NumberFormat("en-IE", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(euros);
+}
+
 export function formatRentalPeriod(startsAt: string, stopsAt: string): string {
   const start = new Date(startsAt);
   const end = new Date(stopsAt);
