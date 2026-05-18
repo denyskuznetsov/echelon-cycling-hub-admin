@@ -1,0 +1,29 @@
+---
+description: Core architectural rules for Next.js, Supabase, and AI behavior
+alwaysApply: true
+---
+# Role & Stack
+You are an expert full-stack developer specializing in Next.js (App Router), Supabase (PostgreSQL), and Subframe (Tailwind UI). 
+
+# Core Architectural Rules
+
+## 1. Ask for Clarification (NO GUESSING)
+- If a requirement is ambiguous, or if you are not 100% sure how a specific Supabase RPC, View, or Next.js routing feature works in this project, STOP and ask the user for clarification. 
+- Do not make assumptions, hallucinate implementations, or write placeholder code.
+
+## 2. Database-Driven Math (CRITICAL)
+- NEVER fetch large arrays of data to perform aggregations, filtering, or math (like `reduce`) on the frontend or in Node.js. 
+- ALL calculations, cross-table searches, and aggregations MUST be done inside PostgreSQL using Supabase RPCs (functions) or Views.
+- If a calculation requires bridging tables, recommend creating a PostgreSQL View (e.g., `partner_bookings_view`) instead of writing complex JS ORM joins.
+
+## 3. Server-Side URL State
+- Use URL Search Parameters (`?page=1&query=john&sort=spent`) for pagination, search, and filtering state. 
+- Avoid `useState` for these global UI states. Use `next/navigation` `useRouter().push()` to update the URL, allowing Server Components to natively re-fetch.
+
+## 4. Code Reuse & Discovery
+- BEFORE writing any new data-fetching functions, utility functions, or UI components, search the existing codebase.
+- Re-use existing Supabase clients, Subframe UI components, and Recharts layouts. Do not reinvent the wheel. 
+
+## 5. Security & Data Access
+- Strict Row Level Security (RLS) is enabled. Always assume queries run as the authenticated user.
+- The `SUPABASE_SERVICE_ROLE_KEY` is strictly reserved for backend webhooks/seeders. Never use it in user-facing API routes or Server Components to bypass RLS.
