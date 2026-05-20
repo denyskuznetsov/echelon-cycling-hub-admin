@@ -46,6 +46,24 @@ function pickFloat(data: Record<string, string>, key: string): number | null {
 
 export async function POST(request: Request) {
   try {
+    // --- 1. SECURITY CHECK: VERIFY THE WEBHOOK SECRET ---
+    // Extract the 'secret' parameter from the incoming URL
+    const { searchParams } = new URL(request.url);
+    const providedSecret = searchParams.get("secret");
+    
+    // Check if the environment variable is set to prevent accidental unsecured deployments
+    if (!process.env.BOOQABLE_WEBHOOK_SECRET) {
+      console.error("[webhooks/booqable] CRITICAL: BOOQABLE_WEBHOOK_SECRET is missing in environment variables.");
+      return NextResponse.json({ error: "Server Configuration Error" }, { status: 500 });
+    }
+
+    // Reject the request if the secret is missing or incorrect
+    if (providedSecret !== process.env.BOOQABLE_WEBHOOK_SECRET) {
+      console.warn(`[webhooks/booqable] Unauthorized webhook attempt. Provided secret: ${providedSecret}`);
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    // ----------------------------------------------------
+
     const rawText = await request.text();
 
     const urlParams = new URLSearchParams(rawText);

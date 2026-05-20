@@ -173,7 +173,7 @@ export async function GET(_request: Request) {
             coupon_code_value: couponCodeValue,
             customer_id: supabaseCustomerId,
             partner_id: supabasePartnerId,
-            partner_promo: partnerPromo,
+            partner_promo: couponCodeValue, // we now take partner_promo from the coupon code value
           });
 
           if (insertError) throw insertError;
