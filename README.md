@@ -71,6 +71,18 @@ Access is scoped by role. The following rules describe what each role can see an
 - Scoped to the mechanic kanban board only.
 - Can read and write tickets on the kanban board.
 
+## Free tier limitations
+
+When deployed on Supabase and Vercel free tiers, be aware of two constraints that can affect production uptime and order syncing.
+
+### Supabase project pausing
+
+Supabase pauses free projects after 1 week of inactivity. If your project pauses, your Vercel app will crash, and Booqable webhooks will bounce. Ensure you have regular activity, or consider upgrading to the $25/mo Pro tier if consistent uptime is critical for order syncing.
+
+### Vercel timeout limits
+
+Vercel's free tier (Hobby plan) restricts Serverless Functions (like your webhook API) to a 10-second execution limit. Your webhook does a few sequential database operations (upsert customer, select partner, upsert order). Ensure this always resolves within 10 seconds, or the request will timeout.
+
 ## Learn More
 
 - [Next.js documentation](https://nextjs.org/docs)
