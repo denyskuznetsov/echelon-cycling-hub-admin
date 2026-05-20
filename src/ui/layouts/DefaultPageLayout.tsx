@@ -11,6 +11,7 @@
 import React from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { FeatherLogOut } from "@subframe/core";
+import { FeatherMenu } from "@subframe/core";
 import { FeatherSettings } from "@subframe/core";
 import { FeatherUser } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
@@ -35,6 +36,18 @@ const NAV_ITEMS: {
     href: "/workshop",
   },
 ];
+
+type NavItem = (typeof NAV_ITEMS)[number];
+
+function isNavItemSelected(
+  item: NavItem,
+  pathname: string | null,
+  isPartnersRoute: boolean
+): boolean {
+  return item.label === "Partners"
+    ? isPartnersRoute
+    : !!item.href && !!pathname?.startsWith(item.href);
+}
 
 interface DefaultPageLayoutRootProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -91,32 +104,87 @@ const DefaultPageLayoutRoot = React.forwardRef<
       {...otherProps}
     >
       <TopbarWithRightNav
+        className="mobile:px-4"
         leftSlot={
           <>
             <img
               className="h-8 flex-none object-cover"
               src="https://res.cloudinary.com/subframe/image/upload/v1771493398/uploads/36440/znvfvrhfhlzyaeoslprx.png"
             />
-            {visibleNavItems.map((item) => (
-              <TopbarWithRightNav.NavItem
-                key={item.label}
-                selected={
-                  item.label === "Partners"
-                    ? isPartnersRoute
-                    : !!item.href && pathname?.startsWith(item.href)
-                }
-                onClick={
-                  item.href ? () => router.push(item.href as string) : undefined
-                }
-              >
-                {item.label}
-              </TopbarWithRightNav.NavItem>
-            ))}
+            <div className="flex items-center gap-4 mobile:hidden">
+              {visibleNavItems.map((item) => {
+                const isSelected = isNavItemSelected(
+                  item,
+                  pathname,
+                  isPartnersRoute
+                );
+                return (
+                  <TopbarWithRightNav.NavItem
+                    key={item.label}
+                    selected={isSelected}
+                    onClick={
+                      item.href
+                        ? () => router.push(item.href as string)
+                        : undefined
+                    }
+                  >
+                    {item.label}
+                  </TopbarWithRightNav.NavItem>
+                );
+              })}
+            </div>
+            {visibleNavItems.length > 0 ? (
+              <SubframeCore.DropdownMenu.Root>
+                <SubframeCore.DropdownMenu.Trigger asChild={true}>
+                  <button
+                    type="button"
+                    aria-label="Open navigation menu"
+                    className="hidden mobile:inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-default-font hover:bg-brand-100"
+                  >
+                    <FeatherMenu className="text-heading-3 font-heading-3" />
+                  </button>
+                </SubframeCore.DropdownMenu.Trigger>
+                <SubframeCore.DropdownMenu.Portal>
+                  <SubframeCore.DropdownMenu.Content
+                    side="bottom"
+                    align="start"
+                    sideOffset={4}
+                    asChild={true}
+                  >
+                    <DropdownMenu className="z-20">
+                      {visibleNavItems.map((item) => {
+                        const isSelected = isNavItemSelected(
+                          item,
+                          pathname,
+                          isPartnersRoute
+                        );
+                        return (
+                          <DropdownMenu.DropdownItem
+                            key={item.label}
+                            icon={null}
+                            onClick={
+                              item.href
+                                ? () => router.push(item.href as string)
+                                : undefined
+                            }
+                            className={
+                              isSelected ? "bg-brand-100" : undefined
+                            }
+                          >
+                            {item.label}
+                          </DropdownMenu.DropdownItem>
+                        );
+                      })}
+                    </DropdownMenu>
+                  </SubframeCore.DropdownMenu.Content>
+                </SubframeCore.DropdownMenu.Portal>
+              </SubframeCore.DropdownMenu.Root>
+            ) : null}
           </>
         }
         rightSlot={
           <div className="flex items-center gap-2">
-            <TopbarWithRightNav.NavItem className="max-w-64 cursor-default hover:bg-transparent">
+            <TopbarWithRightNav.NavItem className="max-w-64 cursor-default hover:bg-transparent mobile:hidden">
               <span className="truncate">{userEmail}</span>
             </TopbarWithRightNav.NavItem>
             <SubframeCore.DropdownMenu.Root>
