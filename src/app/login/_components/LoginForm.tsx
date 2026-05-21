@@ -66,23 +66,23 @@ export function LoginForm() {
 
   return (
     <div className="flex h-full w-full flex-wrap items-start bg-default-background mobile:flex-col mobile:flex-wrap mobile:gap-0">
-      <div className="flex max-w-[576px] grow shrink-0 basis-0 flex-col items-center gap-12 self-stretch bg-neutral-50 px-12 py-12 mobile:h-auto mobile:w-full mobile:flex-none">
-        <div className="flex w-full max-w-[448px] grow shrink-0 basis-0 flex-col items-start justify-center gap-12 mobile:h-auto mobile:w-full mobile:max-w-[448px] mobile:flex-none">
+      <div className="relative flex max-w-[576px] grow shrink-0 basis-0 flex-col items-center gap-12 self-stretch overflow-hidden bg-[url('/login-hero.png')] bg-cover bg-left bg-no-repeat px-12 py-12 mobile:h-auto mobile:w-full mobile:flex-none">
+        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,47,80,0.3)] to-[rgba(28,70,106,0.8)]" />
+        <div className="relative z-10 flex w-full max-w-[448px] grow shrink-0 basis-0 flex-col items-start justify-center gap-12 mobile:h-auto mobile:w-full mobile:max-w-[448px] mobile:flex-none">
           <img
             className="h-24 flex-none object-cover"
             src="https://res.cloudinary.com/subframe/image/upload/v1771493398/uploads/36440/znvfvrhfhlzyaeoslprx.png"
           />
           <div className="flex flex-col items-start justify-center gap-16 pb-32 mobile:px-0 mobile:py-0">
             <div className="flex flex-col items-start gap-2">
-              <span className="text-heading-2 font-heading-2 text-default-font">
-                A better product is waiting{" "}
+              <span className="text-heading-2 font-heading-2 text-white">
+                Your Echelon partner portal
               </span>
-              <span className="text-heading-3 font-heading-3 text-subtext-color">
-                Save effort, time, and money by joining hundreds of leading
-                brands.
+              <span className="text-heading-3 font-heading-3 text-white/80">
+                Seamlessly book, track, and manage premium cycling experiences for your network.
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-8">
+            <div className="flex flex-wrap items-center gap-8 mobile:hidden">
               <img
                 className="w-20 flex-none grayscale"
                 src="https://res.cloudinary.com/subframe/image/upload/v1771493485/uploads/36440/wnzwq0xfe2hcgwhfcskt.png"
