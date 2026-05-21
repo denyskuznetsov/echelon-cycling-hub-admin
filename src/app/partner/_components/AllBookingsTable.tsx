@@ -161,11 +161,11 @@ export function AllBookingsTable({
                 <Table.HeaderCell>Order #</Table.HeaderCell>
                 <Table.HeaderCell>Customer</Table.HeaderCell>
                 <Table.HeaderCell>Phone</Table.HeaderCell>
-                <Table.HeaderCell>Bike</Table.HeaderCell>
+                {/* <Table.HeaderCell>Bike</Table.HeaderCell> */}
                 <Table.HeaderCell>Period</Table.HeaderCell>
                 <Table.HeaderCell>Order Size</Table.HeaderCell>
                 <Table.HeaderCell>Status</Table.HeaderCell>
-                <Table.HeaderCell />
+                {/* <Table.HeaderCell /> */}
               </Table.HeaderRow>
             }
           >
@@ -198,11 +198,11 @@ export function AllBookingsTable({
                       {phone}
                     </span>
                   </Table.Cell>
-                  <Table.Cell>
+                  {/* <Table.Cell>
                     <span className="text-body font-body text-neutral-500">
                       {bike}
                     </span>
-                  </Table.Cell>
+                  </Table.Cell> */}
                   <Table.Cell>
                     <span className="whitespace-nowrap text-body font-body text-neutral-500">
                       {formatRentalPeriod(order.starts_at, order.stops_at)}
@@ -216,7 +216,7 @@ export function AllBookingsTable({
                   <Table.Cell>
                     <OrderStatusBadge status={order.status} />
                   </Table.Cell>
-                  <Table.Cell>
+                  {/* <Table.Cell>
                     <div className="flex grow shrink-0 basis-0 items-center justify-end">
                       <SubframeCore.DropdownMenu.Root>
                         <SubframeCore.DropdownMenu.Trigger asChild={true}>
@@ -247,7 +247,7 @@ export function AllBookingsTable({
                         </SubframeCore.DropdownMenu.Portal>
                       </SubframeCore.DropdownMenu.Root>
                     </div>
-                  </Table.Cell>
+                  </Table.Cell> */}
                 </Table.Row>
               );
             })}
