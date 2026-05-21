@@ -21,7 +21,7 @@ import {
             <Section className="mb-8 mt-4 text-center">
               {/* IMPORTANT: Email images must use absolute, publicly accessible URLs */}
               <Img
-                src="https://iwawhxfptzimluqyebiq.supabase.co/storage/v1/object/sign/echelon-assets/logo%20dots%20orange.png?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85NDY1OGQzYy00MzM4LTQ2NWYtODk0Yy0zNTZkYjgzYTQ2ZTYiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJlY2hlbG9uLWFzc2V0cy9sb2dvIGRvdHMgb3JhbmdlLnBuZyIsImlhdCI6MTc3OTE5NjM0MiwiZXhwIjoxODEwNzMyMzQyfQ.xv2xWfI0zvAWudTvzoxC2PLsc74TtGtHMpRH69Pxc5I" 
+                src="https://iwawhxfptzimluqyebiq.supabase.co/storage/v1/object/public/echelon-assets/logo%20dots%20orange.png" 
                 width="180"
                 height="auto"
                 alt="Echelon Cycling Hub"
