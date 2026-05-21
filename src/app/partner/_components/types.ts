@@ -1,11 +1,6 @@
-export type PartnerOrderStatus =
-  | "draft"
-  | "new"
-  | "canceled"
-  | "reserved"
-  | "started"
-  | "stopped"
-  | "archived";
+import type { BookingRow, OrderStatus } from "@/src/lib/orders";
+
+export type PartnerOrderStatus = OrderStatus;
 
 export type PartnerOrder = {
   id: string;
@@ -20,17 +15,7 @@ export type PartnerOrder = {
   } | null;
 };
 
-export type PartnerBookingRow = {
-  id: string;
-  order_number: number | string | null;
-  status: PartnerOrderStatus | null;
-  starts_at: string;
-  stops_at: string;
-  amount_in_cents: number | null;
-  customer_name: string | null;
-  customer_email: string | null;
-  customer_phone: string | null;
-};
+export type PartnerBookingRow = BookingRow;
 
 export type PartnerCustomerRow = {
   id: string;

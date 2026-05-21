@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
   const totalCommissionCents = (totalOrderValueCents * commissionRate) / 100;
 
   let ordersQuery = supabase
-    .from("partner_bookings_view")
+    .from("bookings_view")
     .select(
       "id, order_number, status, created_at, amount_in_cents, customer_name, customer_email",
     )

@@ -17,7 +17,7 @@ import {
   formatRentalPeriod,
 } from "@/src/utils/formatters";
 import type { PartnerOrder } from "./types";
-import { OrderStatusBadge } from "./OrderStatusBadge";
+import { OrderStatusBadge } from "@/src/components/OrderStatusBadge";
 
 interface RecentBookingsProps {
   orders: PartnerOrder[];

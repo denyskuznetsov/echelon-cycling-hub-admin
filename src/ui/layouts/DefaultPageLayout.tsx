@@ -28,7 +28,7 @@ const NAV_ITEMS: {
   href?: string;
 }[] = [
   { label: "Partners", roles: ["admin", "manager"], href: "/all-partners" },
-  { label: "Orders", roles: ["admin", "manager"] },
+  { label: "Orders", roles: ["admin", "manager"], href: "/orders" },
   { label: "Customers", roles: ["admin", "manager"] },
   {
     label: "Task Management",

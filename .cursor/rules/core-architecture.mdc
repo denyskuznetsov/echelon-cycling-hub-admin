@@ -14,7 +14,7 @@ You are an expert full-stack developer specializing in Next.js (App Router), Sup
 ## 2. Database-Driven Math (CRITICAL)
 - NEVER fetch large arrays of data to perform aggregations, filtering, or math (like `reduce`) on the frontend or in Node.js. 
 - ALL calculations, cross-table searches, and aggregations MUST be done inside PostgreSQL using Supabase RPCs (functions) or Views.
-- If a calculation requires bridging tables, recommend creating a PostgreSQL View (e.g., `partner_bookings_view`) instead of writing complex JS ORM joins.
+- If a calculation requires bridging tables, recommend creating a PostgreSQL View (e.g., `bookings_view`) instead of writing complex JS ORM joins.
 
 ## 3. Server-Side URL State
 - Use URL Search Parameters (`?page=1&query=john&sort=spent`) for pagination, search, and filtering state. 
