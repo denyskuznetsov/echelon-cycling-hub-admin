@@ -165,8 +165,8 @@ export function OverviewStats({
       <span className="text-body font-body text-subtext-color">
         * Statistic doesn&apos;t include orders in status Canceled
       </span>
-      <div className="flex w-full flex-wrap items-start rounded-md border border-solid border-neutral-border bg-default-background mobile:flex-col mobile:flex-nowrap mobile:gap-0">
-        <div className="flex grow shrink-0 basis-0 flex-col items-center justify-center gap-2 px-4 py-4">
+      <div className="flex w-full flex-wrap items-start overflow-hidden rounded-md border border-solid border-neutral-border bg-default-background mobile:flex-col mobile:flex-nowrap mobile:items-stretch mobile:gap-0">
+        <div className="flex grow shrink-0 basis-0 flex-col items-center justify-center gap-2 px-4 py-4 mobile:grow-0 mobile:basis-auto mobile:px-3 mobile:py-3">
           <span className="text-body-bold font-body-bold text-default-font text-center">
             Total Order Value
           </span>
@@ -175,7 +175,7 @@ export function OverviewStats({
           </span>
         </div>
         <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border mobile:h-px mobile:w-full mobile:flex-none" />
-        <div className="flex grow shrink-0 basis-0 flex-col items-center justify-center gap-2 px-4 py-4">
+        <div className="flex grow shrink-0 basis-0 flex-col items-center justify-center gap-2 px-4 py-4 mobile:grow-0 mobile:basis-auto mobile:px-3 mobile:py-3">
           <span className="text-body-bold font-body-bold text-default-font text-center">
             Orders
           </span>
@@ -184,7 +184,7 @@ export function OverviewStats({
           </span>
         </div>
         <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border mobile:h-px mobile:w-full mobile:flex-none" />
-        <div className="flex grow shrink-0 basis-0 flex-col items-center justify-center gap-2 px-4 py-4">
+        <div className="flex grow shrink-0 basis-0 flex-col items-center justify-center gap-2 px-4 py-4 mobile:grow-0 mobile:basis-auto mobile:px-3 mobile:py-3">
           <span className="text-body-bold font-body-bold text-default-font text-center">
             Your Commission ({formatRate(commissionRate)}%)
           </span>
@@ -192,7 +192,7 @@ export function OverviewStats({
             {formatCentsToWholeEuros(totalCommissionCents)}
           </span>
         </div>
-        <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border" />
+        <div className="flex w-px flex-none flex-col items-center gap-2 self-stretch bg-neutral-border mobile:hidden" />
       </div>
       <SalesTrends data={chartData} />
       <div className="flex h-px w-full flex-none flex-col items-center gap-2 bg-neutral-border" />

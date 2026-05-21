@@ -154,41 +154,41 @@ export function AllCustomersTable({
             })}
           </Table>
         )}
-        {totalPages > 1 && customers.length > 0 ? (
-          <Pagination
-            summary={`Page ${currentPage} of ${totalPages}`}
-            previousButton={
-              <IconButton
-                variant="neutral-secondary"
-                icon={<FeatherChevronLeft />}
-                disabled={currentPage === 1}
-                onClick={() => handlePageChange(currentPage - 1)}
-              />
-            }
-            pageButtons={pageNumbers.map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                variant={
-                  pageNumber === currentPage
-                    ? "brand-primary"
-                    : "neutral-tertiary"
-                }
-                onClick={() => handlePageChange(pageNumber)}
-              >
-                {String(pageNumber)}
-              </Button>
-            ))}
-            nextButton={
-              <IconButton
-                variant="neutral-secondary"
-                icon={<FeatherChevronRight />}
-                disabled={currentPage === totalPages}
-                onClick={() => handlePageChange(currentPage + 1)}
-              />
-            }
-          />
-        ) : null}
       </div>
+      {totalPages > 1 && customers.length > 0 ? (
+        <Pagination
+          summary={`Page ${currentPage} of ${totalPages}`}
+          previousButton={
+            <IconButton
+              variant="neutral-secondary"
+              icon={<FeatherChevronLeft />}
+              disabled={currentPage === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+            />
+          }
+          pageButtons={pageNumbers.map((pageNumber) => (
+            <Button
+              key={pageNumber}
+              variant={
+                pageNumber === currentPage
+                  ? "brand-primary"
+                  : "neutral-tertiary"
+              }
+              onClick={() => handlePageChange(pageNumber)}
+            >
+              {String(pageNumber)}
+            </Button>
+          ))}
+          nextButton={
+            <IconButton
+              variant="neutral-secondary"
+              icon={<FeatherChevronRight />}
+              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+            />
+          }
+        />
+      ) : null}
     </div>
   );
 }

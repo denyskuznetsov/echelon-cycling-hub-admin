@@ -113,28 +113,34 @@ export function AllBookingsTable({
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
-      <div className="flex w-full items-center gap-2">
-        <span className="grow shrink-0 basis-0 text-heading-3 font-heading-3 text-default-font">
+      <div className="flex w-full items-center gap-2 mobile:flex-col mobile:items-stretch mobile:gap-3">
+        <span className="grow shrink-0 basis-0 text-heading-3 font-heading-3 text-default-font mobile:grow-0 mobile:basis-auto">
           All Bookings
         </span>
-        <TextField label="" helpText="">
-          <TextField.Input
-            placeholder="Search by order #, name, or email"
-            value={search}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearch(event.target.value)
-            }
-          />
-        </TextField>
-        <Select
-          className="w-40 flex-none"
-          value={timeframe}
-          onValueChange={handleTimeframeChange}
-        >
-          <Select.Item value="all-time">All-time</Select.Item>
-          <Select.Item value="month">Past month</Select.Item>
-          <Select.Item value="week">Past week</Select.Item>
-        </Select>
+        <div className="flex items-center gap-2 mobile:w-full">
+          <TextField
+            className="mobile:grow mobile:shrink mobile:basis-0"
+            label=""
+            helpText=""
+          >
+            <TextField.Input
+              placeholder="Search by order #, name, or email"
+              value={search}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
+                setSearch(event.target.value)
+              }
+            />
+          </TextField>
+          <Select
+            className="w-40 flex-none"
+            value={timeframe}
+            onValueChange={handleTimeframeChange}
+          >
+            <Select.Item value="all-time">All-time</Select.Item>
+            <Select.Item value="month">Past month</Select.Item>
+            <Select.Item value="week">Past week</Select.Item>
+          </Select>
+        </div>
       </div>
       <div className="flex w-full flex-col items-start gap-6 overflow-hidden overflow-x-auto mobile:overflow-auto mobile:max-w-full">
         {orders.length === 0 ? (
@@ -247,41 +253,41 @@ export function AllBookingsTable({
             })}
           </Table>
         )}
-        {totalPages > 1 ? (
-          <Pagination
-            summary={`Page ${currentPage} of ${totalPages}`}
-            previousButton={
-              <IconButton
-                variant="neutral-secondary"
-                icon={<FeatherChevronLeft />}
-                disabled={currentPage === 1}
-                onClick={() => handlePageChange(currentPage - 1)}
-              />
-            }
-            pageButtons={pageNumbers.map((pageNumber) => (
-              <Button
-                key={pageNumber}
-                variant={
-                  pageNumber === currentPage
-                    ? "brand-primary"
-                    : "neutral-tertiary"
-                }
-                onClick={() => handlePageChange(pageNumber)}
-              >
-                {String(pageNumber)}
-              </Button>
-            ))}
-            nextButton={
-              <IconButton
-                variant="neutral-secondary"
-                icon={<FeatherChevronRight />}
-                disabled={currentPage === totalPages}
-                onClick={() => handlePageChange(currentPage + 1)}
-              />
-            }
-          />
-        ) : null}
       </div>
+      {totalPages > 1 ? (
+        <Pagination
+          summary={`Page ${currentPage} of ${totalPages}`}
+          previousButton={
+            <IconButton
+              variant="neutral-secondary"
+              icon={<FeatherChevronLeft />}
+              disabled={currentPage === 1}
+              onClick={() => handlePageChange(currentPage - 1)}
+            />
+          }
+          pageButtons={pageNumbers.map((pageNumber) => (
+            <Button
+              key={pageNumber}
+              variant={
+                pageNumber === currentPage
+                  ? "brand-primary"
+                  : "neutral-tertiary"
+              }
+              onClick={() => handlePageChange(pageNumber)}
+            >
+              {String(pageNumber)}
+            </Button>
+          ))}
+          nextButton={
+            <IconButton
+              variant="neutral-secondary"
+              icon={<FeatherChevronRight />}
+              disabled={currentPage === totalPages}
+              onClick={() => handlePageChange(currentPage + 1)}
+            />
+          }
+        />
+      ) : null}
     </div>
   );
 }

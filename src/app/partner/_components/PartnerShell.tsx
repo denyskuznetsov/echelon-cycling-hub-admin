@@ -94,7 +94,7 @@ export function PartnerShell({
         </div>
       </div>
       <div className="flex w-full flex-col items-start gap-6">
-        <div className="flex w-full flex-wrap items-center gap-2 mobile:flex-col mobile:flex-nowrap mobile:items-start mobile:justify-start mobile:gap-2">
+        <div className="mt-6 flex w-full flex-wrap items-center gap-2 mobile:flex-col mobile:flex-nowrap mobile:items-start mobile:justify-start mobile:gap-2">
           <div className="flex grow shrink-0 basis-0 flex-col items-start gap-1">
             <span className="w-full text-heading-2 font-heading-2 text-default-font">
               Sales Report
