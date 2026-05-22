@@ -29,6 +29,11 @@ const NAV_ITEMS: {
 }[] = [
   { label: "Partners", roles: ["admin", "manager"], href: "/all-partners" },
   { label: "Orders", roles: ["admin", "manager"], href: "/orders" },
+  {
+    label: "Bike Fits",
+    roles: ["admin", "manager"],
+    href: "/bike-fits/all-bike-fits",
+  },
   { label: "Customers", roles: ["admin", "manager"] },
   {
     label: "Task Management",
