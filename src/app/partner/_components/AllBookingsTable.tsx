@@ -3,15 +3,11 @@
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar } from "@/ui/components/Avatar";
-import { Button } from "@/ui/components/Button";
 import { DropdownMenu } from "@/ui/components/DropdownMenu";
 import { IconButton } from "@/ui/components/IconButton";
-import { Pagination } from "@/ui/components/Pagination";
 import { Select } from "@/ui/components/Select";
 import { Table } from "@/ui/components/Table";
 import { TextField } from "@/ui/components/TextField";
-import { FeatherChevronLeft } from "@subframe/core";
-import { FeatherChevronRight } from "@subframe/core";
 import { FeatherEdit2 } from "@subframe/core";
 import { FeatherFlag } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
@@ -24,6 +20,7 @@ import { createClient } from "@/src/utils/supabase/client";
 import type { PartnerBookingRow } from "./types";
 import type { BookingsTimeframe } from "../_lib/loadPartnerOverview";
 import { OrderStatusBadge } from "@/src/components/OrderStatusBadge";
+import { TablePagination } from "@/src/components/TablePagination";
 
 interface AllBookingsTableProps {
   orders: PartnerBookingRow[];
@@ -94,11 +91,6 @@ export function AllBookingsTable({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, query, timeframe, pathname, router]);
 
-  const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
-    router.push(buildHref(query, newPage, timeframe));
-  };
-
   const handleTimeframeChange = (newTimeframe: string) => {
     const next = (
       newTimeframe === "week" || newTimeframe === "month"
@@ -108,8 +100,6 @@ export function AllBookingsTable({
     if (next === timeframe) return;
     router.push(buildHref(query, 1, next));
   };
-
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -254,40 +244,13 @@ export function AllBookingsTable({
           </Table>
         )}
       </div>
-      {totalPages > 1 ? (
-        <Pagination
-          summary={`Page ${currentPage} of ${totalPages}`}
-          previousButton={
-            <IconButton
-              variant="neutral-secondary"
-              icon={<FeatherChevronLeft />}
-              disabled={currentPage === 1}
-              onClick={() => handlePageChange(currentPage - 1)}
-            />
-          }
-          pageButtons={pageNumbers.map((pageNumber) => (
-            <Button
-              key={pageNumber}
-              variant={
-                pageNumber === currentPage
-                  ? "brand-primary"
-                  : "neutral-tertiary"
-              }
-              onClick={() => handlePageChange(pageNumber)}
-            >
-              {String(pageNumber)}
-            </Button>
-          ))}
-          nextButton={
-            <IconButton
-              variant="neutral-secondary"
-              icon={<FeatherChevronRight />}
-              disabled={currentPage === totalPages}
-              onClick={() => handlePageChange(currentPage + 1)}
-            />
-          }
-        />
-      ) : null}
+      <TablePagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={(page) =>
+          router.push(buildHref(query, page, timeframe))
+        }
+      />
     </div>
   );
 }

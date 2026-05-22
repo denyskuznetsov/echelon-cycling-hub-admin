@@ -3,14 +3,10 @@
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar } from "@/ui/components/Avatar";
-import { Button } from "@/ui/components/Button";
-import { IconButton } from "@/ui/components/IconButton";
-import { Pagination } from "@/ui/components/Pagination";
 import { Table } from "@/ui/components/Table";
 import { TextField } from "@/ui/components/TextField";
-import { FeatherChevronLeft } from "@subframe/core";
-import { FeatherChevronRight } from "@subframe/core";
 import type { PartnerCustomerRow } from "./types";
+import { TablePagination } from "@/src/components/TablePagination";
 
 interface AllCustomersTableProps {
   customers: PartnerCustomerRow[];
@@ -61,13 +57,6 @@ export function AllCustomersTable({
     return () => clearTimeout(handle);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search, query, pathname, router]);
-
-  const handlePageChange = (newPage: number) => {
-    if (newPage < 1 || newPage > totalPages || newPage === currentPage) return;
-    router.push(buildHref(query, newPage));
-  };
-
-  const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
@@ -155,38 +144,11 @@ export function AllCustomersTable({
           </Table>
         )}
       </div>
-      {totalPages > 1 && customers.length > 0 ? (
-        <Pagination
-          summary={`Page ${currentPage} of ${totalPages}`}
-          previousButton={
-            <IconButton
-              variant="neutral-secondary"
-              icon={<FeatherChevronLeft />}
-              disabled={currentPage === 1}
-              onClick={() => handlePageChange(currentPage - 1)}
-            />
-          }
-          pageButtons={pageNumbers.map((pageNumber) => (
-            <Button
-              key={pageNumber}
-              variant={
-                pageNumber === currentPage
-                  ? "brand-primary"
-                  : "neutral-tertiary"
-              }
-              onClick={() => handlePageChange(pageNumber)}
-            >
-              {String(pageNumber)}
-            </Button>
-          ))}
-          nextButton={
-            <IconButton
-              variant="neutral-secondary"
-              icon={<FeatherChevronRight />}
-              disabled={currentPage === totalPages}
-              onClick={() => handlePageChange(currentPage + 1)}
-            />
-          }
+      {customers.length > 0 ? (
+        <TablePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => router.push(buildHref(query, page))}
         />
       ) : null}
     </div>
