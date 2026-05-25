@@ -1,4 +1,5 @@
 import { createClient } from "@/src/utils/supabase/server";
+import { computeDateThreshold } from "@/src/lib/orders";
 
 export type BikeFitStatus = "draft" | "in_progress" | "completed";
 
@@ -58,20 +59,6 @@ export function resolveBikeFitsTimeframe(
   return "all-time";
 }
 
-export function computeBikeFitsDateThreshold(
-  timeframe: BikeFitsTimeframe,
-): string | null {
-  if (timeframe === "all-time") return null;
-
-  const now = new Date();
-  if (timeframe === "week") {
-    now.setUTCDate(now.getUTCDate() - 7);
-  } else {
-    now.setUTCMonth(now.getUTCMonth() - 1);
-  }
-  return now.toISOString().slice(0, 10);
-}
-
 export async function loadBikeFitsPage(
   page: number,
   query: string = "",
@@ -79,7 +66,7 @@ export async function loadBikeFitsPage(
 ): Promise<{ bikeFits: BikeFitRow[]; count: number }> {
   const from = (page - 1) * BIKE_FITS_PAGE_SIZE;
   const to = from + BIKE_FITS_PAGE_SIZE - 1;
-  const dateThreshold = computeBikeFitsDateThreshold(timeframe);
+  const dateThreshold = computeDateThreshold(timeframe);
 
   const supabase = await createClient();
   let queryBuilder = supabase
@@ -95,7 +82,7 @@ export async function loadBikeFitsPage(
   }
 
   if (dateThreshold) {
-    queryBuilder = queryBuilder.gte("date_of_fit", dateThreshold);
+    queryBuilder = queryBuilder.gte("created_at", dateThreshold);
   }
 
   const { data, error, count } = await queryBuilder
@@ -112,4 +99,22 @@ export async function loadBikeFitsPage(
     bikeFits: ((data as BikeFitViewRow[] | null) ?? []).map(mapBikeFitRow),
     count: count ?? 0,
   };
+}
+
+export async function loadBikeFitById(id: string): Promise<BikeFitRow | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bike_fits_view")
+    .select("*")
+    .eq("id", id)
+    .maybeSingle();
+
+  if (error) {
+    console.error("loadBikeFitById:", error);
+    return null;
+  }
+
+  if (!data) return null;
+
+  return mapBikeFitRow(data as BikeFitViewRow);
 }

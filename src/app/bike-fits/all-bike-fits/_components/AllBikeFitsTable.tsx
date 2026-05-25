@@ -98,6 +98,14 @@ export function AllBikeFitsTable({
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
+      <div className="flex w-full items-center justify-end">
+        <Button
+          variant="brand-primary"
+          onClick={() => router.push("/bike-fits/new")}
+        >
+          Create New Bike Fit
+        </Button>
+      </div>
       <div className="flex w-full items-center gap-2 mobile:flex-col mobile:items-stretch mobile:gap-3">
         <span className="grow shrink-0 basis-0 text-heading-3 font-heading-3 text-default-font mobile:grow-0 mobile:basis-auto">
           All Bike Fits
@@ -230,9 +238,7 @@ export function AllBikeFitsTable({
                               <DropdownMenu.DropdownItem
                                 icon={<FeatherEdit2 />}
                                 onClick={() =>
-                                  router.push(
-                                    `/bike-fits/bike-fit-page?id=${fit.id}`,
-                                  )
+                                  router.push(`/bike-fits/${fit.id}`)
                                 }
                               >
                                 Edit
