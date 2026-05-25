@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar } from "@/ui/components/Avatar";
 import { Badge } from "@/ui/components/Badge";
@@ -206,9 +207,12 @@ export function AllBikeFitsTable({
                     </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <span className="whitespace-nowrap text-body-bold font-body-bold text-default-font">
+                    <Link
+                      href={`/bike-fits/${fit.id}`}
+                      className="whitespace-nowrap text-body-bold font-body-bold text-brand-700 hover:underline"
+                    >
                       #{fit.fit_number}
-                    </span>
+                    </Link>
                   </Table.Cell>
                   <Table.Cell>
                     <span className="text-body font-body text-neutral-500">
@@ -238,7 +242,7 @@ export function AllBikeFitsTable({
                               <DropdownMenu.DropdownItem
                                 icon={<FeatherEdit2 />}
                                 onClick={() =>
-                                  router.push(`/bike-fits/${fit.id}`)
+                                  router.push(`/bike-fits/${fit.id}/edit`)
                                 }
                               >
                                 Edit

@@ -82,7 +82,7 @@ export async function loadBikeFitsPage(
   }
 
   if (dateThreshold) {
-    queryBuilder = queryBuilder.gte("created_at", dateThreshold);
+    queryBuilder = queryBuilder.gte("date_of_fit", dateThreshold);
   }
 
   const { data, error, count } = await queryBuilder

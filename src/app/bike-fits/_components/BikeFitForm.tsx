@@ -35,9 +35,16 @@ export function BikeFitForm({ mode, bikeFit }: BikeFitFormProps) {
             Form fields for customer, measurements, and fit notes will go here.
           </p>
         )}
-        <Link href="/bike-fits/all-bike-fits">
-          <Button variant="neutral-secondary">Back to all bike fits</Button>
-        </Link>
+        <div className="flex flex-wrap items-center gap-2">
+          {isEditing && bikeFit ? (
+            <Link href={`/bike-fits/${bikeFit.id}`}>
+              <Button variant="neutral-secondary">View fit</Button>
+            </Link>
+          ) : null}
+          <Link href="/bike-fits/all-bike-fits">
+            <Button variant="neutral-secondary">Back to all bike fits</Button>
+          </Link>
+        </div>
       </div>
     </>
   );
