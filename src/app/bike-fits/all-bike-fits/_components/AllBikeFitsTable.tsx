@@ -15,7 +15,11 @@ import { FeatherEdit2 } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
 import { TablePagination } from "@/src/components/TablePagination";
-import type { BikeFitRow, BikeFitsTimeframe } from "@/src/lib/bike-fits";
+import {
+  formatBikeType,
+  type BikeFitRow,
+  type BikeFitsTimeframe,
+} from "@/src/lib/bike-fits-types";
 
 interface AllBikeFitsTableProps {
   bikeFits: BikeFitRow[];
@@ -216,7 +220,7 @@ export function AllBikeFitsTable({
                   </Table.Cell>
                   <Table.Cell>
                     <span className="text-body font-body text-neutral-500">
-                      {fit.bike_type}
+                      {formatBikeType(fit.bike_type)}
                     </span>
                   </Table.Cell>
                   <Table.Cell>

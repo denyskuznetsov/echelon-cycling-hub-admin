@@ -1,28 +1,11 @@
 import { createClient } from "@/src/utils/supabase/server";
 import { computeDateThreshold } from "@/src/lib/orders";
+import type { BikeFitRow, BikeFitStatus, BikeFitsTimeframe } from "./bike-fits-types";
 
-export type BikeFitStatus = "draft" | "in_progress" | "completed";
-
-export type BikeFitsTimeframe = "week" | "month" | "all-time";
-
-export interface BikeFitRow {
-  id: string;
-  customer_name: string;
-  fit_number: number;
-  bike_type: string;
-  fit_date: string;
-  status: BikeFitStatus;
-}
+export type { BikeFitRow, BikeFitStatus, BikeFitsTimeframe } from "./bike-fits-types";
+export { formatBikeType, resolveBikeFitsTimeframe } from "./bike-fits-types";
 
 export const BIKE_FITS_PAGE_SIZE = 10;
-
-const BIKE_TYPE_LABELS: Record<string, string> = {
-  road: "Road",
-  gravel: "Gravel",
-  TT: "TT",
-  MTB: "MTB",
-  city: "City",
-};
 
 type BikeFitViewRow = {
   id: string;
@@ -37,26 +20,18 @@ type BikeFitViewRow = {
   status: string;
 };
 
-function formatBikeType(value: string): string {
-  return BIKE_TYPE_LABELS[value] ?? value;
-}
-
 function mapBikeFitRow(row: BikeFitViewRow): BikeFitRow {
   return {
     id: row.id,
+    customer_id: row.customer_id,
     customer_name: row.customer_name?.trim() || "Unknown",
+    customer_email: row.customer_email,
+    customer_phone: row.customer_phone,
     fit_number: row.fit_number,
-    bike_type: formatBikeType(row.bike_type),
+    bike_type: row.bike_type,
     fit_date: row.date_of_fit,
     status: row.status as BikeFitStatus,
   };
-}
-
-export function resolveBikeFitsTimeframe(
-  value: string | undefined,
-): BikeFitsTimeframe {
-  if (value === "week" || value === "month") return value;
-  return "all-time";
 }
 
 export async function loadBikeFitsPage(

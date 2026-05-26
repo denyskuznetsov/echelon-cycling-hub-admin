@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { Badge } from "@/ui/components/Badge";
 import { Button } from "@/ui/components/Button";
-import type { BikeFitRow } from "@/src/lib/bike-fits";
+import { formatBikeType, type BikeFitRow } from "@/src/lib/bike-fits-types";
 
 interface BikeFitDetailProps {
   bikeFit: BikeFitRow;
@@ -73,7 +73,7 @@ export function BikeFitDetail({ bikeFit, canEdit = true }: BikeFitDetailProps) {
               Bike Type
             </dt>
             <dd className="text-body font-body text-default-font">
-              {bikeFit.bike_type}
+              {formatBikeType(bikeFit.bike_type)}
             </dd>
           </div>
           <div className="flex flex-col gap-1">

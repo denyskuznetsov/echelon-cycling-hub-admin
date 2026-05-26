@@ -1,11 +1,9 @@
-import type { BikeFitRow } from "@/src/lib/bike-fits";
+import type { BikeFitRow } from "@/src/lib/bike-fits-types";
+import type { CustomerOption } from "@/src/lib/customers-types";
 
 export interface BikeFitFormValues {
   customer: {
     customer_id: string | null;
-    name: string;
-    email: string;
-    phone: string;
   };
   oldBike: {
     has_old_bike: boolean;
@@ -30,17 +28,24 @@ export function bikeFitRowToInitialData(
   row: BikeFitRow,
 ): Partial<BikeFitFormValues> {
   return {
-    customer: {
-      customer_id: null,
-      name: row.customer_name,
-      email: "",
-      phone: "",
-    },
+    customer: { customer_id: row.customer_id },
     newBikeFitData: {
       bike_type: row.bike_type,
       saddle_height_mm: null,
       reach_mm: null,
       notes: "",
     },
+  };
+}
+
+export function bikeFitRowToInitialCustomer(
+  row: BikeFitRow,
+): CustomerOption | null {
+  if (!row.customer_id) return null;
+  return {
+    id: row.customer_id,
+    name: row.customer_name,
+    email: row.customer_email,
+    phone: row.customer_phone,
   };
 }

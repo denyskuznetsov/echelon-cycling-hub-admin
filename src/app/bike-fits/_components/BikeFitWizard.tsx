@@ -4,7 +4,8 @@ import React from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { Stepper } from "@/ui/components/Stepper";
-import type { BikeFitFormValues } from "./bike-fit-form-values";
+import type { CustomerOption } from "@/src/lib/customers-types";
+import { type BikeFitFormValues } from "./bike-fit-form-values";
 import { CustomerStep } from "./wizard-steps/CustomerStep";
 import { OldBikeStep } from "./wizard-steps/OldBikeStep";
 import { PhysicalAssessmentStep } from "./wizard-steps/PhysicalAssessmentStep";
@@ -17,7 +18,7 @@ export type BikeFitStepKey =
   | "new-bike-fit-data";
 
 const DEFAULT_VALUES: BikeFitFormValues = {
-  customer: { customer_id: null, name: "", email: "", phone: "" },
+  customer: { customer_id: null },
   oldBike: { has_old_bike: false, bike_type: "", notes: "" },
   physicalAssessment: {
     height_cm: null,
@@ -64,9 +65,17 @@ function mergeInitialData(
 
 interface BikeFitWizardProps {
   initialData?: Partial<BikeFitFormValues>;
+  /**
+   * Customer attached to the bike fit on load (edit mode). Used only to
+   * display the selected customer's label without re-querying the DB.
+   */
+  initialCustomer?: CustomerOption | null;
 }
 
-export function BikeFitWizard({ initialData }: BikeFitWizardProps) {
+export function BikeFitWizard({
+  initialData,
+  initialCustomer = null,
+}: BikeFitWizardProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -127,7 +136,9 @@ export function BikeFitWizard({ initialData }: BikeFitWizardProps) {
       </Stepper>
 
       <div className="flex w-full flex-col items-start gap-4 rounded-md border border-solid border-neutral-border bg-default-background p-8">
-        {currentStep === "customer" && <CustomerStep />}
+        {currentStep === "customer" && (
+          <CustomerStep initialCustomer={initialCustomer} />
+        )}
         {currentStep === "old-bike" && <OldBikeStep />}
         {currentStep === "physical-assessment" && <PhysicalAssessmentStep />}
         {currentStep === "new-bike-fit-data" && <NewBikeFitDataStep />}
