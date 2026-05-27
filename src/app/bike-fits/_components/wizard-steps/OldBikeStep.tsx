@@ -3,8 +3,13 @@
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import type { BikeFitFormValues } from "../bike-fit-form-values";
+import { WizardStepFooter } from "./WizardStepFooter";
 
-export function OldBikeStep() {
+interface OldBikeStepProps {
+  onNext: () => void;
+}
+
+export function OldBikeStep({ onNext }: OldBikeStepProps) {
   const { register, watch } = useFormContext<BikeFitFormValues>();
   const bikeType = watch("oldBike.bike_type");
 
@@ -21,6 +26,8 @@ export function OldBikeStep() {
         placeholder="Old bike type"
         {...register("oldBike.bike_type")}
       />
+
+      <WizardStepFooter onNext={onNext} />
     </div>
   );
 }

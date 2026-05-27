@@ -3,8 +3,13 @@
 import React from "react";
 import { useFormContext } from "react-hook-form";
 import type { BikeFitFormValues } from "../bike-fit-form-values";
+import { WizardStepFooter } from "./WizardStepFooter";
 
-export function PhysicalAssessmentStep() {
+interface PhysicalAssessmentStepProps {
+  onNext: () => void;
+}
+
+export function PhysicalAssessmentStep({ onNext }: PhysicalAssessmentStepProps) {
   const { register, watch } = useFormContext<BikeFitFormValues>();
   const height = watch("physicalAssessment.height_cm");
 
@@ -23,6 +28,8 @@ export function PhysicalAssessmentStep() {
         placeholder="Height in cm"
         {...register("physicalAssessment.height_cm", { valueAsNumber: true })}
       />
+
+      <WizardStepFooter onNext={onNext} />
     </div>
   );
 }

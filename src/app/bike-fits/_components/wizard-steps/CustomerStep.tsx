@@ -14,6 +14,7 @@ import { createClient } from "@/src/utils/supabase/client";
 import type { CustomerOption } from "@/src/lib/customers-types";
 import type { BikeFitFormValues } from "../bike-fit-form-values";
 import { NewCustomerDialog } from "../NewCustomerDialog";
+import { WizardStepFooter } from "./WizardStepFooter";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_LIMIT = 20;
@@ -24,9 +25,13 @@ interface CustomerStepProps {
    * to display the selected customer's label without re-querying the DB.
    */
   initialCustomer?: CustomerOption | null;
+  onNext: () => void;
 }
 
-export function CustomerStep({ initialCustomer = null }: CustomerStepProps) {
+export function CustomerStep({
+  initialCustomer = null,
+  onNext,
+}: CustomerStepProps) {
   const { control, register, setValue } = useFormContext<BikeFitFormValues>();
   const customerId = useWatch({ control, name: "customer.customer_id" });
 
@@ -223,6 +228,8 @@ export function CustomerStep({ initialCustomer = null }: CustomerStepProps) {
         onOpenChange={setDialogOpen}
         onCreated={handleCreated}
       />
+
+      <WizardStepFooter onNext={onNext} />
     </div>
   );
 }

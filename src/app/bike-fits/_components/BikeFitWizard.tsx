@@ -102,6 +102,13 @@ export function BikeFitWizard({
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
+  const goToNextStep = () => {
+    const nextStep = STEPS[currentIndex + 1];
+    if (nextStep) {
+      goToStep(nextStep.key);
+    }
+  };
+
   return (
     <FormProvider {...methods}>
       <div className="flex w-full flex-col items-start gap-2">
@@ -137,10 +144,15 @@ export function BikeFitWizard({
 
       <div className="flex w-full flex-col items-start gap-4 rounded-md border border-solid border-neutral-border bg-default-background p-8">
         {currentStep === "customer" && (
-          <CustomerStep initialCustomer={initialCustomer} />
+          <CustomerStep
+            initialCustomer={initialCustomer}
+            onNext={goToNextStep}
+          />
         )}
-        {currentStep === "old-bike" && <OldBikeStep />}
-        {currentStep === "physical-assessment" && <PhysicalAssessmentStep />}
+        {currentStep === "old-bike" && <OldBikeStep onNext={goToNextStep} />}
+        {currentStep === "physical-assessment" && (
+          <PhysicalAssessmentStep onNext={goToNextStep} />
+        )}
         {currentStep === "new-bike-fit-data" && <NewBikeFitDataStep />}
       </div>
     </FormProvider>
