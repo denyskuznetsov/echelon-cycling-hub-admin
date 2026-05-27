@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { FeatherX } from "@subframe/core";
 import type { FieldPath } from "react-hook-form";
 import { Controller, get, useFormContext } from "react-hook-form";
 import { Select } from "@/ui/components/Select";
@@ -145,23 +146,43 @@ export function WizardSelectField({
           typeof field.value === "string" && field.value !== ""
             ? field.value
             : undefined;
+        const hasValue = stringValue !== undefined;
 
         return (
-          <Select
-            className="w-full"
-            label={label}
-            placeholder={placeholder}
-            error={!!error}
-            helpText={error}
-            value={stringValue}
-            onValueChange={(next) => field.onChange(next)}
-          >
-            {normalizedOptions.map((option) => (
-              <Select.Item key={option.value} value={option.value}>
-                {option.label}
-              </Select.Item>
-            ))}
-          </Select>
+          // Custom label row so we can render a Clear affordance alongside
+          // the label; Subframe's <Select label> only accepts a string.
+          <div className="flex w-full flex-col items-start gap-1">
+            <div className="flex w-full items-center justify-between gap-2">
+              <span className="text-caption-bold font-caption-bold text-default-font">
+                {label}
+              </span>
+              {hasValue ? (
+                <button
+                  type="button"
+                  onClick={() => field.onChange("")}
+                  className="flex items-center gap-1 rounded text-caption font-caption text-subtext-color transition-colors hover:text-default-font focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
+                  aria-label={`Clear ${label}`}
+                >
+                  <FeatherX className="h-3 w-3" />
+                  Clear
+                </button>
+              ) : null}
+            </div>
+            <Select
+              className="w-full"
+              placeholder={placeholder}
+              error={!!error}
+              helpText={error}
+              value={stringValue}
+              onValueChange={(next) => field.onChange(next)}
+            >
+              {normalizedOptions.map((option) => (
+                <Select.Item key={option.value} value={option.value}>
+                  {option.label}
+                </Select.Item>
+              ))}
+            </Select>
+          </div>
         );
       }}
     />

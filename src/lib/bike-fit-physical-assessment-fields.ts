@@ -1,4 +1,11 @@
 import type { FieldPath } from "react-hook-form";
+import {
+  FOOT_STRUCTURE_OPTIONS,
+  FULL_LIMITED_OPTIONS,
+  PELVIS_LEVEL_OPTIONS,
+  RATING_OPTIONS,
+  YES_NO_OPTIONS,
+} from "@/src/lib/bike-fit-enums";
 import type {
   BikeFitFormValues,
   PhysicalAssessmentFormValues,
@@ -13,15 +20,37 @@ export type PhysicalAssessmentSectionId =
 
 export type PhysicalAssessmentFieldType = "text" | "textarea" | "mm" | "select";
 
-export interface PhysicalAssessmentFieldDef {
+interface BasePhysicalAssessmentFieldDef {
   key: keyof PhysicalAssessmentFormValues;
-  type: PhysicalAssessmentFieldType;
   label: string;
   placeholder?: string;
   section: PhysicalAssessmentSectionId;
   width: "full" | "half";
-  options?: readonly string[];
 }
+
+interface TextLikePhysicalAssessmentFieldDef
+  extends BasePhysicalAssessmentFieldDef {
+  type: "text" | "textarea";
+}
+
+interface MmPhysicalAssessmentFieldDef extends BasePhysicalAssessmentFieldDef {
+  type: "mm";
+}
+
+interface SelectPhysicalAssessmentFieldDef
+  extends BasePhysicalAssessmentFieldDef {
+  type: "select";
+  options: readonly string[];
+}
+
+/**
+ * Discriminated union over field `type`. `options` is required iff
+ * `type === "select"`, eliminating optional-chaining noise in consumers.
+ */
+export type PhysicalAssessmentFieldDef =
+  | TextLikePhysicalAssessmentFieldDef
+  | MmPhysicalAssessmentFieldDef
+  | SelectPhysicalAssessmentFieldDef;
 
 export const PHYSICAL_ASSESSMENT_SECTIONS: {
   id: PhysicalAssessmentSectionId;
@@ -33,24 +62,6 @@ export const PHYSICAL_ASSESSMENT_SECTIONS: {
   { id: "flexibility", title: "Flexibility & range of motion" },
   { id: "observations", title: "Posture & gait observations" },
 ];
-
-const FOOT_STRUCTURE_OPTIONS = [
-  "Neutral",
-  "Mild varus",
-  "Mild valgus",
-  "Moderate varus",
-  "Moderate valgus",
-  "Significant varus",
-  "Significant valgus",
-] as const;
-
-const PELVIS_LEVEL_OPTIONS = ["Level", "Right higher", "Left higher"] as const;
-
-const RATING_OPTIONS = ["1", "2", "3", "4", "5"] as const;
-
-const FULL_LIMITED_OPTIONS = ["Full", "Limited"] as const;
-
-const YES_NO_OPTIONS = ["Yes", "No"] as const;
 
 /** Single source of truth for Physical Assessment fields, payload keys, and step layout. */
 export const PHYSICAL_ASSESSMENT_FIELD_DEFS: readonly PhysicalAssessmentFieldDef[] = [

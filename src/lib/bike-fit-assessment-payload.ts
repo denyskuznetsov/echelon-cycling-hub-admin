@@ -30,7 +30,10 @@ function readString(record: Record<string, unknown>, key: string): string {
   return typeof value === "string" ? value : "";
 }
 
-function readNumber(record: Record<string, unknown>, key: string): number | null {
+function readNumber(
+  record: Record<string, unknown>,
+  key: string,
+): number | null {
   const value = record[key];
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value === "string" && value.trim() !== "") {
@@ -38,6 +41,22 @@ function readNumber(record: Record<string, unknown>, key: string): number | null
     return Number.isFinite(parsed) ? parsed : null;
   }
   return null;
+}
+
+/**
+ * Reads a string from `record[key]` and only returns it if it's a member of
+ * `allowedOptions`. Unknown / corrupt values are coerced to `""` so the
+ * form never holds an out-of-band enum value. This is the runtime
+ * counterpart of the `Enum | ""` field types in `PhysicalAssessmentFormValues`.
+ */
+function readEnumString(
+  record: Record<string, unknown>,
+  key: string,
+  allowedOptions: readonly string[],
+): string {
+  const raw = record[key];
+  if (typeof raw !== "string") return "";
+  return allowedOptions.includes(raw) ? raw : "";
 }
 
 export function compactPayload(
@@ -48,26 +67,31 @@ export function compactPayload(
   ) as BikeFitAssessmentPayload;
 }
 
+/**
+ * Boundary helper: erases per-key form-value types so we can iterate over
+ * heterogeneous field defs without per-line `as` casts. The structural
+ * guarantee comes from the field defs being a single source of truth.
+ */
+type LooseFormValues = Record<string, string | number | null>;
+
+function asLoose<T extends object>(values: T): LooseFormValues {
+  return values as unknown as LooseFormValues;
+}
+
 function mapOldBikeToPayload(
   oldBike: OldBikeFormValues,
 ): BikeFitAssessmentPayload {
   const payload: Record<string, string | number> = {};
+  const source = asLoose(oldBike);
 
   for (const field of OLD_BIKE_FIELD_DEFS) {
-    const value = oldBike[field.key];
-
     if (field.type === "mm") {
-      const numericValue = finiteNumber(value as number | null);
-      if (numericValue !== undefined) {
-        payload[field.key] = numericValue;
-      }
+      const numericValue = finiteNumber(source[field.key] as number | null);
+      if (numericValue !== undefined) payload[field.key] = numericValue;
       continue;
     }
-
-    const textValue = trimString(value as string);
-    if (textValue !== undefined) {
-      payload[field.key] = textValue;
-    }
+    const textValue = trimString(source[field.key] as string);
+    if (textValue !== undefined) payload[field.key] = textValue;
   }
 
   return payload as BikeFitAssessmentPayload;
@@ -77,22 +101,16 @@ function mapPhysicalAssessmentToPayload(
   physicalAssessment: PhysicalAssessmentFormValues,
 ): BikeFitAssessmentPayload {
   const payload: Record<string, string | number> = {};
+  const source = asLoose(physicalAssessment);
 
   for (const field of PHYSICAL_ASSESSMENT_FIELD_DEFS) {
-    const value = physicalAssessment[field.key];
-
     if (field.type === "mm") {
-      const numericValue = finiteNumber(value as number | null);
-      if (numericValue !== undefined) {
-        payload[field.key] = numericValue;
-      }
+      const numericValue = finiteNumber(source[field.key] as number | null);
+      if (numericValue !== undefined) payload[field.key] = numericValue;
       continue;
     }
-
-    const textValue = trimString(value as string);
-    if (textValue !== undefined) {
-      payload[field.key] = textValue;
-    }
+    const textValue = trimString(source[field.key] as string);
+    if (textValue !== undefined) payload[field.key] = textValue;
   }
 
   return payload as BikeFitAssessmentPayload;
@@ -106,14 +124,14 @@ export function assessmentPayloadToOldBikeValues(
       ? (payload as Record<string, unknown>)
       : {};
   const oldBike: OldBikeFormValues = { ...EMPTY_OLD_BIKE };
+  const target = asLoose(oldBike);
 
   for (const field of OLD_BIKE_FIELD_DEFS) {
     if (field.type === "mm") {
-      oldBike[field.key] = readNumber(record, field.key) as never;
+      target[field.key] = readNumber(record, field.key);
       continue;
     }
-
-    oldBike[field.key] = readString(record, field.key) as never;
+    target[field.key] = readString(record, field.key);
   }
 
   return oldBike;
@@ -129,14 +147,18 @@ export function assessmentPayloadToPhysicalAssessmentValues(
   const physicalAssessment: PhysicalAssessmentFormValues = {
     ...EMPTY_PHYSICAL_ASSESSMENT,
   };
+  const target = asLoose(physicalAssessment);
 
   for (const field of PHYSICAL_ASSESSMENT_FIELD_DEFS) {
     if (field.type === "mm") {
-      physicalAssessment[field.key] = readNumber(record, field.key) as never;
+      target[field.key] = readNumber(record, field.key);
       continue;
     }
-
-    physicalAssessment[field.key] = readString(record, field.key) as never;
+    if (field.type === "select") {
+      target[field.key] = readEnumString(record, field.key, field.options);
+      continue;
+    }
+    target[field.key] = readString(record, field.key);
   }
 
   return physicalAssessment;

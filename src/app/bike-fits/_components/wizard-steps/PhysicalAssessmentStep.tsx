@@ -52,7 +52,7 @@ function renderField(field: PhysicalAssessmentFieldDef) {
         name={name}
         label={field.label}
         placeholder={field.placeholder}
-        options={field.options ?? []}
+        options={field.options}
       />
     );
   }

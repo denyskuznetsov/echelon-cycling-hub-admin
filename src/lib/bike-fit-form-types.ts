@@ -1,3 +1,11 @@
+import type {
+  FootStructure,
+  FullLimited,
+  PelvisLevel,
+  Rating,
+  YesNo,
+} from "@/src/lib/bike-fit-enums";
+
 export interface OldBikeFormValues {
   cycling_experience: string;
   years_cycling: string;
@@ -23,25 +31,25 @@ export interface PhysicalAssessmentFormValues {
   physiological_survey: string;
   previous_injuries: string;
   ischial_tuberosity_width_mm: number | null;
-  forefoot_structure_left: string;
-  forefoot_structure_right: string;
-  rearfoot_structure_left: string;
-  rearfoot_structure_right: string;
+  forefoot_structure_left: FootStructure | "";
+  forefoot_structure_right: FootStructure | "";
+  rearfoot_structure_left: FootStructure | "";
+  rearfoot_structure_right: FootStructure | "";
   arch_height: string;
-  pelvis_level: string;
-  low_back_flexibility: string;
-  shoulders_flexibility: string;
-  neck_flexibility: string;
-  dorsi_flexion_left: string;
-  dorsi_flexion_right: string;
-  plantar_flexion_left: string;
-  plantar_flexion_right: string;
-  hamstring_flexibility_left: string;
-  hamstring_flexibility_right: string;
-  hip_rom_left: string;
-  hip_rom_right: string;
+  pelvis_level: PelvisLevel | "";
+  low_back_flexibility: Rating | "";
+  shoulders_flexibility: Rating | "";
+  neck_flexibility: Rating | "";
+  dorsi_flexion_left: FullLimited | "";
+  dorsi_flexion_right: FullLimited | "";
+  plantar_flexion_left: FullLimited | "";
+  plantar_flexion_right: FullLimited | "";
+  hamstring_flexibility_left: Rating | "";
+  hamstring_flexibility_right: Rating | "";
+  hip_rom_left: Rating | "";
+  hip_rom_right: Rating | "";
   leg_length_discrepancy: string;
-  pelvic_rotation: string;
+  pelvic_rotation: YesNo | "";
   knee_bend_observations: string;
 }
 
@@ -59,10 +67,41 @@ export interface BikeFitFormValues {
   };
 }
 
-type PayloadValueFor<K extends string> = K extends `${string}_mm` ? number : string;
+type IsNever<T> = [T] extends [never] ? true : false;
+type Expect<T extends true> = T;
 
-export type BikeFitAssessmentPayload = Partial<{
-  [K in keyof OldBikeFormValues]: PayloadValueFor<K & string>;
-} & {
-  [K in keyof PhysicalAssessmentFormValues]: PayloadValueFor<K & string>;
-}>;
+/**
+ * Compile-time guard: OldBikeFormValues and PhysicalAssessmentFormValues
+ * MUST NOT share any key. If they did, the intersection in
+ * BikeFitAssessmentPayload would silently merge them, and a payload key like
+ * `notes` would lose its origin section.
+ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+type _BikeFitKeyOverlapCheck = Expect<
+  IsNever<Extract<keyof OldBikeFormValues, keyof PhysicalAssessmentFormValues>>
+>;
+
+/**
+ * Maps a form value type to its payload value type:
+ *   - `number | null`  → `number` (null is omitted from the payload)
+ *   - `string` unions  → same union with `""` excluded (empty values are omitted)
+ *
+ * This replaces the previous `_mm` suffix magic and stays in lock-step with the
+ * actual form value types, so adding a new field never silently picks the wrong
+ * payload value type.
+ */
+type PayloadValue<T> = T extends number | null
+  ? number
+  : T extends string
+    ? Exclude<T, "">
+    : never;
+
+export type BikeFitAssessmentPayload = Partial<
+  {
+    [K in keyof OldBikeFormValues]: PayloadValue<OldBikeFormValues[K]>;
+  } & {
+    [K in keyof PhysicalAssessmentFormValues]: PayloadValue<
+      PhysicalAssessmentFormValues[K]
+    >;
+  }
+>;
