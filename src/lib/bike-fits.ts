@@ -20,6 +20,21 @@ type BikeFitViewRow = {
   status: string;
 };
 
+type BikeFitDetailRow = {
+  id: string;
+  fit_number: number;
+  customer_id: string | null;
+  date_of_fit: string;
+  bike_type: string;
+  status: string;
+  assessment_payload: unknown;
+  customers: {
+    name: string | null;
+    email: string | null;
+    phone: string | null;
+  } | null;
+};
+
 function mapBikeFitRow(row: BikeFitViewRow): BikeFitRow {
   return {
     id: row.id,
@@ -31,6 +46,22 @@ function mapBikeFitRow(row: BikeFitViewRow): BikeFitRow {
     bike_type: row.bike_type,
     fit_date: row.date_of_fit,
     status: row.status as BikeFitStatus,
+    assessment_payload: {},
+  };
+}
+
+function mapBikeFitDetailRow(row: BikeFitDetailRow): BikeFitRow {
+  return {
+    id: row.id,
+    customer_id: row.customer_id,
+    customer_name: row.customers?.name?.trim() || "Unknown",
+    customer_email: row.customers?.email ?? null,
+    customer_phone: row.customers?.phone ?? null,
+    fit_number: row.fit_number,
+    bike_type: row.bike_type,
+    fit_date: row.date_of_fit,
+    status: row.status as BikeFitStatus,
+    assessment_payload: row.assessment_payload ?? {},
   };
 }
 
@@ -79,8 +110,23 @@ export async function loadBikeFitsPage(
 export async function loadBikeFitById(id: string): Promise<BikeFitRow | null> {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("bike_fits_view")
-    .select("*")
+    .from("bike_fits")
+    .select(
+      `
+      id,
+      fit_number,
+      customer_id,
+      date_of_fit,
+      bike_type,
+      status,
+      assessment_payload,
+      customers (
+        name,
+        email,
+        phone
+      )
+    `,
+    )
     .eq("id", id)
     .maybeSingle();
 
@@ -91,5 +137,5 @@ export async function loadBikeFitById(id: string): Promise<BikeFitRow | null> {
 
   if (!data) return null;
 
-  return mapBikeFitRow(data as BikeFitViewRow);
+  return mapBikeFitDetailRow(data as unknown as BikeFitDetailRow);
 }

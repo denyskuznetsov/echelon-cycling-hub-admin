@@ -1,25 +1,29 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { Stepper } from "@/ui/components/Stepper";
 import type { CustomerOption } from "@/src/lib/customers-types";
-import { type BikeFitFormValues } from "./bike-fit-form-values";
+import { EMPTY_OLD_BIKE } from "@/src/lib/bike-fit-old-bike-fields";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import {
+  BIKE_FIT_STEPS,
+  type BikeFitStepKey,
+} from "./bike-fit-wizard-config";
+import { BIKE_FIT_STEP_FIELDS } from "./wizard-step-validation";
 import { CustomerStep } from "./wizard-steps/CustomerStep";
 import { OldBikeStep } from "./wizard-steps/OldBikeStep";
 import { PhysicalAssessmentStep } from "./wizard-steps/PhysicalAssessmentStep";
 import { NewBikeFitDataStep } from "./wizard-steps/NewBikeFitDataStep";
 
-export type BikeFitStepKey =
-  | "customer"
-  | "old-bike"
-  | "physical-assessment"
-  | "new-bike-fit-data";
+export type { BikeFitStepKey } from "./bike-fit-wizard-config";
+
+const LAST_STEP_INDEX = BIKE_FIT_STEPS.length - 1;
 
 const DEFAULT_VALUES: BikeFitFormValues = {
   customer: { customer_id: null },
-  oldBike: { has_old_bike: false, bike_type: "", notes: "" },
+  oldBike: EMPTY_OLD_BIKE,
   physicalAssessment: {
     height_cm: null,
     weight_kg: null,
@@ -34,15 +38,8 @@ const DEFAULT_VALUES: BikeFitFormValues = {
   },
 };
 
-const STEPS: { key: BikeFitStepKey; label: string }[] = [
-  { key: "customer", label: "Customer" },
-  { key: "old-bike", label: "Old Bike" },
-  { key: "physical-assessment", label: "Physical Assessment" },
-  { key: "new-bike-fit-data", label: "New Bike Fit Data" },
-];
-
 function isStepKey(value: string | null): value is BikeFitStepKey {
-  return STEPS.some((s) => s.key === value);
+  return BIKE_FIT_STEPS.some((step) => step.key === value);
 }
 
 function mergeInitialData(
@@ -84,9 +81,17 @@ export function BikeFitWizard({
   const currentStep: BikeFitStepKey = isStepKey(stepParam)
     ? stepParam
     : "customer";
-  const currentIndex = STEPS.findIndex((s) => s.key === currentStep);
+  const currentIndex = BIKE_FIT_STEPS.findIndex((step) => step.key === currentStep);
 
   const mode: "create" | "edit" = initialData ? "edit" : "create";
+
+  // Create: stepper unlocks only after reaching the last step via Next.
+  // Edit: all steps are reachable immediately (data is already complete).
+  const [maxStepReached, setMaxStepReached] = useState(() =>
+    mode === "edit" ? LAST_STEP_INDEX : 0,
+  );
+  const isStepperUnlocked =
+    mode === "edit" || maxStepReached >= LAST_STEP_INDEX;
 
   const methods = useForm<BikeFitFormValues>({
     defaultValues: mergeInitialData(initialData),
@@ -95,17 +100,52 @@ export function BikeFitWizard({
 
   // TODO: Implement debounced autosave background mutation here
 
-  const goToStep = (nextKey: BikeFitStepKey) => {
-    // TODO: Run step-by-step validation (e.g. methods.trigger on the current step's fields) before allowing navigation.
+  const validateCurrentStep = async (): Promise<boolean> => {
+    const fields = BIKE_FIT_STEP_FIELDS[currentStep];
+    if (fields.length === 0) return true;
+    return methods.trigger(fields);
+  };
+
+  const goToStep = async (nextKey: BikeFitStepKey) => {
+    const nextIndex = BIKE_FIT_STEPS.findIndex((step) => step.key === nextKey);
+    if (nextIndex === -1 || nextIndex === currentIndex) return;
+
+    if (nextIndex > currentIndex && !isStepperUnlocked) {
+      const isValid = await validateCurrentStep();
+      if (!isValid) return;
+    }
+
+    setMaxStepReached((prev) => Math.max(prev, nextIndex));
+
     const params = new URLSearchParams(searchParams.toString());
     params.set("step", nextKey);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const goToNextStep = () => {
-    const nextStep = STEPS[currentIndex + 1];
+  const goToNextStep = async () => {
+    const nextStep = BIKE_FIT_STEPS[currentIndex + 1];
     if (nextStep) {
-      goToStep(nextStep.key);
+      await goToStep(nextStep.key);
+    }
+  };
+
+  const goToPreviousStep = () => {
+    const previousStep = BIKE_FIT_STEPS[currentIndex - 1];
+    if (previousStep) {
+      void goToStep(previousStep.key);
+    }
+  };
+
+  const handleStepClick = (index: number, key: BikeFitStepKey) => {
+    if (index === currentIndex) return;
+
+    if (isStepperUnlocked) {
+      void goToStep(key);
+      return;
+    }
+
+    if (index < currentIndex) {
+      void goToStep(key);
     }
   };
 
@@ -116,27 +156,39 @@ export function BikeFitWizard({
           {mode === "edit" ? "Edit Bike Fit" : "New Bike Fit"}
         </span>
         <span className="text-body font-body text-subtext-color">
-          Step {currentIndex + 1} of {STEPS.length}: {STEPS[currentIndex].label}
+          Step {currentIndex + 1} of {BIKE_FIT_STEPS.length}:{" "}
+          {BIKE_FIT_STEPS[currentIndex].label}
         </span>
       </div>
 
       <Stepper>
-        {STEPS.map((step, index) => {
+        {BIKE_FIT_STEPS.map((step, index) => {
           const variant =
             index < currentIndex
               ? "completed"
               : index === currentIndex
                 ? "active"
                 : "default";
+          const isReachable = isStepperUnlocked || index <= currentIndex;
+
           return (
             <Stepper.Step
               key={step.key}
               firstStep={index === 0}
-              lastStep={index === STEPS.length - 1}
+              lastStep={index === BIKE_FIT_STEPS.length - 1}
               stepNumber={index + 1}
               label={step.label}
               variant={variant}
-              onClick={() => goToStep(step.key)}
+              className={
+                isReachable
+                  ? "cursor-pointer"
+                  : "cursor-not-allowed opacity-50"
+              }
+              onClick={
+                isReachable
+                  ? () => handleStepClick(index, step.key)
+                  : undefined
+              }
             />
           );
         })}
@@ -146,14 +198,24 @@ export function BikeFitWizard({
         {currentStep === "customer" && (
           <CustomerStep
             initialCustomer={initialCustomer}
-            onNext={goToNextStep}
+            onNext={() => void goToNextStep()}
           />
         )}
-        {currentStep === "old-bike" && <OldBikeStep onNext={goToNextStep} />}
-        {currentStep === "physical-assessment" && (
-          <PhysicalAssessmentStep onNext={goToNextStep} />
+        {currentStep === "old-bike" && (
+          <OldBikeStep
+            onNext={() => void goToNextStep()}
+            onBack={goToPreviousStep}
+          />
         )}
-        {currentStep === "new-bike-fit-data" && <NewBikeFitDataStep />}
+        {currentStep === "physical-assessment" && (
+          <PhysicalAssessmentStep
+            onNext={() => void goToNextStep()}
+            onBack={goToPreviousStep}
+          />
+        )}
+        {currentStep === "new-bike-fit-data" && (
+          <NewBikeFitDataStep onBack={goToPreviousStep} />
+        )}
       </div>
     </FormProvider>
   );

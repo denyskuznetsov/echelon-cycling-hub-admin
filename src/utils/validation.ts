@@ -28,3 +28,19 @@ export function validatePassword(password: string): {
     errorMessage: "",
   };
 }
+
+const UNSAFE_TEXT_PATTERN =
+  /<[^>]*>|javascript:|data:text\/html|on[a-z]+\s*=|<\/script/i;
+
+export const SAFE_TEXT_VALIDATION_MESSAGE =
+  "This field contains unsupported content.";
+
+/** Rejects common HTML/script injection patterns in free-text inputs. */
+export function validateSafeText(value: unknown): true | string {
+  if (typeof value !== "string" || !value.trim()) return true;
+  return UNSAFE_TEXT_PATTERN.test(value) ? SAFE_TEXT_VALIDATION_MESSAGE : true;
+}
+
+export const safeTextFieldRules = {
+  validate: validateSafeText,
+} as const;

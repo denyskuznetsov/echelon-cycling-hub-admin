@@ -1,34 +1,20 @@
 import type { BikeFitRow } from "@/src/lib/bike-fits-types";
 import type { CustomerOption } from "@/src/lib/customers-types";
+import { assessmentPayloadToOldBikeValues } from "@/src/lib/bike-fit-assessment-payload";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
 
-export interface BikeFitFormValues {
-  customer: {
-    customer_id: string | null;
-  };
-  oldBike: {
-    has_old_bike: boolean;
-    bike_type: string;
-    notes: string;
-  };
-  physicalAssessment: {
-    height_cm: number | null;
-    weight_kg: number | null;
-    inseam_cm: number | null;
-    notes: string;
-  };
-  newBikeFitData: {
-    bike_type: string;
-    saddle_height_mm: number | null;
-    reach_mm: number | null;
-    notes: string;
-  };
-}
+export type {
+  BikeFitFormValues,
+  OldBikeFormValues,
+} from "@/src/lib/bike-fit-form-types";
+export { EMPTY_OLD_BIKE } from "@/src/lib/bike-fit-old-bike-fields";
 
 export function bikeFitRowToInitialData(
   row: BikeFitRow,
 ): Partial<BikeFitFormValues> {
   return {
     customer: { customer_id: row.customer_id },
+    oldBike: assessmentPayloadToOldBikeValues(row.assessment_payload),
     newBikeFitData: {
       bike_type: row.bike_type,
       saddle_height_mm: null,

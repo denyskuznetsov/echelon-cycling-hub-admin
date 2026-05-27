@@ -12,6 +12,7 @@ export interface BikeFitRow {
   bike_type: string;
   fit_date: string;
   status: BikeFitStatus;
+  assessment_payload: unknown;
 }
 
 const BIKE_TYPE_LABELS: Record<string, string> = {

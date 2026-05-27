@@ -7,9 +7,13 @@ import { WizardStepFooter } from "./WizardStepFooter";
 
 interface PhysicalAssessmentStepProps {
   onNext: () => void;
+  onBack?: () => void;
 }
 
-export function PhysicalAssessmentStep({ onNext }: PhysicalAssessmentStepProps) {
+export function PhysicalAssessmentStep({
+  onNext,
+  onBack,
+}: PhysicalAssessmentStepProps) {
   const { register, watch } = useFormContext<BikeFitFormValues>();
   const height = watch("physicalAssessment.height_cm");
 
@@ -29,7 +33,7 @@ export function PhysicalAssessmentStep({ onNext }: PhysicalAssessmentStepProps) 
         {...register("physicalAssessment.height_cm", { valueAsNumber: true })}
       />
 
-      <WizardStepFooter onNext={onNext} />
+      <WizardStepFooter onNext={onNext} onBack={onBack} />
     </div>
   );
 }
