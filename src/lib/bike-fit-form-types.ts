@@ -1,4 +1,5 @@
 import type {
+  AloneOrGroup,
   FootStructure,
   FullLimited,
   PelvisLevel,
@@ -8,9 +9,9 @@ import type {
 
 export interface OldBikeFormValues {
   cycling_experience: string;
-  years_cycling: string;
-  alone_or_group: string;
-  hours_per_week: string;
+  years_cycling: number | null;
+  alone_or_group: AloneOrGroup | "";
+  hours_per_week: number | null;
   distance_per_year: string;
   goals: string;
   cycling_discomfort: string;

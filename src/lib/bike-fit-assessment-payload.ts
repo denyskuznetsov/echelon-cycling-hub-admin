@@ -85,7 +85,7 @@ function mapOldBikeToPayload(
   const source = asLoose(oldBike);
 
   for (const field of OLD_BIKE_FIELD_DEFS) {
-    if (field.type === "mm") {
+    if (field.type === "mm" || field.type === "number") {
       const numericValue = finiteNumber(source[field.key] as number | null);
       if (numericValue !== undefined) payload[field.key] = numericValue;
       continue;
@@ -127,8 +127,12 @@ export function assessmentPayloadToOldBikeValues(
   const target = asLoose(oldBike);
 
   for (const field of OLD_BIKE_FIELD_DEFS) {
-    if (field.type === "mm") {
+    if (field.type === "mm" || field.type === "number") {
       target[field.key] = readNumber(record, field.key);
+      continue;
+    }
+    if (field.type === "select") {
+      target[field.key] = readEnumString(record, field.key, field.options);
       continue;
     }
     target[field.key] = readString(record, field.key);

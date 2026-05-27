@@ -1,4 +1,5 @@
 import type { FieldPath } from "react-hook-form";
+import { ALONE_OR_GROUP_OPTIONS } from "@/src/lib/bike-fit-enums";
 import type {
   BikeFitFormValues,
   OldBikeFormValues,
@@ -10,16 +11,66 @@ export type OldBikeSectionId =
   | "old_fit_measurements"
   | "old_components";
 
-export type OldBikeFieldType = "text" | "textarea" | "mm";
+export type OldBikeFieldType = "text" | "textarea" | "mm" | "number" | "select";
 
-export interface OldBikeFieldDef {
-  key: keyof OldBikeFormValues;
-  type: OldBikeFieldType;
+/**
+ * Keys of OldBikeFormValues whose value type is string-like.
+ * Includes plain `string` fields AND enum-union string fields like
+ * `alone_or_group: AloneOrGroup | ""`.
+ */
+type OldBikeStringKeys = {
+  [K in keyof OldBikeFormValues]: OldBikeFormValues[K] extends string
+    ? K
+    : never;
+}[keyof OldBikeFormValues];
+
+/**
+ * Keys of OldBikeFormValues whose value type is `number | null`.
+ */
+type OldBikeNumberKeys = {
+  [K in keyof OldBikeFormValues]: OldBikeFormValues[K] extends number | null
+    ? K
+    : never;
+}[keyof OldBikeFormValues];
+
+interface BaseOldBikeFieldDef {
   label: string;
   placeholder: string;
   section: OldBikeSectionId;
   width: "full" | "half";
 }
+
+interface TextLikeOldBikeFieldDef extends BaseOldBikeFieldDef {
+  type: "text" | "textarea";
+  key: OldBikeStringKeys;
+}
+
+interface MmOldBikeFieldDef extends BaseOldBikeFieldDef {
+  type: "mm";
+  key: OldBikeNumberKeys;
+}
+
+interface NumberOldBikeFieldDef extends BaseOldBikeFieldDef {
+  type: "number";
+  key: OldBikeNumberKeys;
+}
+
+interface SelectOldBikeFieldDef extends BaseOldBikeFieldDef {
+  type: "select";
+  key: OldBikeStringKeys;
+  options: readonly string[];
+}
+
+/**
+ * Discriminated union over field `type`. `key` is constrained per variant so
+ * declaring e.g. `{ key: "old_saddle_height_mm", type: "text" }` is a compile
+ * error. `options` is required iff `type === "select"`.
+ */
+export type OldBikeFieldDef =
+  | TextLikeOldBikeFieldDef
+  | MmOldBikeFieldDef
+  | NumberOldBikeFieldDef
+  | SelectOldBikeFieldDef;
 
 export const OLD_BIKE_SECTIONS: {
   id: OldBikeSectionId;
@@ -43,25 +94,26 @@ export const OLD_BIKE_FIELD_DEFS: readonly OldBikeFieldDef[] = [
   },
   {
     key: "years_cycling",
-    type: "text",
+    type: "number",
     label: "Years cycling",
-    placeholder: "e.g. 5",
+    placeholder: "5",
     section: "cycling_history",
     width: "half",
   },
   {
     key: "alone_or_group",
-    type: "text",
+    type: "select",
     label: "Alone or group",
-    placeholder: "e.g. Mostly group rides",
+    placeholder: "",
     section: "cycling_history",
     width: "half",
+    options: ALONE_OR_GROUP_OPTIONS,
   },
   {
     key: "hours_per_week",
-    type: "text",
+    type: "number",
     label: "Hours per week",
-    placeholder: "e.g. 6",
+    placeholder: "6",
     section: "cycling_history",
     width: "half",
   },
@@ -181,9 +233,9 @@ export const OLD_BIKE_FIELD_DEFS: readonly OldBikeFieldDef[] = [
 
 export const EMPTY_OLD_BIKE: OldBikeFormValues = {
   cycling_experience: "",
-  years_cycling: "",
+  years_cycling: null,
   alone_or_group: "",
-  hours_per_week: "",
+  hours_per_week: null,
   distance_per_year: "",
   goals: "",
   cycling_discomfort: "",
@@ -200,8 +252,13 @@ export const EMPTY_OLD_BIKE: OldBikeFormValues = {
   old_other: "",
 };
 
+/**
+ * Paths to trigger on Next; numeric fields have no rules so they're skipped.
+ * Select and text/textarea paths are included so safeTextFieldRules can fire
+ * (selects today have no rules but staying in this list is future-proof).
+ */
 export const OLD_BIKE_TEXT_FIELD_PATHS = OLD_BIKE_FIELD_DEFS.filter(
-  (field) => field.type !== "mm",
+  (field) => field.type !== "mm" && field.type !== "number",
 ).map((field) => `oldBike.${field.key}` as FieldPath<BikeFitFormValues>);
 
 export function oldBikeFieldPath(

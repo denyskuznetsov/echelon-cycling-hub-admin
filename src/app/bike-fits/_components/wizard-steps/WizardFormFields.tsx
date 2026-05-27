@@ -107,6 +107,35 @@ export function WizardMmField({
   );
 }
 
+interface WizardNumberFieldProps {
+  name: FieldPath<BikeFitFormValues>;
+  label: string;
+  placeholder?: string;
+}
+
+/**
+ * Unitless numeric input. For mm/cm/kg etc. measurements, prefer a unit-specific
+ * wrapper (e.g. WizardMmField) so the icon-right is consistent across fields.
+ */
+export function WizardNumberField({
+  name,
+  label,
+  placeholder,
+}: WizardNumberFieldProps) {
+  const { register } = useFormContext<BikeFitFormValues>();
+
+  return (
+    <TextField className="w-full" label={label}>
+      <TextField.Input
+        type="number"
+        step="any"
+        placeholder={placeholder}
+        {...register(name, { setValueAs: nullIfEmptyNumber })}
+      />
+    </TextField>
+  );
+}
+
 export interface WizardSelectOption {
   value: string;
   label: string;

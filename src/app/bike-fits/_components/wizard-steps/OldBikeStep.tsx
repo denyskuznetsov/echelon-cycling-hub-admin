@@ -9,6 +9,8 @@ import {
 } from "@/src/lib/bike-fit-old-bike-fields";
 import {
   WizardMmField,
+  WizardNumberField,
+  WizardSelectField,
   WizardTextArea,
   WizardTextField,
 } from "./WizardFormFields";
@@ -40,6 +42,29 @@ function renderField(field: OldBikeFieldDef) {
         name={name}
         label={field.label}
         placeholder={field.placeholder}
+      />
+    );
+  }
+
+  if (field.type === "number") {
+    return (
+      <WizardNumberField
+        key={field.key}
+        name={name}
+        label={field.label}
+        placeholder={field.placeholder}
+      />
+    );
+  }
+
+  if (field.type === "select") {
+    return (
+      <WizardSelectField
+        key={field.key}
+        name={name}
+        label={field.label}
+        placeholder={field.placeholder || undefined}
+        options={field.options}
       />
     );
   }
