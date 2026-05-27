@@ -98,6 +98,11 @@ export function BikeFitWizard({
     mode: "onBlur",
   });
 
+  // Display label for the selected customer; survives step unmounts. Form holds customer_id only.
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(
+    initialCustomer,
+  );
+
   // TODO: Implement debounced autosave background mutation here
 
   const validateCurrentStep = async (): Promise<boolean> => {
@@ -144,7 +149,7 @@ export function BikeFitWizard({
       return;
     }
 
-    if (index < currentIndex) {
+    if (index <= maxStepReached) {
       void goToStep(key);
     }
   };
@@ -164,12 +169,13 @@ export function BikeFitWizard({
       <Stepper>
         {BIKE_FIT_STEPS.map((step, index) => {
           const variant =
-            index < currentIndex
+            index < currentIndex ||
+            (index <= maxStepReached && index > currentIndex)
               ? "completed"
               : index === currentIndex
                 ? "active"
                 : "default";
-          const isReachable = isStepperUnlocked || index <= currentIndex;
+          const isReachable = isStepperUnlocked || index <= maxStepReached;
 
           return (
             <Stepper.Step
@@ -194,28 +200,31 @@ export function BikeFitWizard({
         })}
       </Stepper>
 
-      <div className="flex w-full flex-col items-start gap-4 rounded-md border border-solid border-neutral-border bg-default-background p-8">
-        {currentStep === "customer" && (
-          <CustomerStep
-            initialCustomer={initialCustomer}
-            onNext={() => void goToNextStep()}
-          />
-        )}
-        {currentStep === "old-bike" && (
-          <OldBikeStep
-            onNext={() => void goToNextStep()}
-            onBack={goToPreviousStep}
-          />
-        )}
-        {currentStep === "physical-assessment" && (
-          <PhysicalAssessmentStep
-            onNext={() => void goToNextStep()}
-            onBack={goToPreviousStep}
-          />
-        )}
-        {currentStep === "new-bike-fit-data" && (
-          <NewBikeFitDataStep onBack={goToPreviousStep} />
-        )}
+      <div className="flex w-full flex-col gap-4 rounded-md border border-solid border-neutral-border bg-default-background p-8">
+        <div className="mx-auto w-full max-w-2xl">
+          {currentStep === "customer" && (
+            <CustomerStep
+              selectedCustomer={selectedCustomer}
+              onSelectedCustomerChange={setSelectedCustomer}
+              onNext={() => void goToNextStep()}
+            />
+          )}
+          {currentStep === "old-bike" && (
+            <OldBikeStep
+              onNext={() => void goToNextStep()}
+              onBack={goToPreviousStep}
+            />
+          )}
+          {currentStep === "physical-assessment" && (
+            <PhysicalAssessmentStep
+              onNext={() => void goToNextStep()}
+              onBack={goToPreviousStep}
+            />
+          )}
+          {currentStep === "new-bike-fit-data" && (
+            <NewBikeFitDataStep onBack={goToPreviousStep} />
+          )}
+        </div>
       </div>
     </FormProvider>
   );

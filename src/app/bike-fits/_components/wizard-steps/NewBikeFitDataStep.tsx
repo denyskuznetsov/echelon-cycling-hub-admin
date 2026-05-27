@@ -35,7 +35,7 @@ export function NewBikeFitDataStep({ onBack }: NewBikeFitDataStepProps) {
         </span>
       </div>
 
-      <div className="flex w-full max-w-2xl flex-col items-start gap-3">
+      <div className="flex w-full flex-col items-start gap-3">
         <TextField className="w-full" label="New bike type">
           <TextField.Input
             placeholder="e.g. road"

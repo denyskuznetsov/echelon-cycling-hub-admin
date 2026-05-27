@@ -87,7 +87,7 @@ function renderFieldGroup(fields: OldBikeFieldDef[]) {
 
 export function OldBikeStep({ onNext, onBack }: OldBikeStepProps) {
   return (
-    <div className="flex w-full flex-col items-start gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex w-full flex-col items-start gap-1">
         <span className="text-heading-3 font-heading-3 text-default-font">
           2. Old Bike
@@ -98,7 +98,7 @@ export function OldBikeStep({ onNext, onBack }: OldBikeStepProps) {
         </span>
       </div>
 
-      <div className="flex w-full max-w-2xl flex-col items-start gap-6">
+      <div className="flex w-full flex-col items-start gap-6">
         {OLD_BIKE_SECTIONS.map((section) => {
           const sectionFields = OLD_BIKE_FIELD_DEFS.filter(
             (field) => field.section === section.id,

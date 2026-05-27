@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import {
   FeatherCheck,
   FeatherSearch,
@@ -20,29 +20,17 @@ const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_LIMIT = 20;
 
 interface CustomerStepProps {
-  /**
-   * The customer the wizard was initialised with (edit mode), used purely
-   * to display the selected customer's label without re-querying the DB.
-   */
-  initialCustomer?: CustomerOption | null;
+  selectedCustomer: CustomerOption | null;
+  onSelectedCustomerChange: (customer: CustomerOption | null) => void;
   onNext: () => void;
 }
 
 export function CustomerStep({
-  initialCustomer = null,
+  selectedCustomer,
+  onSelectedCustomerChange,
   onNext,
 }: CustomerStepProps) {
-  const { control, register, setValue } = useFormContext<BikeFitFormValues>();
-  const customerId = useWatch({ control, name: "customer.customer_id" });
-
-  // Local UI cache of the picked customer used only for the "selected" badge.
-  // Not part of form state – the form is the single source of truth for the id,
-  // and this label is purely display data.
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(
-    initialCustomer && initialCustomer.id === (customerId ?? null)
-      ? initialCustomer
-      : null,
-  );
+  const { register, setValue } = useFormContext<BikeFitFormValues>();
 
   const [searchInput, setSearchInput] = useState("");
   const [results, setResults] = useState<CustomerOption[]>([]);
@@ -103,7 +91,7 @@ export function CustomerStep({
       shouldDirty: true,
       shouldValidate: true,
     });
-    setSelectedCustomer(customer);
+    onSelectedCustomerChange(customer);
   };
 
   const handleClear = () => {
@@ -111,7 +99,7 @@ export function CustomerStep({
       shouldDirty: true,
       shouldValidate: true,
     });
-    setSelectedCustomer(null);
+    onSelectedCustomerChange(null);
   };
 
   const handleCreated = (customer: CustomerOption) => {
@@ -130,8 +118,8 @@ export function CustomerStep({
         </span>
       </div>
 
-      <div className="flex w-full max-w-2xl flex-col items-start gap-3">
-        {customerId && selectedCustomer ? (
+      <div className="flex w-full flex-col items-start gap-3">
+        {selectedCustomer ? (
           <div className="flex w-full items-center justify-between gap-2 rounded-md border border-solid border-brand-200 bg-brand-50 px-3 py-2">
             <div className="flex items-center gap-2">
               <FeatherCheck className="text-body font-body text-brand-600" />
@@ -187,7 +175,7 @@ export function CustomerStep({
         ) : (
           <ul className="flex w-full flex-col items-start divide-y divide-neutral-border overflow-hidden rounded-md border border-solid border-neutral-border">
             {results.map((customer) => {
-              const isSelected = customer.id === customerId;
+              const isSelected = customer.id === selectedCustomer?.id;
               return (
                 <li key={customer.id} className="w-full">
                   <button
