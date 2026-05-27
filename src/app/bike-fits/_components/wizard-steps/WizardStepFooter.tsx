@@ -7,9 +7,16 @@ import { Button } from "@/ui/components/Button";
 interface WizardStepFooterProps {
   onNext: () => void;
   onBack?: () => void;
+  primaryLabel?: string;
+  showNextIcon?: boolean;
 }
 
-export function WizardStepFooter({ onNext, onBack }: WizardStepFooterProps) {
+export function WizardStepFooter({
+  onNext,
+  onBack,
+  primaryLabel = "Next",
+  showNextIcon = true,
+}: WizardStepFooterProps) {
   return (
     <div className="flex w-full items-center justify-between border-t border-solid border-neutral-border pt-6">
       {onBack ? (
@@ -25,10 +32,10 @@ export function WizardStepFooter({ onNext, onBack }: WizardStepFooterProps) {
       )}
       <Button
         variant="brand-primary"
-        iconRight={<FeatherChevronRight />}
+        iconRight={showNextIcon ? <FeatherChevronRight /> : undefined}
         onClick={onNext}
       >
-        Next
+        {primaryLabel}
       </Button>
     </div>
   );

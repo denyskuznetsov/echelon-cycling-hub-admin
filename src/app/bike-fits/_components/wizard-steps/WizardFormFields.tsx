@@ -2,12 +2,13 @@
 
 import React from "react";
 import { FeatherX } from "@subframe/core";
-import type { FieldPath } from "react-hook-form";
+import type { FieldPath, RegisterOptions } from "react-hook-form";
 import { Controller, get, useFormContext } from "react-hook-form";
 import { Select } from "@/ui/components/Select";
 import { TextArea } from "@/ui/components/TextArea";
 import { TextField } from "@/ui/components/TextField";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import { ddMmYyyyPatternRule } from "@/src/utils/date-format";
 import { safeTextFieldRules } from "@/src/utils/validation";
 
 export function nullIfEmptyNumber(value: unknown): number | null {
@@ -146,6 +147,7 @@ interface WizardSelectFieldProps {
   label: string;
   placeholder?: string;
   options: readonly (WizardSelectOption | string)[];
+  rules?: RegisterOptions<BikeFitFormValues, FieldPath<BikeFitFormValues>>;
 }
 
 function normalizeSelectOptions(
@@ -161,6 +163,7 @@ export function WizardSelectField({
   label,
   placeholder = "Select…",
   options,
+  rules,
 }: WizardSelectFieldProps) {
   const { control } = useFormContext<BikeFitFormValues>();
   const error = useFieldError(name);
@@ -170,6 +173,7 @@ export function WizardSelectField({
     <Controller
       control={control}
       name={name}
+      rules={rules}
       render={({ field }) => {
         const stringValue =
           typeof field.value === "string" && field.value !== ""
@@ -215,5 +219,43 @@ export function WizardSelectField({
         );
       }}
     />
+  );
+}
+
+interface WizardDateFieldProps {
+  name: FieldPath<BikeFitFormValues>;
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  requiredMessage?: string;
+}
+
+export function WizardDateField({
+  name,
+  label,
+  placeholder = "21/04/1990",
+  required = true,
+  requiredMessage = "This field is required",
+}: WizardDateFieldProps) {
+  const { register } = useFormContext<BikeFitFormValues>();
+  const error = useFieldError(name);
+
+  return (
+    <TextField
+      className="w-full"
+      label={label}
+      error={!!error}
+      helpText={error ?? "Format: DD/MM/YYYY"}
+    >
+      <TextField.Input
+        placeholder={placeholder}
+        inputMode="numeric"
+        {...register(name, {
+          ...(required ? { required: requiredMessage } : {}),
+          pattern: ddMmYyyyPatternRule,
+          validate: safeTextFieldRules.validate,
+        })}
+      />
+    </TextField>
   );
 }

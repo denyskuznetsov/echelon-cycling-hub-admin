@@ -5,15 +5,17 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { FormProvider, useForm } from "react-hook-form";
 import { Stepper } from "@/ui/components/Stepper";
 import type { CustomerOption } from "@/src/lib/customers-types";
+import { EMPTY_NEW_BIKE_FIT_DATA } from "@/src/lib/bike-fit-new-bike-fields";
 import { EMPTY_OLD_BIKE } from "@/src/lib/bike-fit-old-bike-fields";
 import { EMPTY_PHYSICAL_ASSESSMENT } from "@/src/lib/bike-fit-physical-assessment-fields";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import { todayDdMmYyyy } from "@/src/utils/date-format";
 import {
   BIKE_FIT_STEPS,
   type BikeFitStepKey,
 } from "./bike-fit-wizard-config";
 import { BIKE_FIT_STEP_FIELDS } from "./wizard-step-validation";
-import { CustomerStep } from "./wizard-steps/CustomerStep";
+import { FitSetupStep } from "./wizard-steps/FitSetupStep";
 import { OldBikeStep } from "./wizard-steps/OldBikeStep";
 import { PhysicalAssessmentStep } from "./wizard-steps/PhysicalAssessmentStep";
 import { NewBikeFitDataStep } from "./wizard-steps/NewBikeFitDataStep";
@@ -24,14 +26,11 @@ const LAST_STEP_INDEX = BIKE_FIT_STEPS.length - 1;
 
 const DEFAULT_VALUES: BikeFitFormValues = {
   customer: { customer_id: null },
+  bike_type: "",
+  fit_date: todayDdMmYyyy(),
   oldBike: EMPTY_OLD_BIKE,
   physicalAssessment: EMPTY_PHYSICAL_ASSESSMENT,
-  newBikeFitData: {
-    bike_type: "",
-    saddle_height_mm: null,
-    reach_mm: null,
-    notes: "",
-  },
+  newBikeFitData: EMPTY_NEW_BIKE_FIT_DATA,
 };
 
 function isStepKey(value: string | null): value is BikeFitStepKey {
@@ -44,6 +43,8 @@ function mergeInitialData(
   if (!initial) return DEFAULT_VALUES;
   return {
     customer: { ...DEFAULT_VALUES.customer, ...initial.customer },
+    bike_type: initial.bike_type ?? DEFAULT_VALUES.bike_type,
+    fit_date: initial.fit_date ?? DEFAULT_VALUES.fit_date,
     oldBike: { ...DEFAULT_VALUES.oldBike, ...initial.oldBike },
     physicalAssessment: {
       ...DEFAULT_VALUES.physicalAssessment,
@@ -76,7 +77,7 @@ export function BikeFitWizard({
   const stepParam = searchParams.get("step");
   const currentStep: BikeFitStepKey = isStepKey(stepParam)
     ? stepParam
-    : "customer";
+    : "fit-setup";
   const currentIndex = BIKE_FIT_STEPS.findIndex((step) => step.key === currentStep);
 
   const mode: "create" | "edit" = initialData ? "edit" : "create";
@@ -198,8 +199,8 @@ export function BikeFitWizard({
 
       <div className="flex w-full flex-col gap-4 rounded-md border border-solid border-neutral-border bg-default-background p-8">
         <div className="mx-auto w-full max-w-2xl">
-          {currentStep === "customer" && (
-            <CustomerStep
+          {currentStep === "fit-setup" && (
+            <FitSetupStep
               selectedCustomer={selectedCustomer}
               onSelectedCustomerChange={setSelectedCustomer}
               onNext={() => void goToNextStep()}

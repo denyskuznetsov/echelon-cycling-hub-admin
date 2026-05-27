@@ -1,65 +1,158 @@
 "use client";
 
 import React from "react";
-import { FeatherChevronLeft } from "@subframe/core";
 import { useFormContext } from "react-hook-form";
-import { Button } from "@/ui/components/Button";
-import { TextField } from "@/ui/components/TextField";
+import {
+  NEW_BIKE_FIT_DATA_FIELD_DEFS,
+  NEW_BIKE_FIT_DATA_SECTIONS,
+  newBikeFitDataFieldPath,
+  type NewBikeFitDataFieldDef,
+} from "@/src/lib/bike-fit-new-bike-fields";
 import { formValuesToAssessmentPayload } from "@/src/lib/bike-fit-assessment-payload";
-import type { BikeFitFormValues } from "../bike-fit-form-values";
+import { formValuesToNewBikeFitPayload } from "@/src/lib/bike-fit-new-bike-fit-payload";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import {
+  WizardMmField,
+  WizardNumberField,
+  WizardTextArea,
+  WizardTextField,
+} from "./WizardFormFields";
+import { WizardStepFooter } from "./WizardStepFooter";
 
 interface NewBikeFitDataStepProps {
   onBack?: () => void;
 }
 
+function renderField(field: NewBikeFitDataFieldDef) {
+  const name = newBikeFitDataFieldPath(field.key);
+
+  if (field.type === "textarea") {
+    return (
+      <WizardTextArea
+        key={field.key}
+        name={name}
+        label={field.label}
+        placeholder={field.placeholder}
+      />
+    );
+  }
+
+  if (field.type === "mm") {
+    return (
+      <WizardMmField
+        key={field.key}
+        name={name}
+        label={field.label}
+        placeholder={field.placeholder}
+      />
+    );
+  }
+
+  if (field.type === "number") {
+    return (
+      <WizardNumberField
+        key={field.key}
+        name={name}
+        label={field.label}
+        placeholder={field.placeholder}
+      />
+    );
+  }
+
+  return (
+    <WizardTextField
+      key={field.key}
+      name={name}
+      label={field.label}
+      placeholder={field.placeholder}
+    />
+  );
+}
+
+function renderFieldGroup(fields: NewBikeFitDataFieldDef[]) {
+  const nodes: React.ReactNode[] = [];
+  let gridBatch: NewBikeFitDataFieldDef[] = [];
+
+  const flushGrid = () => {
+    if (gridBatch.length === 0) return;
+    nodes.push(
+      <div
+        key={gridBatch.map((field) => field.key).join("-")}
+        className="grid w-full grid-cols-1 gap-3 md:grid-cols-2"
+      >
+        {gridBatch.map((field) => renderField(field))}
+      </div>,
+    );
+    gridBatch = [];
+  };
+
+  for (const field of fields) {
+    if (field.width === "half") {
+      gridBatch.push(field);
+      continue;
+    }
+
+    flushGrid();
+    nodes.push(renderField(field));
+  }
+
+  flushGrid();
+  return nodes;
+}
+
 export function NewBikeFitDataStep({ onBack }: NewBikeFitDataStepProps) {
-  const { register, getValues } = useFormContext<BikeFitFormValues>();
+  const { getValues } = useFormContext<BikeFitFormValues>();
 
   const handleSave = () => {
     const formValues = getValues();
     const assessmentPayload = formValuesToAssessmentPayload(formValues);
+    const newBikeFitPayload = formValuesToNewBikeFitPayload(formValues);
 
     console.log("Bike fit form values:", formValues);
     console.log("Mapped assessment_payload:", assessmentPayload);
+    console.log("Mapped new_bike_fit_payload:", newBikeFitPayload);
   };
 
   return (
-    <div className="flex w-full flex-col items-start gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex w-full flex-col items-start gap-1">
         <span className="text-heading-3 font-heading-3 text-default-font">
           4. New Bike Fit Data
         </span>
         <span className="text-body font-body text-subtext-color">
-          Placeholder for the new fit setup. Use Save Bike Fit to inspect the
-          current form state in the browser console.
+          Record the recommended fit position, components, and footwear setup for
+          the customer&apos;s new bike.
         </span>
       </div>
 
-      <div className="flex w-full flex-col items-start gap-3">
-        <TextField className="w-full" label="New bike type">
-          <TextField.Input
-            placeholder="e.g. road"
-            {...register("newBikeFitData.bike_type")}
-          />
-        </TextField>
+      <div className="flex w-full flex-col items-start gap-6">
+        {NEW_BIKE_FIT_DATA_SECTIONS.map((section) => {
+          const sectionFields = NEW_BIKE_FIT_DATA_FIELD_DEFS.filter(
+            (field) => field.section === section.id,
+          );
+
+          if (sectionFields.length === 0) return null;
+
+          return (
+            <section
+              key={section.id}
+              className="flex w-full flex-col items-start gap-3"
+            >
+              <span className="text-body-bold font-body-bold text-default-font">
+                {section.title}
+              </span>
+              {renderFieldGroup(sectionFields)}
+            </section>
+          );
+        })}
       </div>
 
-      <div className="flex w-full items-center justify-between border-t border-solid border-neutral-border pt-6">
-        {onBack ? (
-          <Button
-            variant="neutral-secondary"
-            icon={<FeatherChevronLeft />}
-            onClick={onBack}
-          >
-            Back
-          </Button>
-        ) : (
-          <span />
-        )}
-        <Button variant="brand-primary" onClick={handleSave}>
-          Save Bike Fit
-        </Button>
-      </div>
+      <WizardStepFooter
+        onNext={handleSave}
+        onBack={onBack}
+        primaryLabel="Save Bike Fit"
+        showNextIcon={false}
+      />
     </div>
   );
 }

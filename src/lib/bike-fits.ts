@@ -28,6 +28,7 @@ type BikeFitDetailRow = {
   bike_type: string;
   status: string;
   assessment_payload: unknown;
+  new_bike_fit_payload: unknown;
   customers: {
     name: string | null;
     email: string | null;
@@ -47,6 +48,7 @@ function mapBikeFitRow(row: BikeFitViewRow): BikeFitRow {
     fit_date: row.date_of_fit,
     status: row.status as BikeFitStatus,
     assessment_payload: {},
+    new_bike_fit_payload: {},
   };
 }
 
@@ -62,6 +64,7 @@ function mapBikeFitDetailRow(row: BikeFitDetailRow): BikeFitRow {
     fit_date: row.date_of_fit,
     status: row.status as BikeFitStatus,
     assessment_payload: row.assessment_payload ?? {},
+    new_bike_fit_payload: row.new_bike_fit_payload ?? {},
   };
 }
 
@@ -120,6 +123,7 @@ export async function loadBikeFitById(id: string): Promise<BikeFitRow | null> {
       bike_type,
       status,
       assessment_payload,
+      new_bike_fit_payload,
       customers (
         name,
         email,

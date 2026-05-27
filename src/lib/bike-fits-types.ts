@@ -13,19 +13,26 @@ export interface BikeFitRow {
   fit_date: string;
   status: BikeFitStatus;
   assessment_payload: unknown;
+  new_bike_fit_payload: unknown;
 }
 
-const BIKE_TYPE_LABELS: Record<string, string> = {
+export const BIKE_TYPE_LABELS = {
   road: "Road",
   gravel: "Gravel",
   TT: "TT",
   MTB: "MTB",
   city: "City",
-};
+} as const;
+
+export type BikeType = keyof typeof BIKE_TYPE_LABELS;
 
 /** Maps a raw database bike_type value to its display label. */
 export function formatBikeType(value: string): string {
-  return BIKE_TYPE_LABELS[value] ?? value;
+  return BIKE_TYPE_LABELS[value as BikeType] ?? value;
+}
+
+export function isBikeType(value: string): value is BikeType {
+  return value in BIKE_TYPE_LABELS;
 }
 
 export function resolveBikeFitsTimeframe(

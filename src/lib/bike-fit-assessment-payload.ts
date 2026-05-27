@@ -6,6 +6,15 @@ import {
   EMPTY_PHYSICAL_ASSESSMENT,
   PHYSICAL_ASSESSMENT_FIELD_DEFS,
 } from "@/src/lib/bike-fit-physical-assessment-fields";
+import {
+  asLoose,
+  compactPayload,
+  finiteNumber,
+  readEnumString,
+  readNumber,
+  readString,
+  trimString,
+} from "@/src/lib/bike-fit-payload-utils";
 import type {
   BikeFitAssessmentPayload,
   BikeFitFormValues,
@@ -14,69 +23,6 @@ import type {
 } from "@/src/lib/bike-fit-form-types";
 
 export type { BikeFitAssessmentPayload } from "@/src/lib/bike-fit-form-types";
-
-function trimString(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
-}
-
-function finiteNumber(value: number | null | undefined): number | undefined {
-  if (value == null || Number.isNaN(value)) return undefined;
-  return value;
-}
-
-function readString(record: Record<string, unknown>, key: string): string {
-  const value = record[key];
-  return typeof value === "string" ? value : "";
-}
-
-function readNumber(
-  record: Record<string, unknown>,
-  key: string,
-): number | null {
-  const value = record[key];
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
-/**
- * Reads a string from `record[key]` and only returns it if it's a member of
- * `allowedOptions`. Unknown / corrupt values are coerced to `""` so the
- * form never holds an out-of-band enum value. This is the runtime
- * counterpart of the `Enum | ""` field types in `PhysicalAssessmentFormValues`.
- */
-function readEnumString(
-  record: Record<string, unknown>,
-  key: string,
-  allowedOptions: readonly string[],
-): string {
-  const raw = record[key];
-  if (typeof raw !== "string") return "";
-  return allowedOptions.includes(raw) ? raw : "";
-}
-
-export function compactPayload(
-  payload: BikeFitAssessmentPayload,
-): BikeFitAssessmentPayload {
-  return Object.fromEntries(
-    Object.entries(payload).filter(([, value]) => value !== undefined),
-  ) as BikeFitAssessmentPayload;
-}
-
-/**
- * Boundary helper: erases per-key form-value types so we can iterate over
- * heterogeneous field defs without per-line `as` casts. The structural
- * guarantee comes from the field defs being a single source of truth.
- */
-type LooseFormValues = Record<string, string | number | null>;
-
-function asLoose<T extends object>(values: T): LooseFormValues {
-  return values as unknown as LooseFormValues;
-}
 
 function mapOldBikeToPayload(
   oldBike: OldBikeFormValues,

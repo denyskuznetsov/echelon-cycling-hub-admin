@@ -6,6 +6,7 @@ import type {
   Rating,
   YesNo,
 } from "@/src/lib/bike-fit-enums";
+import type { BikeType } from "@/src/lib/bike-fits-types";
 
 export interface OldBikeFormValues {
   cycling_experience: string;
@@ -54,32 +55,52 @@ export interface PhysicalAssessmentFormValues {
   knee_bend_observations: string;
 }
 
+export interface NewBikeFitDataFormValues {
+  saddle_height_mm: number | null;
+  handlebar_reach_mm: number | null;
+  handlebar_drop_mm: number | null;
+  saddle_setback_mm: number | null;
+  grip_reach_mm: number | null;
+  grip_drop_mm: number | null;
+  handlebar_width_mm: number | null;
+  crankarm_length_mm: number | null;
+  saddle_model: string;
+  saddle_width_mm: number | null;
+  saddle_length_mm: number | null;
+  stem_length_mm: number | null;
+  stem_angle: number | null;
+  pedals_and_cleats: string;
+  shoes_and_footbeds: string;
+  stance_width_mm: number | null;
+  notes: string;
+}
+
 export interface BikeFitFormValues {
   customer: {
     customer_id: string | null;
   };
+  bike_type: BikeType | "";
+  fit_date: string;
   oldBike: OldBikeFormValues;
   physicalAssessment: PhysicalAssessmentFormValues;
-  newBikeFitData: {
-    bike_type: string;
-    saddle_height_mm: number | null;
-    reach_mm: number | null;
-    notes: string;
-  };
+  newBikeFitData: NewBikeFitDataFormValues;
 }
 
 type IsNever<T> = [T] extends [never] ? true : false;
 type Expect<T extends true> = T;
 
 /**
- * Compile-time guard: OldBikeFormValues and PhysicalAssessmentFormValues
- * MUST NOT share any key. If they did, the intersection in
- * BikeFitAssessmentPayload would silently merge them, and a payload key like
- * `notes` would lose its origin section.
+ * Compile-time guard: form sections MUST NOT share any key. Shared keys would
+ * collide when old bike + physical assessment merge into assessment_payload, or
+ * when any section's fields map to the wrong JSON column.
  */
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 type _BikeFitKeyOverlapCheck = Expect<
-  IsNever<Extract<keyof OldBikeFormValues, keyof PhysicalAssessmentFormValues>>
+  IsNever<
+    | Extract<keyof OldBikeFormValues, keyof PhysicalAssessmentFormValues>
+    | Extract<keyof OldBikeFormValues, keyof NewBikeFitDataFormValues>
+    | Extract<keyof PhysicalAssessmentFormValues, keyof NewBikeFitDataFormValues>
+  >
 >;
 
 /**
@@ -106,3 +127,9 @@ export type BikeFitAssessmentPayload = Partial<
     >;
   }
 >;
+
+export type BikeFitNewBikeFitPayload = Partial<{
+  [K in keyof NewBikeFitDataFormValues]: PayloadValue<
+    NewBikeFitDataFormValues[K]
+  >;
+}>;

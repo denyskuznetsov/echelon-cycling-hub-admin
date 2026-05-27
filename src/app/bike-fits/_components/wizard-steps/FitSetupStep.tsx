@@ -13,23 +13,32 @@ import { TextField } from "@/ui/components/TextField";
 import { createClient } from "@/src/utils/supabase/client";
 import type { CustomerOption } from "@/src/lib/customers-types";
 import type { BikeFitFormValues } from "../bike-fit-form-values";
+import { BIKE_TYPE_LABELS } from "@/src/lib/bike-fits-types";
 import { NewCustomerDialog } from "../NewCustomerDialog";
+import {
+  WizardDateField,
+  WizardSelectField,
+} from "./WizardFormFields";
 import { WizardStepFooter } from "./WizardStepFooter";
 
 const SEARCH_DEBOUNCE_MS = 300;
 const SEARCH_LIMIT = 20;
 
-interface CustomerStepProps {
+const BIKE_TYPE_OPTIONS = Object.entries(BIKE_TYPE_LABELS).map(
+  ([value, label]) => ({ value, label }),
+);
+
+interface FitSetupStepProps {
   selectedCustomer: CustomerOption | null;
   onSelectedCustomerChange: (customer: CustomerOption | null) => void;
   onNext: () => void;
 }
 
-export function CustomerStep({
+export function FitSetupStep({
   selectedCustomer,
   onSelectedCustomerChange,
   onNext,
-}: CustomerStepProps) {
+}: FitSetupStepProps) {
   const { register, setValue } = useFormContext<BikeFitFormValues>();
 
   const [searchInput, setSearchInput] = useState("");
@@ -39,7 +48,7 @@ export function CustomerStep({
 
   useEffect(() => {
     register("customer.customer_id", {
-      validate: (value) => value !== null,
+      validate: (value) => value !== null || "Customer is required",
     });
   }, [register]);
 
@@ -65,7 +74,7 @@ export function CustomerStep({
       if (cancelled) return;
 
       if (error) {
-        console.error("CustomerStep search:", error);
+        console.error("FitSetupStep search:", error);
         setResults([]);
       } else {
         setResults(
@@ -110,12 +119,26 @@ export function CustomerStep({
     <div className="flex w-full flex-col items-start gap-4">
       <div className="flex w-full flex-col items-start gap-1">
         <span className="text-heading-3 font-heading-3 text-default-font">
-          1. Customer
+          1. Fit Setup
         </span>
         <span className="text-body font-body text-subtext-color">
-          Search for an existing customer, or add a new one if they aren&apos;t
-          in our database yet.
+          Choose the customer, bike type, and fit date for this session.
         </span>
+      </div>
+
+      <div className="grid w-full grid-cols-1 gap-3 md:grid-cols-2">
+        <WizardSelectField
+          name="bike_type"
+          label="Bike type"
+          placeholder="Select bike type"
+          options={BIKE_TYPE_OPTIONS}
+          rules={{ required: "Bike type is required" }}
+        />
+        <WizardDateField
+          name="fit_date"
+          label="Fit date"
+          requiredMessage="Fit date is required"
+        />
       </div>
 
       <div className="flex w-full flex-col items-start gap-3">

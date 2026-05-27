@@ -8,11 +8,10 @@ import { TextField } from "@/ui/components/TextField";
 import { DialogLayout } from "@/ui/layouts/DialogLayout";
 import { createCustomer } from "@/src/lib/customers";
 import type { CustomerOption } from "@/src/lib/customers-types";
+import { ddMmYyyyToIso, ddMmYyyyPatternRule } from "@/src/utils/date-format";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^[+()\d][\d\s()+\-./]{6,}\d$/;
-const BIRTHDAY_PATTERN =
-  /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/(19|20)\d{2}$/;
 const SEX_UNSPECIFIED = "unspecified" as const;
 
 interface NewCustomerDialogValues {
@@ -31,15 +30,6 @@ const DEFAULT_VALUES: NewCustomerDialogValues = {
   birthday: "",
   sex: null,
 };
-
-function birthdayDDMMYYYYToISO(input: string): string | null {
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-  const parts = trimmed.split("/");
-  if (parts.length !== 3) return null;
-  const [dd, mm, yyyy] = parts;
-  return `${yyyy}-${mm}-${dd}`;
-}
 
 interface NewCustomerDialogProps {
   open: boolean;
@@ -91,7 +81,7 @@ export function NewCustomerDialog({
       name: values.name,
       email: values.email || null,
       phone: values.phone || null,
-      birthday: birthdayDDMMYYYYToISO(values.birthday),
+      birthday: ddMmYyyyToIso(values.birthday),
       sex: values.sex,
     });
     setSubmitting(false);
@@ -187,10 +177,7 @@ export function NewCustomerDialog({
             placeholder="21/04/1990"
             inputMode="numeric"
             {...register("birthday", {
-              pattern: {
-                value: BIRTHDAY_PATTERN,
-                message: "Use DD/MM/YYYY (e.g. 21/04/1990)",
-              },
+              pattern: ddMmYyyyPatternRule,
             })}
           />
         </TextField>
