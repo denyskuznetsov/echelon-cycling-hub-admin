@@ -2,7 +2,8 @@
 
 import React from "react";
 import type { FieldPath } from "react-hook-form";
-import { get, useFormContext } from "react-hook-form";
+import { Controller, get, useFormContext } from "react-hook-form";
+import { Select } from "@/ui/components/Select";
 import { TextArea } from "@/ui/components/TextArea";
 import { TextField } from "@/ui/components/TextField";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
@@ -102,5 +103,67 @@ export function WizardMmField({
         {...register(name, { setValueAs: nullIfEmptyNumber })}
       />
     </TextField>
+  );
+}
+
+export interface WizardSelectOption {
+  value: string;
+  label: string;
+}
+
+interface WizardSelectFieldProps {
+  name: FieldPath<BikeFitFormValues>;
+  label: string;
+  placeholder?: string;
+  options: readonly (WizardSelectOption | string)[];
+}
+
+function normalizeSelectOptions(
+  options: readonly (WizardSelectOption | string)[],
+): WizardSelectOption[] {
+  return options.map((option) =>
+    typeof option === "string" ? { value: option, label: option } : option,
+  );
+}
+
+export function WizardSelectField({
+  name,
+  label,
+  placeholder = "Select…",
+  options,
+}: WizardSelectFieldProps) {
+  const { control } = useFormContext<BikeFitFormValues>();
+  const error = useFieldError(name);
+  const normalizedOptions = normalizeSelectOptions(options);
+
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field }) => {
+        const stringValue =
+          typeof field.value === "string" && field.value !== ""
+            ? field.value
+            : undefined;
+
+        return (
+          <Select
+            className="w-full"
+            label={label}
+            placeholder={placeholder}
+            error={!!error}
+            helpText={error}
+            value={stringValue}
+            onValueChange={(next) => field.onChange(next)}
+          >
+            {normalizedOptions.map((option) => (
+              <Select.Item key={option.value} value={option.value}>
+                {option.label}
+              </Select.Item>
+            ))}
+          </Select>
+        );
+      }}
+    />
   );
 }

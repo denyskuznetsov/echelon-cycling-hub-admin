@@ -2,10 +2,15 @@ import {
   EMPTY_OLD_BIKE,
   OLD_BIKE_FIELD_DEFS,
 } from "@/src/lib/bike-fit-old-bike-fields";
+import {
+  EMPTY_PHYSICAL_ASSESSMENT,
+  PHYSICAL_ASSESSMENT_FIELD_DEFS,
+} from "@/src/lib/bike-fit-physical-assessment-fields";
 import type {
   BikeFitAssessmentPayload,
   BikeFitFormValues,
   OldBikeFormValues,
+  PhysicalAssessmentFormValues,
 } from "@/src/lib/bike-fit-form-types";
 
 export type { BikeFitAssessmentPayload } from "@/src/lib/bike-fit-form-types";
@@ -68,6 +73,31 @@ function mapOldBikeToPayload(
   return payload as BikeFitAssessmentPayload;
 }
 
+function mapPhysicalAssessmentToPayload(
+  physicalAssessment: PhysicalAssessmentFormValues,
+): BikeFitAssessmentPayload {
+  const payload: Record<string, string | number> = {};
+
+  for (const field of PHYSICAL_ASSESSMENT_FIELD_DEFS) {
+    const value = physicalAssessment[field.key];
+
+    if (field.type === "mm") {
+      const numericValue = finiteNumber(value as number | null);
+      if (numericValue !== undefined) {
+        payload[field.key] = numericValue;
+      }
+      continue;
+    }
+
+    const textValue = trimString(value as string);
+    if (textValue !== undefined) {
+      payload[field.key] = textValue;
+    }
+  }
+
+  return payload as BikeFitAssessmentPayload;
+}
+
 export function assessmentPayloadToOldBikeValues(
   payload: unknown,
 ): OldBikeFormValues {
@@ -89,8 +119,34 @@ export function assessmentPayloadToOldBikeValues(
   return oldBike;
 }
 
+export function assessmentPayloadToPhysicalAssessmentValues(
+  payload: unknown,
+): PhysicalAssessmentFormValues {
+  const record =
+    payload && typeof payload === "object"
+      ? (payload as Record<string, unknown>)
+      : {};
+  const physicalAssessment: PhysicalAssessmentFormValues = {
+    ...EMPTY_PHYSICAL_ASSESSMENT,
+  };
+
+  for (const field of PHYSICAL_ASSESSMENT_FIELD_DEFS) {
+    if (field.type === "mm") {
+      physicalAssessment[field.key] = readNumber(record, field.key) as never;
+      continue;
+    }
+
+    physicalAssessment[field.key] = readString(record, field.key) as never;
+  }
+
+  return physicalAssessment;
+}
+
 export function formValuesToAssessmentPayload(
   values: BikeFitFormValues,
 ): BikeFitAssessmentPayload {
-  return compactPayload(mapOldBikeToPayload(values.oldBike));
+  return compactPayload({
+    ...mapOldBikeToPayload(values.oldBike),
+    ...mapPhysicalAssessmentToPayload(values.physicalAssessment),
+  });
 }

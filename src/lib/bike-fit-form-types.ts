@@ -19,17 +19,38 @@ export interface OldBikeFormValues {
   old_other: string;
 }
 
+export interface PhysicalAssessmentFormValues {
+  physiological_survey: string;
+  previous_injuries: string;
+  ischial_tuberosity_width_mm: number | null;
+  forefoot_structure_left: string;
+  forefoot_structure_right: string;
+  rearfoot_structure_left: string;
+  rearfoot_structure_right: string;
+  arch_height: string;
+  pelvis_level: string;
+  low_back_flexibility: string;
+  shoulders_flexibility: string;
+  neck_flexibility: string;
+  dorsi_flexion_left: string;
+  dorsi_flexion_right: string;
+  plantar_flexion_left: string;
+  plantar_flexion_right: string;
+  hamstring_flexibility_left: string;
+  hamstring_flexibility_right: string;
+  hip_rom_left: string;
+  hip_rom_right: string;
+  leg_length_discrepancy: string;
+  pelvic_rotation: string;
+  knee_bend_observations: string;
+}
+
 export interface BikeFitFormValues {
   customer: {
     customer_id: string | null;
   };
   oldBike: OldBikeFormValues;
-  physicalAssessment: {
-    height_cm: number | null;
-    weight_kg: number | null;
-    inseam_cm: number | null;
-    notes: string;
-  };
+  physicalAssessment: PhysicalAssessmentFormValues;
   newBikeFitData: {
     bike_type: string;
     saddle_height_mm: number | null;
@@ -38,6 +59,10 @@ export interface BikeFitFormValues {
   };
 }
 
+type PayloadValueFor<K extends string> = K extends `${string}_mm` ? number : string;
+
 export type BikeFitAssessmentPayload = Partial<{
-  [K in keyof OldBikeFormValues]: K extends `${string}_mm` ? number : string;
+  [K in keyof OldBikeFormValues]: PayloadValueFor<K & string>;
+} & {
+  [K in keyof PhysicalAssessmentFormValues]: PayloadValueFor<K & string>;
 }>;

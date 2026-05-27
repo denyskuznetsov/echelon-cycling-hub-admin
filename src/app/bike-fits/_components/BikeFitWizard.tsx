@@ -6,6 +6,7 @@ import { FormProvider, useForm } from "react-hook-form";
 import { Stepper } from "@/ui/components/Stepper";
 import type { CustomerOption } from "@/src/lib/customers-types";
 import { EMPTY_OLD_BIKE } from "@/src/lib/bike-fit-old-bike-fields";
+import { EMPTY_PHYSICAL_ASSESSMENT } from "@/src/lib/bike-fit-physical-assessment-fields";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
 import {
   BIKE_FIT_STEPS,
@@ -24,12 +25,7 @@ const LAST_STEP_INDEX = BIKE_FIT_STEPS.length - 1;
 const DEFAULT_VALUES: BikeFitFormValues = {
   customer: { customer_id: null },
   oldBike: EMPTY_OLD_BIKE,
-  physicalAssessment: {
-    height_cm: null,
-    weight_kg: null,
-    inseam_cm: null,
-    notes: "",
-  },
+  physicalAssessment: EMPTY_PHYSICAL_ASSESSMENT,
   newBikeFitData: {
     bike_type: "",
     saddle_height_mm: null,
