@@ -74,6 +74,7 @@ export function BikeFitWizard({
     (step) => step.key === currentStep,
   );
   const isLastStep = currentIndex === BIKE_FIT_STEPS.length - 1;
+  const isReadOnly = status === "completed";
 
   const methods = useForm<BikeFitFormValues>({
     resolver: zodResolver(BikeFitFormSchema),
@@ -174,6 +175,10 @@ export function BikeFitWizard({
   // untouched required field after the user clicks Mark as Completed.
   const submitToComplete = methods.handleSubmit(
     async (validValues) => {
+      if (isReadOnly) {
+        setCompletionError("Completed fits are read-only.");
+        return;
+      }
       isFinalising.current = true;
       const result = await completeBikeFit(
         bikeFitId,
@@ -194,6 +199,10 @@ export function BikeFitWizard({
   );
 
   const handleComplete = () => {
+    if (isReadOnly) {
+      setCompletionError("Completed fits are read-only.");
+      return;
+    }
     if (isCompleting) return;
     setCompletionError(null);
     startCompleting(async () => {
@@ -211,7 +220,7 @@ export function BikeFitWizard({
           <SaveStateIndicator
             state={saveState}
             errorMessage={saveErrorMessage}
-            readOnly={status === "completed"}
+            readOnly={isReadOnly}
           />
         </div>
         <span className="text-body font-body text-subtext-color">
@@ -256,7 +265,10 @@ export function BikeFitWizard({
       ) : null}
 
       <div className="flex w-full flex-col gap-4 rounded-md border border-solid border-neutral-border bg-default-background p-8">
-        <div className="mx-auto w-full max-w-2xl">
+        <fieldset
+          disabled={isReadOnly}
+          className="mx-auto w-full max-w-2xl disabled:opacity-80"
+        >
           {currentStep === "fit-setup" && (
             <FitSetupStep
               selectedCustomer={selectedCustomer}
@@ -265,6 +277,7 @@ export function BikeFitWizard({
               isLastStep={isLastStep}
               onComplete={handleComplete}
               isCompleting={isCompleting}
+              readOnly={isReadOnly}
             />
           )}
           {currentStep === "old-bike" && (
@@ -274,6 +287,7 @@ export function BikeFitWizard({
               isLastStep={isLastStep}
               onComplete={handleComplete}
               isCompleting={isCompleting}
+              readOnly={isReadOnly}
             />
           )}
           {currentStep === "physical-assessment" && (
@@ -283,6 +297,7 @@ export function BikeFitWizard({
               isLastStep={isLastStep}
               onComplete={handleComplete}
               isCompleting={isCompleting}
+              readOnly={isReadOnly}
             />
           )}
           {currentStep === "new-bike-fit-data" && (
@@ -292,7 +307,7 @@ export function BikeFitWizard({
               isCompleting={isCompleting}
             />
           )}
-        </div>
+        </fieldset>
       </div>
     </FormProvider>
   );

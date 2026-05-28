@@ -149,6 +149,7 @@ interface WizardSelectFieldProps {
   label: string;
   placeholder?: string;
   options: readonly (WizardSelectOption | string)[];
+  readOnly?: boolean;
 }
 
 function normalizeSelectOptions(
@@ -164,6 +165,7 @@ export function WizardSelectField({
   label,
   placeholder = "Select…",
   options,
+  readOnly = false,
 }: WizardSelectFieldProps) {
   const { control } = useFormContext<BikeFitFormValues>();
   const error = useFieldError(name);
@@ -188,9 +190,15 @@ export function WizardSelectField({
               {hasValue ? (
                 <button
                   type="button"
-                  onClick={() => field.onChange("")}
+                  onClick={() => {
+                    if (readOnly) {
+                      return;
+                    }
+                    field.onChange("");
+                  }}
                   className="flex items-center gap-1 rounded text-caption font-caption text-subtext-color transition-colors hover:text-default-font focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-primary"
                   aria-label={`Clear ${label}`}
+                  disabled={readOnly}
                 >
                   <FeatherX className="h-3 w-3" />
                   Clear
@@ -199,11 +207,17 @@ export function WizardSelectField({
             </div>
             <Select
               className="w-full"
+              disabled={readOnly}
               placeholder={placeholder}
               error={!!error}
               helpText={error}
               value={stringValue}
-              onValueChange={(next) => field.onChange(next)}
+              onValueChange={(next) => {
+                if (readOnly) {
+                  return;
+                }
+                field.onChange(next);
+              }}
             >
               {normalizedOptions.map((option) => (
                 <Select.Item key={option.value} value={option.value}>

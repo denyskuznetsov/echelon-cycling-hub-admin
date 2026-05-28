@@ -22,9 +22,10 @@ interface OldBikeStepProps {
   isLastStep?: boolean;
   onComplete?: () => void;
   isCompleting?: boolean;
+  readOnly?: boolean;
 }
 
-function renderField(field: OldBikeFieldDef) {
+function renderField(field: OldBikeFieldDef, readOnly: boolean) {
   const name = oldBikeFieldPath(field.key);
 
   if (field.type === "textarea") {
@@ -68,6 +69,7 @@ function renderField(field: OldBikeFieldDef) {
         label={field.label}
         placeholder={field.placeholder || undefined}
         options={field.options}
+        readOnly={readOnly}
       />
     );
   }
@@ -82,7 +84,7 @@ function renderField(field: OldBikeFieldDef) {
   );
 }
 
-function renderFieldGroup(fields: OldBikeFieldDef[]) {
+function renderFieldGroup(fields: OldBikeFieldDef[], readOnly: boolean) {
   const nodes: React.ReactNode[] = [];
   let gridBatch: OldBikeFieldDef[] = [];
 
@@ -93,7 +95,7 @@ function renderFieldGroup(fields: OldBikeFieldDef[]) {
         key={gridBatch.map((field) => field.key).join("-")}
         className="grid w-full grid-cols-1 gap-3 md:grid-cols-2"
       >
-        {gridBatch.map((field) => renderField(field))}
+        {gridBatch.map((field) => renderField(field, readOnly))}
       </div>,
     );
     gridBatch = [];
@@ -106,7 +108,7 @@ function renderFieldGroup(fields: OldBikeFieldDef[]) {
     }
 
     flushGrid();
-    nodes.push(renderField(field));
+    nodes.push(renderField(field, readOnly));
   }
 
   flushGrid();
@@ -119,6 +121,7 @@ export function OldBikeStep({
   isLastStep = false,
   onComplete,
   isCompleting = false,
+  readOnly = false,
 }: OldBikeStepProps) {
   return (
     <div className="flex w-full flex-col gap-6">
@@ -146,7 +149,7 @@ export function OldBikeStep({
               <span className="text-body-bold font-body-bold text-default-font">
                 {section.title}
               </span>
-              {renderFieldGroup(sectionFields)}
+              {renderFieldGroup(sectionFields, readOnly)}
             </section>
           );
         })}

@@ -150,14 +150,20 @@ export async function completeBikeFit(
   const supabase = await createClient();
   const columns = buildSaveColumns(values, { status: "completed" });
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("bike_fits")
     .update(columns)
-    .eq("id", id);
+    .eq("id", id)
+    .in("status", ["draft", "in_progress"])
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("completeBikeFit:", error);
     return { ok: false, error: error.message };
+  }
+  if (!data) {
+    return { ok: false, error: "Completed fits are read-only." };
   }
 
   revalidatePath("/bike-fits/all-bike-fits");

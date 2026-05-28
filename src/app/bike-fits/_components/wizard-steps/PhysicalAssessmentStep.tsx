@@ -21,9 +21,10 @@ interface PhysicalAssessmentStepProps {
   isLastStep?: boolean;
   onComplete?: () => void;
   isCompleting?: boolean;
+  readOnly?: boolean;
 }
 
-function renderField(field: PhysicalAssessmentFieldDef) {
+function renderField(field: PhysicalAssessmentFieldDef, readOnly: boolean) {
   const name = physicalAssessmentFieldPath(field.key);
 
   if (field.type === "textarea") {
@@ -56,6 +57,7 @@ function renderField(field: PhysicalAssessmentFieldDef) {
         label={field.label}
         placeholder={field.placeholder}
         options={field.options}
+        readOnly={readOnly}
       />
     );
   }
@@ -70,7 +72,10 @@ function renderField(field: PhysicalAssessmentFieldDef) {
   );
 }
 
-function renderFieldGroup(fields: PhysicalAssessmentFieldDef[]) {
+function renderFieldGroup(
+  fields: PhysicalAssessmentFieldDef[],
+  readOnly: boolean,
+) {
   const nodes: React.ReactNode[] = [];
   let gridBatch: PhysicalAssessmentFieldDef[] = [];
 
@@ -81,7 +86,7 @@ function renderFieldGroup(fields: PhysicalAssessmentFieldDef[]) {
         key={gridBatch.map((field) => field.key).join("-")}
         className="grid w-full grid-cols-1 gap-3 md:grid-cols-2"
       >
-        {gridBatch.map((field) => renderField(field))}
+        {gridBatch.map((field) => renderField(field, readOnly))}
       </div>,
     );
     gridBatch = [];
@@ -94,7 +99,7 @@ function renderFieldGroup(fields: PhysicalAssessmentFieldDef[]) {
     }
 
     flushGrid();
-    nodes.push(renderField(field));
+    nodes.push(renderField(field, readOnly));
   }
 
   flushGrid();
@@ -107,6 +112,7 @@ export function PhysicalAssessmentStep({
   isLastStep = false,
   onComplete,
   isCompleting = false,
+  readOnly = false,
 }: PhysicalAssessmentStepProps) {
   return (
     <div className="flex w-full flex-col gap-6">
@@ -136,7 +142,7 @@ export function PhysicalAssessmentStep({
               <span className="text-body-bold font-body-bold text-default-font">
                 {section.title}
               </span>
-              {renderFieldGroup(sectionFields)}
+              {renderFieldGroup(sectionFields, readOnly)}
             </section>
           );
         })}

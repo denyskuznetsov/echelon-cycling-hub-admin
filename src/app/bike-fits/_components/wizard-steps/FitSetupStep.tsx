@@ -35,6 +35,7 @@ interface FitSetupStepProps {
   isLastStep?: boolean;
   onComplete?: () => void;
   isCompleting?: boolean;
+  readOnly?: boolean;
 }
 
 export function FitSetupStep({
@@ -44,6 +45,7 @@ export function FitSetupStep({
   isLastStep = false,
   onComplete,
   isCompleting = false,
+  readOnly = false,
 }: FitSetupStepProps) {
   const { setValue } = useFormContext<BikeFitFormValues>();
 
@@ -132,6 +134,7 @@ export function FitSetupStep({
           label="Bike type"
           placeholder="Select bike type"
           options={BIKE_TYPE_OPTIONS}
+          readOnly={readOnly}
         />
         <WizardDateField name="fit_date" label="Fit date" />
       </div>
