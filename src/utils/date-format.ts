@@ -21,14 +21,6 @@ export function isoDateToDdMmYyyy(iso: string): string {
   return `${dd}/${mm}/${yyyy}`;
 }
 
-export function todayDdMmYyyy(): string {
-  const now = new Date();
-  const dd = String(now.getDate()).padStart(2, "0");
-  const mm = String(now.getMonth() + 1).padStart(2, "0");
-  const yyyy = String(now.getFullYear());
-  return `${dd}/${mm}/${yyyy}`;
-}
-
 export const ddMmYyyyPatternRule = {
   value: DD_MM_YYYY_PATTERN,
   message: DD_MM_YYYY_VALIDATION_MESSAGE,

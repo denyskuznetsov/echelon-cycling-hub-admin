@@ -94,8 +94,7 @@ type Expect<T extends true> = T;
  * collide when old bike + physical assessment merge into assessment_payload, or
  * when any section's fields map to the wrong JSON column.
  */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-type _BikeFitKeyOverlapCheck = Expect<
+export type BikeFitKeyOverlapCheck = Expect<
   IsNever<
     | Extract<keyof OldBikeFormValues, keyof PhysicalAssessmentFormValues>
     | Extract<keyof OldBikeFormValues, keyof NewBikeFitDataFormValues>
@@ -113,9 +112,9 @@ type _BikeFitKeyOverlapCheck = Expect<
  * payload value type.
  */
 type PayloadValue<T> = T extends number | null
-  ? number
+  ? number | null
   : T extends string
-    ? Exclude<T, "">
+    ? T
     : never;
 
 export type BikeFitAssessmentPayload = Partial<

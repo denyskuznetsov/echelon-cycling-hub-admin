@@ -5,6 +5,7 @@ import type {
   OldBikeFormValues,
 } from "@/src/lib/bike-fit-form-types";
 
+
 export type OldBikeSectionId =
   | "cycling_history"
   | "current_setup"
@@ -251,15 +252,6 @@ export const EMPTY_OLD_BIKE: OldBikeFormValues = {
   old_stem_length_mm: null,
   old_other: "",
 };
-
-/**
- * Paths to trigger on Next; numeric fields have no rules so they're skipped.
- * Select and text/textarea paths are included so safeTextFieldRules can fire
- * (selects today have no rules but staying in this list is future-proof).
- */
-export const OLD_BIKE_TEXT_FIELD_PATHS = OLD_BIKE_FIELD_DEFS.filter(
-  (field) => field.type !== "mm" && field.type !== "number",
-).map((field) => `oldBike.${field.key}` as FieldPath<BikeFitFormValues>);
 
 export function oldBikeFieldPath(
   key: keyof OldBikeFormValues,

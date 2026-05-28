@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar } from "@/ui/components/Avatar";
@@ -15,6 +15,7 @@ import { FeatherEdit2 } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
 import { TablePagination } from "@/src/components/TablePagination";
+import { createBikeFitDraft } from "@/src/lib/bike-fit-actions";
 import {
   formatBikeType,
   type BikeFitRow,
@@ -66,6 +67,21 @@ export function AllBikeFitsTable({
   const router = useRouter();
   const pathname = usePathname();
   const [search, setSearch] = useState(query);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [isCreating, startCreating] = useTransition();
+
+  const handleCreate = () => {
+    if (isCreating) return;
+    setCreateError(null);
+    startCreating(async () => {
+      const result = await createBikeFitDraft();
+      if (!result.ok) {
+        setCreateError(result.error);
+        return;
+      }
+      router.push(`/bike-fits/${result.id}/edit?step=fit-setup`);
+    });
+  };
 
   useEffect(() => {
     setSearch(query);
@@ -103,13 +119,20 @@ export function AllBikeFitsTable({
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
-      <div className="flex w-full items-center justify-end">
+      <div className="flex w-full flex-col items-end gap-1">
         <Button
           variant="brand-primary"
-          onClick={() => router.push("/bike-fits/new")}
+          loading={isCreating}
+          disabled={isCreating}
+          onClick={handleCreate}
         >
           Create New Bike Fit
         </Button>
+        {createError ? (
+          <span className="text-caption font-caption text-error-700">
+            {createError}
+          </span>
+        ) : null}
       </div>
       <div className="flex w-full items-center gap-2 mobile:flex-col mobile:items-stretch mobile:gap-3">
         <span className="grow shrink-0 basis-0 text-heading-3 font-heading-3 text-default-font mobile:grow-0 mobile:basis-auto">

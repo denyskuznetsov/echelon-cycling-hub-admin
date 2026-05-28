@@ -8,19 +8,9 @@ import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit-new-
 import { isoDateToDdMmYyyy } from "@/src/utils/date-format";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
 
-export type {
-  BikeFitFormValues,
-  NewBikeFitDataFormValues,
-  OldBikeFormValues,
-  PhysicalAssessmentFormValues,
-} from "@/src/lib/bike-fit-form-types";
-export { EMPTY_NEW_BIKE_FIT_DATA } from "@/src/lib/bike-fit-new-bike-fields";
-export { EMPTY_OLD_BIKE } from "@/src/lib/bike-fit-old-bike-fields";
-export { EMPTY_PHYSICAL_ASSESSMENT } from "@/src/lib/bike-fit-physical-assessment-fields";
+export type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
 
-export function bikeFitRowToInitialData(
-  row: BikeFitRow,
-): Partial<BikeFitFormValues> {
+export function bikeFitRowToInitialData(row: BikeFitRow): BikeFitFormValues {
   return {
     customer: { customer_id: row.customer_id },
     bike_type: isBikeType(row.bike_type) ? row.bike_type : "",

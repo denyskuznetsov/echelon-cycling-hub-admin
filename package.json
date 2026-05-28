@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "@hookform/resolvers": "^5.4.0",
     "@react-email/components": "^1.0.12",
     "@react-email/tailwind": "^2.0.7",
     "@subframe/core": "^1.154.0",
@@ -21,7 +22,8 @@
     "react": "^18",
     "react-dom": "^18",
     "react-email": "^6.1.5",
-    "react-hook-form": "^7.76.1"
+    "react-hook-form": "^7.76.1",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@react-email/ui": "^6.1.5",

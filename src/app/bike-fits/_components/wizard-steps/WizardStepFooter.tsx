@@ -1,22 +1,28 @@
 "use client";
 
 import React from "react";
-import { FeatherChevronLeft, FeatherChevronRight } from "@subframe/core";
+import { FeatherCheck, FeatherChevronLeft, FeatherChevronRight } from "@subframe/core";
 import { Button } from "@/ui/components/Button";
 
 interface WizardStepFooterProps {
   onNext: () => void;
   onBack?: () => void;
-  primaryLabel?: string;
-  showNextIcon?: boolean;
+  /**
+   * When true, the primary action becomes "Mark as Completed" and shows a
+   * check icon instead of the chevron-forward used for between-step nav.
+   */
+  isLastStep?: boolean;
+  loading?: boolean;
 }
 
 export function WizardStepFooter({
   onNext,
   onBack,
-  primaryLabel = "Next",
-  showNextIcon = true,
+  isLastStep = false,
+  loading = false,
 }: WizardStepFooterProps) {
+  const primaryLabel = isLastStep ? "Mark as Completed" : "Next";
+
   return (
     <div className="flex w-full items-center justify-between border-t border-solid border-neutral-border pt-6">
       {onBack ? (
@@ -24,6 +30,7 @@ export function WizardStepFooter({
           variant="neutral-secondary"
           icon={<FeatherChevronLeft />}
           onClick={onBack}
+          disabled={loading}
         >
           Back
         </Button>
@@ -32,8 +39,12 @@ export function WizardStepFooter({
       )}
       <Button
         variant="brand-primary"
-        iconRight={showNextIcon ? <FeatherChevronRight /> : undefined}
+        iconRight={
+          isLastStep ? <FeatherCheck /> : <FeatherChevronRight />
+        }
         onClick={onNext}
+        loading={loading}
+        disabled={loading}
       >
         {primaryLabel}
       </Button>

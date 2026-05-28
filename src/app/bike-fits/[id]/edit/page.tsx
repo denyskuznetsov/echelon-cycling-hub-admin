@@ -22,6 +22,8 @@ export default async function EditBikeFitPage({
   return (
     <div className="container max-w-none flex h-full w-full flex-col items-start gap-8 bg-default-background py-12">
       <BikeFitWizard
+        bikeFitId={bikeFit.id}
+        status={bikeFit.status}
         initialData={bikeFitRowToInitialData(bikeFit)}
         initialCustomer={bikeFitRowToInitialCustomer(bikeFit)}
       />

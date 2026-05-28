@@ -1,20 +1,29 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
-import { FormProvider, useForm } from "react-hook-form";
+import { FormProvider, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  FeatherAlertTriangle,
+  FeatherCheck,
+  FeatherLoader,
+} from "@subframe/core";
 import { Stepper } from "@/ui/components/Stepper";
+import { Toast } from "@/ui/components/Toast";
 import type { CustomerOption } from "@/src/lib/customers-types";
-import { EMPTY_NEW_BIKE_FIT_DATA } from "@/src/lib/bike-fit-new-bike-fields";
-import { EMPTY_OLD_BIKE } from "@/src/lib/bike-fit-old-bike-fields";
-import { EMPTY_PHYSICAL_ASSESSMENT } from "@/src/lib/bike-fit-physical-assessment-fields";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
-import { todayDdMmYyyy } from "@/src/utils/date-format";
+import { BikeFitFormSchema } from "@/src/lib/bike-fit-schema";
+import {
+  completeBikeFit,
+  saveBikeFitDraft,
+} from "@/src/lib/bike-fit-actions";
+import type { BikeFitStatus } from "@/src/lib/bike-fits-types";
+import { useDebouncedValue } from "@/src/hooks/use-debounced-value";
 import {
   BIKE_FIT_STEPS,
   type BikeFitStepKey,
 } from "./bike-fit-wizard-config";
-import { BIKE_FIT_STEP_FIELDS } from "./wizard-step-validation";
 import { FitSetupStep } from "./wizard-steps/FitSetupStep";
 import { OldBikeStep } from "./wizard-steps/OldBikeStep";
 import { PhysicalAssessmentStep } from "./wizard-steps/PhysicalAssessmentStep";
@@ -22,53 +31,36 @@ import { NewBikeFitDataStep } from "./wizard-steps/NewBikeFitDataStep";
 
 export type { BikeFitStepKey } from "./bike-fit-wizard-config";
 
-const LAST_STEP_INDEX = BIKE_FIT_STEPS.length - 1;
+const AUTOSAVE_DEBOUNCE_MS = 2000;
 
-const DEFAULT_VALUES: BikeFitFormValues = {
-  customer: { customer_id: null },
-  bike_type: "",
-  fit_date: todayDdMmYyyy(),
-  oldBike: EMPTY_OLD_BIKE,
-  physicalAssessment: EMPTY_PHYSICAL_ASSESSMENT,
-  newBikeFitData: EMPTY_NEW_BIKE_FIT_DATA,
-};
+type SaveState = "idle" | "saving" | "saved" | "error";
 
 function isStepKey(value: string | null): value is BikeFitStepKey {
   return BIKE_FIT_STEPS.some((step) => step.key === value);
 }
 
-function mergeInitialData(
-  initial: Partial<BikeFitFormValues> | undefined,
-): BikeFitFormValues {
-  if (!initial) return DEFAULT_VALUES;
-  return {
-    customer: { ...DEFAULT_VALUES.customer, ...initial.customer },
-    bike_type: initial.bike_type ?? DEFAULT_VALUES.bike_type,
-    fit_date: initial.fit_date ?? DEFAULT_VALUES.fit_date,
-    oldBike: { ...DEFAULT_VALUES.oldBike, ...initial.oldBike },
-    physicalAssessment: {
-      ...DEFAULT_VALUES.physicalAssessment,
-      ...initial.physicalAssessment,
-    },
-    newBikeFitData: {
-      ...DEFAULT_VALUES.newBikeFitData,
-      ...initial.newBikeFitData,
-    },
-  };
-}
-
 interface BikeFitWizardProps {
-  initialData?: Partial<BikeFitFormValues>;
+  bikeFitId: string;
+  status: BikeFitStatus;
   /**
-   * Customer attached to the bike fit on load (edit mode). Used only to
-   * display the selected customer's label without re-querying the DB.
+   * Fully-hydrated form values built from the DB row that backs this edit
+   * session. The Immediate-Draft flow guarantees a real row exists before
+   * the wizard is rendered, so there is no "empty" code path.
    */
-  initialCustomer?: CustomerOption | null;
+  initialData: BikeFitFormValues;
+  /**
+   * Customer attached to the bike fit on load, or `null` when the draft has
+   * no customer assigned yet. Used only to render the selected customer's
+   * label without re-querying the DB.
+   */
+  initialCustomer: CustomerOption | null;
 }
 
 export function BikeFitWizard({
+  bikeFitId,
+  status,
   initialData,
-  initialCustomer = null,
+  initialCustomer,
 }: BikeFitWizardProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -78,85 +70,150 @@ export function BikeFitWizard({
   const currentStep: BikeFitStepKey = isStepKey(stepParam)
     ? stepParam
     : "fit-setup";
-  const currentIndex = BIKE_FIT_STEPS.findIndex((step) => step.key === currentStep);
-
-  const mode: "create" | "edit" = initialData ? "edit" : "create";
-
-  // Create: stepper unlocks only after reaching the last step via Next.
-  // Edit: all steps are reachable immediately (data is already complete).
-  const [maxStepReached, setMaxStepReached] = useState(() =>
-    mode === "edit" ? LAST_STEP_INDEX : 0,
+  const currentIndex = BIKE_FIT_STEPS.findIndex(
+    (step) => step.key === currentStep,
   );
-  const isStepperUnlocked =
-    mode === "edit" || maxStepReached >= LAST_STEP_INDEX;
+  const isLastStep = currentIndex === BIKE_FIT_STEPS.length - 1;
 
   const methods = useForm<BikeFitFormValues>({
-    defaultValues: mergeInitialData(initialData),
-    mode: "onBlur",
+    resolver: zodResolver(BikeFitFormSchema),
+    defaultValues: initialData,
+    mode: "onChange",
   });
 
-  // Display label for the selected customer; survives step unmounts. Form holds customer_id only.
-  const [selectedCustomer, setSelectedCustomer] = useState<CustomerOption | null>(
-    initialCustomer,
+  // Display label for the selected customer; survives step unmounts. Form
+  // holds customer_id only.
+  const [selectedCustomer, setSelectedCustomer] =
+    useState<CustomerOption | null>(initialCustomer);
+
+  const watchedValues = useWatch({ control: methods.control });
+  const debouncedValues = useDebouncedValue(
+    watchedValues,
+    AUTOSAVE_DEBOUNCE_MS,
   );
 
-  // TODO: Implement debounced autosave background mutation here
+  const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [saveErrorMessage, setSaveErrorMessage] = useState<string | null>(null);
+  const hasEverDirtied = useRef(false);
+  const lastSavedSerialised = useRef<string | null>(null);
+  const isFinalising = useRef(false);
 
-  const validateCurrentStep = async (): Promise<boolean> => {
-    const fields = BIKE_FIT_STEP_FIELDS[currentStep];
-    if (fields.length === 0) return true;
-    return methods.trigger(fields);
-  };
+  useEffect(() => {
+    if (methods.formState.isDirty) {
+      hasEverDirtied.current = true;
+    }
+  }, [methods.formState.isDirty]);
 
-  const goToStep = async (nextKey: BikeFitStepKey) => {
+  /**
+   * Autosave: whenever the debounced form state changes AND the user has
+   * made at least one real edit AND the row is still editable, fire an
+   * UPDATE in the background. Cleanup cancels stale promises so the latest
+   * save wins the UI race.
+   */
+  useEffect(() => {
+    if (status === "completed") return;
+    if (!hasEverDirtied.current) return;
+    if (isFinalising.current) return;
+
+    const payloadKey = JSON.stringify(debouncedValues);
+    if (lastSavedSerialised.current === payloadKey) return;
+
+    let cancelled = false;
+    setSaveState("saving");
+    setSaveErrorMessage(null);
+
+    saveBikeFitDraft(bikeFitId, debouncedValues as BikeFitFormValues)
+      .then((result) => {
+        if (cancelled) return;
+        if (result.ok) {
+          lastSavedSerialised.current = payloadKey;
+          setSaveState("saved");
+        } else {
+          setSaveState("error");
+          setSaveErrorMessage(result.error);
+        }
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const message =
+          err instanceof Error ? err.message : "Autosave failed.";
+        setSaveState("error");
+        setSaveErrorMessage(message);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedValues, bikeFitId, status]);
+
+  const goToStep = (nextKey: BikeFitStepKey) => {
     const nextIndex = BIKE_FIT_STEPS.findIndex((step) => step.key === nextKey);
     if (nextIndex === -1 || nextIndex === currentIndex) return;
-
-    if (nextIndex > currentIndex && !isStepperUnlocked) {
-      const isValid = await validateCurrentStep();
-      if (!isValid) return;
-    }
-
-    setMaxStepReached((prev) => Math.max(prev, nextIndex));
 
     const params = new URLSearchParams(searchParams.toString());
     params.set("step", nextKey);
     router.push(`${pathname}?${params.toString()}`, { scroll: false });
   };
 
-  const goToNextStep = async () => {
+  const goToNextStep = () => {
     const nextStep = BIKE_FIT_STEPS[currentIndex + 1];
-    if (nextStep) {
-      await goToStep(nextStep.key);
-    }
+    if (nextStep) goToStep(nextStep.key);
   };
 
   const goToPreviousStep = () => {
     const previousStep = BIKE_FIT_STEPS[currentIndex - 1];
-    if (previousStep) {
-      void goToStep(previousStep.key);
-    }
+    if (previousStep) goToStep(previousStep.key);
   };
 
-  const handleStepClick = (index: number, key: BikeFitStepKey) => {
-    if (index === currentIndex) return;
+  const [completionError, setCompletionError] = useState<string | null>(null);
+  const [isCompleting, startCompleting] = useTransition();
 
-    if (isStepperUnlocked) {
-      void goToStep(key);
-      return;
-    }
+  // We use `handleSubmit` (not `trigger`) so React Hook Form flips
+  // `formState.isSubmitted = true` on failure. That lets the field-level
+  // error indicators (gated by `useFieldError`) show errors on every
+  // untouched required field after the user clicks Mark as Completed.
+  const submitToComplete = methods.handleSubmit(
+    async (validValues) => {
+      isFinalising.current = true;
+      const result = await completeBikeFit(
+        bikeFitId,
+        validValues as BikeFitFormValues,
+      );
+      if (!result.ok) {
+        isFinalising.current = false;
+        setCompletionError(result.error);
+        return;
+      }
+      router.push("/bike-fits/all-bike-fits");
+    },
+    () => {
+      setCompletionError(
+        "Please fill out required fields in previous steps.",
+      );
+    },
+  );
 
-    if (index <= maxStepReached) {
-      void goToStep(key);
-    }
+  const handleComplete = () => {
+    if (isCompleting) return;
+    setCompletionError(null);
+    startCompleting(async () => {
+      await submitToComplete();
+    });
   };
 
   return (
     <FormProvider {...methods}>
       <div className="flex w-full flex-col items-start gap-2">
-        <span className="text-heading-1 font-heading-1 text-default-font">
-          {mode === "edit" ? "Edit Bike Fit" : "New Bike Fit"}
-        </span>
+        <div className="flex w-full flex-wrap items-center justify-between gap-3">
+          <span className="text-heading-1 font-heading-1 text-default-font">
+            Edit Bike Fit
+          </span>
+          <SaveStateIndicator
+            state={saveState}
+            errorMessage={saveErrorMessage}
+            readOnly={status === "completed"}
+          />
+        </div>
         <span className="text-body font-body text-subtext-color">
           Step {currentIndex + 1} of {BIKE_FIT_STEPS.length}:{" "}
           {BIKE_FIT_STEPS[currentIndex].label}
@@ -166,13 +223,11 @@ export function BikeFitWizard({
       <Stepper>
         {BIKE_FIT_STEPS.map((step, index) => {
           const variant =
-            index < currentIndex ||
-            (index <= maxStepReached && index > currentIndex)
-              ? "completed"
-              : index === currentIndex
-                ? "active"
+            index === currentIndex
+              ? "active"
+              : index < currentIndex
+                ? "completed"
                 : "default";
-          const isReachable = isStepperUnlocked || index <= maxStepReached;
 
           return (
             <Stepper.Step
@@ -182,20 +237,23 @@ export function BikeFitWizard({
               stepNumber={index + 1}
               label={step.label}
               variant={variant}
-              className={
-                isReachable
-                  ? "cursor-pointer"
-                  : "cursor-not-allowed opacity-50"
-              }
-              onClick={
-                isReachable
-                  ? () => handleStepClick(index, step.key)
-                  : undefined
-              }
+              className="cursor-pointer"
+              onClick={() => goToStep(step.key)}
             />
           );
         })}
       </Stepper>
+
+      {completionError ? (
+        <div className="w-full">
+          <Toast
+            variant="error"
+            icon={<FeatherAlertTriangle />}
+            title="Cannot mark as completed"
+            description={completionError}
+          />
+        </div>
+      ) : null}
 
       <div className="flex w-full flex-col gap-4 rounded-md border border-solid border-neutral-border bg-default-background p-8">
         <div className="mx-auto w-full max-w-2xl">
@@ -203,26 +261,92 @@ export function BikeFitWizard({
             <FitSetupStep
               selectedCustomer={selectedCustomer}
               onSelectedCustomerChange={setSelectedCustomer}
-              onNext={() => void goToNextStep()}
+              onNext={goToNextStep}
+              isLastStep={isLastStep}
+              onComplete={handleComplete}
+              isCompleting={isCompleting}
             />
           )}
           {currentStep === "old-bike" && (
             <OldBikeStep
-              onNext={() => void goToNextStep()}
+              onNext={goToNextStep}
               onBack={goToPreviousStep}
+              isLastStep={isLastStep}
+              onComplete={handleComplete}
+              isCompleting={isCompleting}
             />
           )}
           {currentStep === "physical-assessment" && (
             <PhysicalAssessmentStep
-              onNext={() => void goToNextStep()}
+              onNext={goToNextStep}
               onBack={goToPreviousStep}
+              isLastStep={isLastStep}
+              onComplete={handleComplete}
+              isCompleting={isCompleting}
             />
           )}
           {currentStep === "new-bike-fit-data" && (
-            <NewBikeFitDataStep onBack={goToPreviousStep} />
+            <NewBikeFitDataStep
+              onBack={goToPreviousStep}
+              onComplete={handleComplete}
+              isCompleting={isCompleting}
+            />
           )}
         </div>
       </div>
     </FormProvider>
+  );
+}
+
+interface SaveStateIndicatorProps {
+  state: SaveState;
+  errorMessage: string | null;
+  readOnly: boolean;
+}
+
+function SaveStateIndicator({
+  state,
+  errorMessage,
+  readOnly,
+}: SaveStateIndicatorProps) {
+  if (readOnly) {
+    return (
+      <span className="text-caption font-caption text-subtext-color">
+        Read-only — fit is completed
+      </span>
+    );
+  }
+
+  if (state === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1 text-caption font-caption text-subtext-color">
+        <FeatherLoader className="h-3 w-3 animate-spin" />
+        Saving…
+      </span>
+    );
+  }
+
+  if (state === "saved") {
+    return (
+      <span className="inline-flex items-center gap-1 text-caption font-caption text-success-700">
+        <FeatherCheck className="h-3 w-3" />
+        All changes saved
+      </span>
+    );
+  }
+
+  if (state === "error") {
+    return (
+      <span className="inline-flex items-center gap-1 text-caption font-caption text-error-700">
+        <FeatherAlertTriangle className="h-3 w-3" />
+        {errorMessage ? `Couldn't save: ${errorMessage}` : "Couldn't save"}
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-caption font-caption text-subtext-color">
+      Edits autosave to the database.
+    </span>
   );
 }

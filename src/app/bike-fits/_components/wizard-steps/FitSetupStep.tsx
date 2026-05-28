@@ -32,25 +32,25 @@ interface FitSetupStepProps {
   selectedCustomer: CustomerOption | null;
   onSelectedCustomerChange: (customer: CustomerOption | null) => void;
   onNext: () => void;
+  isLastStep?: boolean;
+  onComplete?: () => void;
+  isCompleting?: boolean;
 }
 
 export function FitSetupStep({
   selectedCustomer,
   onSelectedCustomerChange,
   onNext,
+  isLastStep = false,
+  onComplete,
+  isCompleting = false,
 }: FitSetupStepProps) {
-  const { register, setValue } = useFormContext<BikeFitFormValues>();
+  const { setValue } = useFormContext<BikeFitFormValues>();
 
   const [searchInput, setSearchInput] = useState("");
   const [results, setResults] = useState<CustomerOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
-
-  useEffect(() => {
-    register("customer.customer_id", {
-      validate: (value) => value !== null || "Customer is required",
-    });
-  }, [register]);
 
   useEffect(() => {
     let cancelled = false;
@@ -132,13 +132,8 @@ export function FitSetupStep({
           label="Bike type"
           placeholder="Select bike type"
           options={BIKE_TYPE_OPTIONS}
-          rules={{ required: "Bike type is required" }}
         />
-        <WizardDateField
-          name="fit_date"
-          label="Fit date"
-          requiredMessage="Fit date is required"
-        />
+        <WizardDateField name="fit_date" label="Fit date" />
       </div>
 
       <div className="flex w-full flex-col items-start gap-3">
@@ -240,7 +235,11 @@ export function FitSetupStep({
         onCreated={handleCreated}
       />
 
-      <WizardStepFooter onNext={onNext} />
+      <WizardStepFooter
+        onNext={isLastStep && onComplete ? onComplete : onNext}
+        isLastStep={isLastStep}
+        loading={isCompleting}
+      />
     </div>
   );
 }

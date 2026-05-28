@@ -4,14 +4,14 @@ export function asLoose<T extends object>(values: T): LooseFormValues {
   return values as unknown as LooseFormValues;
 }
 
-export function trimString(value: string | undefined): string | undefined {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+/** Trims strings; empty/whitespace becomes `""` so payload keys are preserved on clear. */
+export function normalizeStringKeepEmpty(value: unknown): string {
+  return typeof value === "string" ? value.trim() : "";
 }
 
-export function finiteNumber(value: number | null | undefined): number | undefined {
-  if (value == null || Number.isNaN(value)) return undefined;
-  return value;
+/** Finite numbers are kept; empty/invalid becomes `null` so payload keys are preserved on clear. */
+export function normalizeNumberKeepEmpty(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
 export function readString(record: Record<string, unknown>, key: string): string {

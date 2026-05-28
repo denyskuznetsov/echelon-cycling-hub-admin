@@ -1,16 +1,12 @@
 "use client";
 
 import React from "react";
-import { useFormContext } from "react-hook-form";
 import {
   NEW_BIKE_FIT_DATA_FIELD_DEFS,
   NEW_BIKE_FIT_DATA_SECTIONS,
   newBikeFitDataFieldPath,
   type NewBikeFitDataFieldDef,
 } from "@/src/lib/bike-fit-new-bike-fields";
-import { formValuesToAssessmentPayload } from "@/src/lib/bike-fit-assessment-payload";
-import { formValuesToNewBikeFitPayload } from "@/src/lib/bike-fit-new-bike-fit-payload";
-import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
 import {
   WizardMmField,
   WizardNumberField,
@@ -21,6 +17,8 @@ import { WizardStepFooter } from "./WizardStepFooter";
 
 interface NewBikeFitDataStepProps {
   onBack?: () => void;
+  onComplete: () => void;
+  isCompleting?: boolean;
 }
 
 function renderField(field: NewBikeFitDataFieldDef) {
@@ -100,19 +98,11 @@ function renderFieldGroup(fields: NewBikeFitDataFieldDef[]) {
   return nodes;
 }
 
-export function NewBikeFitDataStep({ onBack }: NewBikeFitDataStepProps) {
-  const { getValues } = useFormContext<BikeFitFormValues>();
-
-  const handleSave = () => {
-    const formValues = getValues();
-    const assessmentPayload = formValuesToAssessmentPayload(formValues);
-    const newBikeFitPayload = formValuesToNewBikeFitPayload(formValues);
-
-    console.log("Bike fit form values:", formValues);
-    console.log("Mapped assessment_payload:", assessmentPayload);
-    console.log("Mapped new_bike_fit_payload:", newBikeFitPayload);
-  };
-
+export function NewBikeFitDataStep({
+  onBack,
+  onComplete,
+  isCompleting = false,
+}: NewBikeFitDataStepProps) {
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="flex w-full flex-col items-start gap-1">
@@ -148,10 +138,10 @@ export function NewBikeFitDataStep({ onBack }: NewBikeFitDataStepProps) {
       </div>
 
       <WizardStepFooter
-        onNext={handleSave}
+        onNext={onComplete}
         onBack={onBack}
-        primaryLabel="Save Bike Fit"
-        showNextIcon={false}
+        isLastStep={true}
+        loading={isCompleting}
       />
     </div>
   );

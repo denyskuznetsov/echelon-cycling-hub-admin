@@ -2,14 +2,12 @@
 
 import React from "react";
 import { FeatherX } from "@subframe/core";
-import type { FieldPath, RegisterOptions } from "react-hook-form";
+import type { FieldPath } from "react-hook-form";
 import { Controller, get, useFormContext } from "react-hook-form";
 import { Select } from "@/ui/components/Select";
 import { TextArea } from "@/ui/components/TextArea";
 import { TextField } from "@/ui/components/TextField";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
-import { ddMmYyyyPatternRule } from "@/src/utils/date-format";
-import { safeTextFieldRules } from "@/src/utils/validation";
 
 export function nullIfEmptyNumber(value: unknown): number | null {
   if (value === "" || value == null) return null;
@@ -17,12 +15,22 @@ export function nullIfEmptyNumber(value: unknown): number | null {
   return Number.isNaN(num) ? null : num;
 }
 
+/**
+ * With `mode: "onChange"` + zodResolver, the whole form is validated on every
+ * keystroke. To keep the autosave UX "silent" (no red banners flashing on
+ * fields the user hasn't seen yet), we only surface a field's error when the
+ * field has been touched OR the user has submitted the form via
+ * "Mark as Completed".
+ */
 function useFieldError(name: FieldPath<BikeFitFormValues>): string | undefined {
   const {
-    formState: { errors },
+    formState: { errors, touchedFields, isSubmitted },
   } = useFormContext<BikeFitFormValues>();
   const message = get(errors, `${name}.message`);
-  return typeof message === "string" ? message : undefined;
+  if (typeof message !== "string") return undefined;
+  const touched = Boolean(get(touchedFields, name));
+  if (!touched && !isSubmitted) return undefined;
+  return message;
 }
 
 interface WizardTextFieldProps {
@@ -46,10 +54,7 @@ export function WizardTextField({
       error={!!error}
       helpText={error}
     >
-      <TextField.Input
-        placeholder={placeholder}
-        {...register(name, safeTextFieldRules)}
-      />
+      <TextField.Input placeholder={placeholder} {...register(name)} />
     </TextField>
   );
 }
@@ -75,10 +80,7 @@ export function WizardTextArea({
       error={!!error}
       helpText={error}
     >
-      <TextArea.Input
-        placeholder={placeholder}
-        {...register(name, safeTextFieldRules)}
-      />
+      <TextArea.Input placeholder={placeholder} {...register(name)} />
     </TextArea>
   );
 }
@@ -147,7 +149,6 @@ interface WizardSelectFieldProps {
   label: string;
   placeholder?: string;
   options: readonly (WizardSelectOption | string)[];
-  rules?: RegisterOptions<BikeFitFormValues, FieldPath<BikeFitFormValues>>;
 }
 
 function normalizeSelectOptions(
@@ -163,7 +164,6 @@ export function WizardSelectField({
   label,
   placeholder = "Select…",
   options,
-  rules,
 }: WizardSelectFieldProps) {
   const { control } = useFormContext<BikeFitFormValues>();
   const error = useFieldError(name);
@@ -173,13 +173,9 @@ export function WizardSelectField({
     <Controller
       control={control}
       name={name}
-      rules={rules}
       render={({ field }) => {
-        const stringValue =
-          typeof field.value === "string" && field.value !== ""
-            ? field.value
-            : undefined;
-        const hasValue = stringValue !== undefined;
+        const stringValue = typeof field.value === "string" ? field.value : "";
+        const hasValue = stringValue !== "";
 
         return (
           // Custom label row so we can render a Clear affordance alongside
@@ -226,16 +222,12 @@ interface WizardDateFieldProps {
   name: FieldPath<BikeFitFormValues>;
   label: string;
   placeholder?: string;
-  required?: boolean;
-  requiredMessage?: string;
 }
 
 export function WizardDateField({
   name,
   label,
   placeholder = "21/04/1990",
-  required = true,
-  requiredMessage = "This field is required",
 }: WizardDateFieldProps) {
   const { register } = useFormContext<BikeFitFormValues>();
   const error = useFieldError(name);
@@ -250,11 +242,7 @@ export function WizardDateField({
       <TextField.Input
         placeholder={placeholder}
         inputMode="numeric"
-        {...register(name, {
-          ...(required ? { required: requiredMessage } : {}),
-          pattern: ddMmYyyyPatternRule,
-          validate: safeTextFieldRules.validate,
-        })}
+        {...register(name)}
       />
     </TextField>
   );

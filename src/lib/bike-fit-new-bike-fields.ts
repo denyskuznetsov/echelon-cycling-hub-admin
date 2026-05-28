@@ -223,13 +223,6 @@ export const EMPTY_NEW_BIKE_FIT_DATA: NewBikeFitDataFormValues = {
   notes: "",
 };
 
-export const NEW_BIKE_FIT_DATA_TEXT_FIELD_PATHS =
-  NEW_BIKE_FIT_DATA_FIELD_DEFS.filter(
-    (field) => field.type !== "mm" && field.type !== "number",
-  ).map(
-    (field) => `newBikeFitData.${field.key}` as FieldPath<BikeFitFormValues>,
-  );
-
 export function newBikeFitDataFieldPath(
   key: keyof NewBikeFitDataFormValues,
 ): FieldPath<BikeFitFormValues> {

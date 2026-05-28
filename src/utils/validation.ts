@@ -40,7 +40,3 @@ export function validateSafeText(value: unknown): true | string {
   if (typeof value !== "string" || !value.trim()) return true;
   return UNSAFE_TEXT_PATTERN.test(value) ? SAFE_TEXT_VALIDATION_MESSAGE : true;
 }
-
-export const safeTextFieldRules = {
-  validate: validateSafeText,
-} as const;

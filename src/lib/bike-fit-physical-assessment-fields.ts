@@ -277,12 +277,6 @@ export const EMPTY_PHYSICAL_ASSESSMENT: PhysicalAssessmentFormValues = {
   knee_bend_observations: "",
 };
 
-export const PHYSICAL_ASSESSMENT_TEXT_FIELD_PATHS =
-  PHYSICAL_ASSESSMENT_FIELD_DEFS.filter((field) => field.type !== "mm").map(
-    (field) =>
-      `physicalAssessment.${field.key}` as FieldPath<BikeFitFormValues>,
-  );
-
 export function physicalAssessmentFieldPath(
   key: keyof PhysicalAssessmentFormValues,
 ): FieldPath<BikeFitFormValues> {

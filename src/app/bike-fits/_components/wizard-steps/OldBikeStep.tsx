@@ -19,6 +19,9 @@ import { WizardStepFooter } from "./WizardStepFooter";
 interface OldBikeStepProps {
   onNext: () => void;
   onBack?: () => void;
+  isLastStep?: boolean;
+  onComplete?: () => void;
+  isCompleting?: boolean;
 }
 
 function renderField(field: OldBikeFieldDef) {
@@ -110,7 +113,13 @@ function renderFieldGroup(fields: OldBikeFieldDef[]) {
   return nodes;
 }
 
-export function OldBikeStep({ onNext, onBack }: OldBikeStepProps) {
+export function OldBikeStep({
+  onNext,
+  onBack,
+  isLastStep = false,
+  onComplete,
+  isCompleting = false,
+}: OldBikeStepProps) {
   return (
     <div className="flex w-full flex-col gap-6">
       <div className="flex w-full flex-col items-start gap-1">
@@ -143,7 +152,12 @@ export function OldBikeStep({ onNext, onBack }: OldBikeStepProps) {
         })}
       </div>
 
-      <WizardStepFooter onNext={onNext} onBack={onBack} />
+      <WizardStepFooter
+        onNext={isLastStep && onComplete ? onComplete : onNext}
+        onBack={onBack}
+        isLastStep={isLastStep}
+        loading={isCompleting}
+      />
     </div>
   );
 }

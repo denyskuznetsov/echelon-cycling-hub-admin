@@ -18,6 +18,9 @@ import { WizardStepFooter } from "./WizardStepFooter";
 interface PhysicalAssessmentStepProps {
   onNext: () => void;
   onBack?: () => void;
+  isLastStep?: boolean;
+  onComplete?: () => void;
+  isCompleting?: boolean;
 }
 
 function renderField(field: PhysicalAssessmentFieldDef) {
@@ -101,6 +104,9 @@ function renderFieldGroup(fields: PhysicalAssessmentFieldDef[]) {
 export function PhysicalAssessmentStep({
   onNext,
   onBack,
+  isLastStep = false,
+  onComplete,
+  isCompleting = false,
 }: PhysicalAssessmentStepProps) {
   return (
     <div className="flex w-full flex-col gap-6">
@@ -136,7 +142,12 @@ export function PhysicalAssessmentStep({
         })}
       </div>
 
-      <WizardStepFooter onNext={onNext} onBack={onBack} />
+      <WizardStepFooter
+        onNext={isLastStep && onComplete ? onComplete : onNext}
+        onBack={onBack}
+        isLastStep={isLastStep}
+        loading={isCompleting}
+      />
     </div>
   );
 }

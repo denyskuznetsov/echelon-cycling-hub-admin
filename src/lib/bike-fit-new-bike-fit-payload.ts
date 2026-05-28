@@ -5,10 +5,10 @@ import {
 import {
   asLoose,
   compactPayload,
-  finiteNumber,
+  normalizeNumberKeepEmpty,
+  normalizeStringKeepEmpty,
   readNumber,
   readString,
-  trimString,
 } from "@/src/lib/bike-fit-payload-utils";
 import type {
   BikeFitFormValues,
@@ -21,17 +21,15 @@ export type { BikeFitNewBikeFitPayload } from "@/src/lib/bike-fit-form-types";
 function mapNewBikeFitDataToPayload(
   newBikeFitData: NewBikeFitDataFormValues,
 ): BikeFitNewBikeFitPayload {
-  const payload: Record<string, string | number> = {};
+  const payload: Record<string, string | number | null> = {};
   const source = asLoose(newBikeFitData);
 
   for (const field of NEW_BIKE_FIT_DATA_FIELD_DEFS) {
     if (field.type === "mm" || field.type === "number") {
-      const numericValue = finiteNumber(source[field.key] as number | null);
-      if (numericValue !== undefined) payload[field.key] = numericValue;
+      payload[field.key] = normalizeNumberKeepEmpty(source[field.key]);
       continue;
     }
-    const textValue = trimString(source[field.key] as string);
-    if (textValue !== undefined) payload[field.key] = textValue;
+    payload[field.key] = normalizeStringKeepEmpty(source[field.key]);
   }
 
   return payload as BikeFitNewBikeFitPayload;
