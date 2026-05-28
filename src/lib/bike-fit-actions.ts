@@ -110,15 +110,23 @@ export async function saveBikeFitDraft(
   const supabase = await createClient();
   const columns = buildSaveColumns(values);
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("bike_fits")
     .update(columns)
     .eq("id", id)
-    .in("status", ["draft", "in_progress"]);
+    .in("status", ["draft", "in_progress"])
+    .select("id")
+    .maybeSingle();
 
   if (error) {
     console.error("saveBikeFitDraft:", error);
     return { ok: false, error: error.message };
+  }
+  if (!data) {
+    return {
+      ok: false,
+      error: "This bike fit is no longer editable because it was completed.",
+    };
   }
 
   return { ok: true };
