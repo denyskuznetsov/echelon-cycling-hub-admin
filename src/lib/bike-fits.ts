@@ -10,6 +10,7 @@ export const BIKE_FITS_PAGE_SIZE = 10;
 type BikeFitViewRow = {
   id: string;
   fit_number: number;
+  fit_label: string | null;
   fit_number_text: string;
   customer_id: string | null;
   customer_name: string | null;
@@ -23,6 +24,7 @@ type BikeFitViewRow = {
 type BikeFitDetailRow = {
   id: string;
   fit_number: number;
+  fit_label: string | null;
   customer_id: string | null;
   date_of_fit: string;
   bike_type: string;
@@ -44,6 +46,7 @@ function mapBikeFitRow(row: BikeFitViewRow): BikeFitRow {
     customer_email: row.customer_email,
     customer_phone: row.customer_phone,
     fit_number: row.fit_number,
+    fit_label: row.fit_label?.trim() || "Baseline Fit",
     bike_type: row.bike_type,
     fit_date: row.date_of_fit,
     status: row.status as BikeFitStatus,
@@ -60,6 +63,7 @@ function mapBikeFitDetailRow(row: BikeFitDetailRow): BikeFitRow {
     customer_email: row.customers?.email ?? null,
     customer_phone: row.customers?.phone ?? null,
     fit_number: row.fit_number,
+    fit_label: row.fit_label?.trim() || "Baseline Fit",
     bike_type: row.bike_type,
     fit_date: row.date_of_fit,
     status: row.status as BikeFitStatus,
@@ -118,6 +122,7 @@ export async function loadBikeFitById(id: string): Promise<BikeFitRow | null> {
       `
       id,
       fit_number,
+      fit_label,
       customer_id,
       date_of_fit,
       bike_type,

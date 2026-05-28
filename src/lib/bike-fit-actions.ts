@@ -175,5 +175,41 @@ export async function completeBikeFit(
   }
 
   revalidatePath("/bike-fits/all-bike-fits");
+  revalidatePath(`/bike-fits/${id}`);
+  return { ok: true };
+}
+
+/**
+ * Re-opens a completed fit for editing by setting status to `in_progress`.
+ * Used from the detail page "Unlock to Edit" confirmation dialog.
+ */
+export async function unlockBikeFitForEdit(
+  id: string,
+): Promise<SaveBikeFitResult> {
+  if (!id) return { ok: false, error: "Missing bike fit id." };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("bike_fits")
+    .update({ status: "in_progress" })
+    .eq("id", id)
+    .eq("status", "completed")
+    .select("id")
+    .maybeSingle();
+
+  if (error) {
+    console.error("unlockBikeFitForEdit:", error);
+    return { ok: false, error: error.message };
+  }
+  if (!data) {
+    return {
+      ok: false,
+      error: "This bike fit could not be unlocked. It may no longer be completed.",
+    };
+  }
+
+  revalidatePath("/bike-fits/all-bike-fits");
+  revalidatePath(`/bike-fits/${id}`);
+  revalidatePath(`/bike-fits/${id}/edit`);
   return { ok: true };
 }

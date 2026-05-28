@@ -9,6 +9,7 @@ export interface BikeFitRow {
   customer_email: string | null;
   customer_phone: string | null;
   fit_number: number;
+  fit_label: string;
   bike_type: string;
   fit_date: string;
   status: BikeFitStatus;

@@ -212,6 +212,7 @@ export function AllBikeFitsTable({
               <Table.HeaderRow>
                 <Table.HeaderCell>Customer</Table.HeaderCell>
                 <Table.HeaderCell>Fit Number</Table.HeaderCell>
+                <Table.HeaderCell>Fit Label</Table.HeaderCell>
                 <Table.HeaderCell>Bike Type</Table.HeaderCell>
                 <Table.HeaderCell>Fit Date</Table.HeaderCell>
                 <Table.HeaderCell>Status</Table.HeaderCell>
@@ -240,6 +241,11 @@ export function AllBikeFitsTable({
                     >
                       #{fit.fit_number}
                     </Link>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <span className="text-body font-body text-neutral-500">
+                      {fit.fit_label}
+                    </span>
                   </Table.Cell>
                   <Table.Cell>
                     <span className="text-body font-body text-neutral-500">
