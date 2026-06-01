@@ -23,7 +23,6 @@ interface ReferencePhotoUploadProps {
   variant: BikeFitImageVariant;
   fieldKey: "final_bike_fit_image_front" | "final_bike_fit_image_side";
   bikeFitId: string;
-  customerName: string;
   readOnly?: boolean;
 }
 
@@ -32,14 +31,12 @@ export function ReferencePhotoUpload({
   variant,
   fieldKey,
   bikeFitId,
-  customerName,
   readOnly = false,
 }: ReferencePhotoUploadProps) {
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
   const { control, setValue } = useFormContext<BikeFitFormValues>();
 
-  const fitDate = useWatch({ control, name: "fit_date" }) ?? "";
   const storagePath =
     (useWatch({
       control,
@@ -90,9 +87,7 @@ export function ReferencePhotoUpload({
     try {
       const compressed = await compressBikeFitImage(file);
       const path = await uploadBikeFitImage(compressed, {
-        customerName,
         bikeFitId,
-        fitDate,
         variant,
       });
 

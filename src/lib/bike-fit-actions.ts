@@ -14,6 +14,10 @@ import {
 } from "@/src/lib/bike-fit-new-bike-fit-payload";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
 import { BikeFitFormSchema } from "@/src/lib/bike-fit-schema";
+import {
+  collectBikeFitImageStoragePaths,
+  deleteBikeFitImageStoragePaths,
+} from "@/src/lib/bike-fit-storage-cleanup";
 import { isBikeType, type BikeFitStatus } from "@/src/lib/bike-fits-types";
 
 function firstZodErrorMessage(error: ZodError): string {
@@ -25,6 +29,10 @@ export type CreateBikeFitDraftResult =
   | { ok: false; error: string };
 
 export type SaveBikeFitResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export type DeleteBikeFitResult =
   | { ok: true }
   | { ok: false; error: string };
 
@@ -214,5 +222,90 @@ export async function unlockBikeFitForEdit(
   revalidatePath("/bike-fits/all-bike-fits");
   revalidatePath(`/bike-fits/${id}`);
   revalidatePath(`/bike-fits/${id}/edit`);
+  return { ok: true };
+}
+
+/**
+ * Permanently deletes a draft or in-progress bike fit and its reference images.
+ * Completed fits cannot be deleted (preserve historical records).
+ *
+ * Order: collect storage paths (abort on list error) → delete row → best-effort
+ * storage cleanup so a failed row delete never leaves the fit without photos.
+ */
+export async function deleteBikeFit(id: string): Promise<DeleteBikeFitResult> {
+  if (!id) return { ok: false, error: "Missing bike fit id." };
+
+  const supabase = await createClient();
+
+  const { data: row, error: fetchError } = await supabase
+    .from("bike_fits")
+    .select("id, status, new_bike_fit_payload")
+    .eq("id", id)
+    .in("status", ["draft", "in_progress"])
+    .maybeSingle();
+
+  if (fetchError) {
+    console.error("deleteBikeFit fetch:", fetchError);
+    return {
+      ok: false,
+      error: "Could not load this bike fit. Please try again.",
+    };
+  }
+
+  if (!row) {
+    return {
+      ok: false,
+      error:
+        "This bike fit cannot be deleted. Only draft or in-progress fits can be removed.",
+    };
+  }
+
+  const collectResult = await collectBikeFitImageStoragePaths(
+    supabase,
+    id,
+    row.new_bike_fit_payload,
+  );
+  if (!collectResult.ok) {
+    return collectResult;
+  }
+
+  const { data: deleted, error: deleteError } = await supabase
+    .from("bike_fits")
+    .delete()
+    .eq("id", id)
+    .in("status", ["draft", "in_progress"])
+    .select("id")
+    .maybeSingle();
+
+  if (deleteError) {
+    console.error("deleteBikeFit:", deleteError);
+    return {
+      ok: false,
+      error: "Could not delete this bike fit. Please try again.",
+    };
+  }
+
+  if (!deleted) {
+    return {
+      ok: false,
+      error:
+        "This bike fit cannot be deleted. Only draft or in-progress fits can be removed.",
+    };
+  }
+
+  const storageResult = await deleteBikeFitImageStoragePaths(
+    supabase,
+    collectResult.paths,
+  );
+  if (!storageResult.ok) {
+    console.error(
+      "deleteBikeFit: row deleted but storage cleanup failed",
+      id,
+      collectResult.paths,
+    );
+  }
+
+  revalidatePath("/bike-fits/all-bike-fits");
+  revalidatePath(`/bike-fits/${id}`);
   return { ok: true };
 }

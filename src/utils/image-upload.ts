@@ -1,6 +1,5 @@
 import imageCompression from "browser-image-compression";
 import { createClient } from "@/src/utils/supabase/client";
-import { ddMmYyyyToIso } from "@/src/utils/date-format";
 
 export const BIKE_FIT_IMAGES_BUCKET = "bike-fit-images";
 
@@ -11,35 +10,20 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60;
 export type BikeFitImageVariant = "front" | "side";
 
 export interface BikeFitImageUploadContext {
-  customerName: string;
   bikeFitId: string;
-  /** Form value in DD/MM/YYYY. */
-  fitDate: string;
   variant: BikeFitImageVariant;
-}
-
-function sanitizeStoragePathSegment(value: string): string {
-  const normalized = value
-    .trim()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/-+/g, "-")
-    .replace(/^-|-$/g, "");
-
-  return (normalized || "customer").slice(0, 80);
 }
 
 /** Builds a unique object path inside the private `bike-fit-images` bucket. */
 export function buildBikeFitImageStoragePath(
   context: BikeFitImageUploadContext,
 ): string {
-  const customerSegment = sanitizeStoragePathSegment(context.customerName);
-  const fitDateSegment =
-    ddMmYyyyToIso(context.fitDate) ?? sanitizeStoragePathSegment(context.fitDate);
-  const suffix = context.variant === "front" ? "front" : "side";
+  return `${context.bikeFitId}/${context.variant}-${Date.now()}.jpg`;
+}
 
-  return `${customerSegment}/${context.bikeFitId}/${fitDateSegment}_${suffix}.jpg`;
+/** Folder prefix for all reference images belonging to one bike fit. */
+export function buildBikeFitStorageFolderPrefix(bikeFitId: string): string {
+  return bikeFitId;
 }
 
 /** Compresses a rider reference photo before upload (max ~200KB, max 1920px). */

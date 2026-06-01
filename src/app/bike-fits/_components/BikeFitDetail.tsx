@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   FeatherAlertCircle,
   FeatherEdit2,
+  FeatherTrash2,
   FeatherUnlock,
 } from "@subframe/core";
 import { Accordion } from "@/ui/components/Accordion";
@@ -16,7 +17,8 @@ import {
   assessmentPayloadToOldBikeValues,
   assessmentPayloadToPhysicalAssessmentValues,
 } from "@/src/lib/bike-fit-assessment-payload";
-import { unlockBikeFitForEdit } from "@/src/lib/bike-fit-actions";
+import { BikeFitDeleteDialog } from "@/src/app/bike-fits/_components/BikeFitDeleteDialog";
+import { deleteBikeFit, unlockBikeFitForEdit } from "@/src/lib/bike-fit-actions";
 import {
   OLD_BIKE_FIELD_DEFS,
   OLD_BIKE_SECTIONS,
@@ -107,6 +109,9 @@ export function BikeFitDetail({ bikeFit, canEdit = true }: BikeFitDetailProps) {
   const [unlockOpen, setUnlockOpen] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const [isUnlocking, startUnlocking] = useTransition();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, startDeleting] = useTransition();
 
   const oldBikeValues = assessmentPayloadToOldBikeValues(
     bikeFit.assessment_payload,
@@ -136,6 +141,20 @@ export function BikeFitDetail({ bikeFit, canEdit = true }: BikeFitDetailProps) {
     });
   };
 
+  const handleDeleteConfirm = () => {
+    if (isDeleting) return;
+    setDeleteError(null);
+    startDeleting(async () => {
+      const result = await deleteBikeFit(bikeFit.id);
+      if (!result.ok) {
+        setDeleteError(result.error);
+        return;
+      }
+      setDeleteOpen(false);
+      router.push("/bike-fits/all-bike-fits");
+    });
+  };
+
   return (
     <>
       <div className="flex w-full flex-col items-start gap-2">
@@ -159,15 +178,27 @@ export function BikeFitDetail({ bikeFit, canEdit = true }: BikeFitDetailProps) {
           {canEdit ? (
             <div className="flex shrink-0 items-center gap-2">
               {isEditableStatus ? (
-                <Button
-                  variant="brand-primary"
-                  icon={<FeatherEdit2 />}
-                  onClick={() =>
-                    router.push(`/bike-fits/${bikeFit.id}/edit`)
-                  }
-                >
-                  Edit Fit
-                </Button>
+                <>
+                  <Button
+                    variant="brand-primary"
+                    icon={<FeatherEdit2 />}
+                    onClick={() =>
+                      router.push(`/bike-fits/${bikeFit.id}/edit`)
+                    }
+                  >
+                    Edit Fit
+                  </Button>
+                  <Button
+                    variant="destructive-secondary"
+                    icon={<FeatherTrash2 />}
+                    onClick={() => {
+                      setDeleteError(null);
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    Delete Fit
+                  </Button>
+                </>
               ) : null}
               {isCompleted ? (
                 <Button
@@ -275,6 +306,21 @@ export function BikeFitDetail({ bikeFit, canEdit = true }: BikeFitDetailProps) {
       <Link href="/bike-fits/all-bike-fits">
         <Button variant="neutral-secondary">Back to all bike fits</Button>
       </Link>
+
+      <BikeFitDeleteDialog
+        open={deleteOpen}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeleteOpen(false);
+            setDeleteError(null);
+          }
+        }}
+        fitNumber={bikeFit.fit_number}
+        customerName={bikeFit.customer_name}
+        error={deleteError}
+        isDeleting={isDeleting}
+        onConfirm={handleDeleteConfirm}
+      />
 
       <DialogLayout open={unlockOpen} onOpenChange={setUnlockOpen}>
         <div className="flex w-[480px] max-w-full flex-col gap-4 p-6">

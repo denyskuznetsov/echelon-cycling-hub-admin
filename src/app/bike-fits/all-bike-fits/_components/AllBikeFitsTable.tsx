@@ -12,9 +12,11 @@ import { TextField } from "@/ui/components/TextField";
 import { FeatherChevronDown } from "@subframe/core";
 import { FeatherEdit2 } from "@subframe/core";
 import { FeatherMoreHorizontal } from "@subframe/core";
+import { FeatherTrash2 } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
+import { BikeFitDeleteDialog } from "@/src/app/bike-fits/_components/BikeFitDeleteDialog";
 import { TablePagination } from "@/src/components/TablePagination";
-import { createBikeFitDraft } from "@/src/lib/bike-fit-actions";
+import { createBikeFitDraft, deleteBikeFit } from "@/src/lib/bike-fit-actions";
 import {
   formatBikeType,
   type BikeFitRow,
@@ -68,6 +70,12 @@ export function AllBikeFitsTable({
   const [search, setSearch] = useState(query);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, startCreating] = useTransition();
+  const [deleteTarget, setDeleteTarget] = useState<BikeFitRow | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, startDeleting] = useTransition();
+
+  const isDeletableStatus = (status: BikeFitRow["status"]) =>
+    status === "draft" || status === "in_progress";
 
   const handleCreate = () => {
     if (isCreating) return;
@@ -114,6 +122,20 @@ export function AllBikeFitsTable({
   const handleTimeframeChange = (nextTimeframe: BikeFitsTimeframe) => {
     if (nextTimeframe === timeframe) return;
     router.push(buildHref(query, 1, nextTimeframe));
+  };
+
+  const handleDeleteConfirm = () => {
+    if (!deleteTarget || isDeleting) return;
+    setDeleteError(null);
+    startDeleting(async () => {
+      const result = await deleteBikeFit(deleteTarget.id);
+      if (!result.ok) {
+        setDeleteError(result.error);
+        return;
+      }
+      setDeleteTarget(null);
+      router.refresh();
+    });
   };
 
   return (
@@ -283,6 +305,21 @@ export function AllBikeFitsTable({
                               >
                                 Edit
                               </DropdownMenu.DropdownItem>
+                              {isDeletableStatus(fit.status) ? (
+                                <>
+                                  <DropdownMenu.DropdownDivider />
+                                  <DropdownMenu.DropdownItem
+                                    icon={<FeatherTrash2 />}
+                                    className="text-error-700 hover:bg-error-50 active:bg-error-50 data-[highlighted]:bg-error-50"
+                                    onClick={() => {
+                                      setDeleteError(null);
+                                      setDeleteTarget(fit);
+                                    }}
+                                  >
+                                    Delete
+                                  </DropdownMenu.DropdownItem>
+                                </>
+                              ) : null}
                             </DropdownMenu>
                           </SubframeCore.DropdownMenu.Content>
                         </SubframeCore.DropdownMenu.Portal>
@@ -299,6 +336,21 @@ export function AllBikeFitsTable({
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={(page) => router.push(buildHref(query, page, timeframe))}
+      />
+
+      <BikeFitDeleteDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open && !isDeleting) {
+            setDeleteTarget(null);
+            setDeleteError(null);
+          }
+        }}
+        fitNumber={deleteTarget?.fit_number ?? 0}
+        customerName={deleteTarget?.customer_name ?? ""}
+        error={deleteError}
+        isDeleting={isDeleting}
+        onConfirm={handleDeleteConfirm}
       />
     </div>
   );

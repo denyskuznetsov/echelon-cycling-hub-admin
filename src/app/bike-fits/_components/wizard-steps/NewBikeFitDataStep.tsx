@@ -18,7 +18,6 @@ import { ReferencePhotoUpload } from "./ReferencePhotoUpload";
 
 interface NewBikeFitDataStepProps {
   bikeFitId: string;
-  customerName: string;
   readOnly?: boolean;
   onBack?: () => void;
   onComplete: () => void;
@@ -105,7 +104,6 @@ function renderFieldGroup(fields: NewBikeFitDataFieldDef[]) {
 
 export function NewBikeFitDataStep({
   bikeFitId,
-  customerName,
   readOnly = false,
   onBack,
   onComplete,
@@ -158,7 +156,6 @@ export function NewBikeFitDataStep({
               variant="front"
               fieldKey="final_bike_fit_image_front"
               bikeFitId={bikeFitId}
-              customerName={customerName}
               readOnly={readOnly}
             />
             <ReferencePhotoUpload
@@ -166,7 +163,6 @@ export function NewBikeFitDataStep({
               variant="side"
               fieldKey="final_bike_fit_image_side"
               bikeFitId={bikeFitId}
-              customerName={customerName}
               readOnly={readOnly}
             />
           </div>
