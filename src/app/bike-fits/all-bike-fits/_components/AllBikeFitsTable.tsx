@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar } from "@/ui/components/Avatar";
 import { Badge } from "@/ui/components/Badge";
@@ -223,7 +222,12 @@ export function AllBikeFitsTable({
             {bikeFits.map((fit) => {
               const initial = fit.customer_name.charAt(0).toUpperCase();
               return (
-                <Table.Row key={fit.id}>
+                <Table.Row
+                  key={fit.id}
+                  clickable
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/bike-fits/${fit.id}`)}
+                >
                   <Table.Cell>
                     <div className="flex items-center gap-2">
                       <Avatar size="small" square={true}>
@@ -235,12 +239,9 @@ export function AllBikeFitsTable({
                     </div>
                   </Table.Cell>
                   <Table.Cell>
-                    <Link
-                      href={`/bike-fits/${fit.id}`}
-                      className="whitespace-nowrap text-body-bold font-body-bold text-brand-700 hover:underline"
-                    >
+                    <span className="whitespace-nowrap text-body-bold font-body-bold text-brand-700">
                       #{fit.fit_number}
-                    </Link>
+                    </span>
                   </Table.Cell>
                   <Table.Cell>
                     <span className="text-body font-body text-neutral-500">
@@ -258,7 +259,9 @@ export function AllBikeFitsTable({
                     </span>
                   </Table.Cell>
                   <Table.Cell>{statusBadge(fit.status)}</Table.Cell>
-                  <Table.Cell>
+                  <Table.Cell
+                    onClick={(event) => event.stopPropagation()}
+                  >
                     <div className="flex grow shrink-0 basis-0 items-center justify-end">
                       <SubframeCore.DropdownMenu.Root>
                         <SubframeCore.DropdownMenu.Trigger asChild={true}>
