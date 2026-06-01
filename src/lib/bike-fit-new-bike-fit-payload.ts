@@ -18,6 +18,11 @@ import type {
 
 export type { BikeFitNewBikeFitPayload } from "@/src/lib/bike-fit-form-types";
 
+const NEW_BIKE_FIT_IMAGE_PATH_KEYS = [
+  "final_bike_fit_image_front",
+  "final_bike_fit_image_side",
+] as const satisfies readonly (keyof NewBikeFitDataFormValues)[];
+
 function mapNewBikeFitDataToPayload(
   newBikeFitData: NewBikeFitDataFormValues,
 ): BikeFitNewBikeFitPayload {
@@ -30,6 +35,10 @@ function mapNewBikeFitDataToPayload(
       continue;
     }
     payload[field.key] = normalizeStringKeepEmpty(source[field.key]);
+  }
+
+  for (const key of NEW_BIKE_FIT_IMAGE_PATH_KEYS) {
+    payload[key] = normalizeStringKeepEmpty(source[key]);
   }
 
   return payload as BikeFitNewBikeFitPayload;
@@ -51,6 +60,10 @@ export function newBikeFitPayloadToNewBikeFitDataValues(
       continue;
     }
     target[field.key] = readString(record, field.key);
+  }
+
+  for (const key of NEW_BIKE_FIT_IMAGE_PATH_KEYS) {
+    target[key] = readString(record, key);
   }
 
   return newBikeFitData;

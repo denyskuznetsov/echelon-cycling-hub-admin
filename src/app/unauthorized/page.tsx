@@ -8,7 +8,7 @@ export default function UnauthorizedPage() {
   const router = useRouter();
 
   return (
-    <div className="flex h-full w-full flex-col items-start gap-4 p-8">
+    <div className="flex w-full flex-col items-start gap-4 p-8">
       <p>You do not have permission to view this page.</p>
       <Button
         variant="brand-primary"

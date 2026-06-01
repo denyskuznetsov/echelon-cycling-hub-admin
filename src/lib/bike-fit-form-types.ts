@@ -73,6 +73,8 @@ export interface NewBikeFitDataFormValues {
   shoes_and_footbeds: string;
   stance_width_mm: number | null;
   notes: string;
+  final_bike_fit_image_front: string;
+  final_bike_fit_image_side: string;
 }
 
 export interface BikeFitFormValues {

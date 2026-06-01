@@ -136,6 +136,8 @@ export const NewBikeFitSchema = z.object({
   shoes_and_footbeds: safeTextString,
   stance_width_mm: optionalNumber,
   notes: safeTextString,
+  final_bike_fit_image_front: safeTextString,
+  final_bike_fit_image_side: safeTextString,
 });
 
 /**

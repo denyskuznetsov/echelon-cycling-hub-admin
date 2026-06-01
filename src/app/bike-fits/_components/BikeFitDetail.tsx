@@ -35,6 +35,7 @@ import { asLoose } from "@/src/lib/bike-fit-payload-utils";
 import { formatBikeType, type BikeFitRow } from "@/src/lib/bike-fits-types";
 import { BikeFitDataPoint } from "./BikeFitDataPoint";
 import { BikeFitDetailFieldGrid } from "./BikeFitDetailFieldGrid";
+import { BikeFitReferencePhotos } from "./BikeFitReferencePhotos";
 
 interface BikeFitDetailProps {
   bikeFit: BikeFitRow;
@@ -263,6 +264,10 @@ export function BikeFitDetail({ bikeFit, canEdit = true }: BikeFitDetailProps) {
             sections={NEW_BIKE_FIT_DATA_SECTIONS}
             fields={NEW_BIKE_FIT_DATA_FIELD_DEFS}
             values={asLoose(newBikeValues)}
+          />
+          <BikeFitReferencePhotos
+            frontPath={newBikeValues.final_bike_fit_image_front}
+            sidePath={newBikeValues.final_bike_fit_image_side}
           />
         </DetailSectionAccordion>
       </div>

@@ -221,6 +221,8 @@ export const EMPTY_NEW_BIKE_FIT_DATA: NewBikeFitDataFormValues = {
   shoes_and_footbeds: "",
   stance_width_mm: null,
   notes: "",
+  final_bike_fit_image_front: "",
+  final_bike_fit_image_side: "",
 };
 
 export function newBikeFitDataFieldPath(

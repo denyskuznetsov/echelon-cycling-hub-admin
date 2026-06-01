@@ -23,7 +23,7 @@ function WorkshopPage() {
 
   return (
     <DefaultPageLayout>
-      <div className="flex h-full w-full flex-col items-start bg-default-background">
+      <div className="flex min-h-full w-full flex-1 flex-col items-start bg-default-background">
         <div className="flex w-full flex-wrap items-center gap-2 px-6 pt-6 pb-2">
           <div className="flex grow shrink-0 basis-0 items-center gap-2">
             <FeatherKanbanSquare className="text-heading-2 font-heading-2 text-default-font" />

@@ -14,8 +14,12 @@ import {
   WizardTextField,
 } from "./WizardFormFields";
 import { WizardStepFooter } from "./WizardStepFooter";
+import { ReferencePhotoUpload } from "./ReferencePhotoUpload";
 
 interface NewBikeFitDataStepProps {
+  bikeFitId: string;
+  customerName: string;
+  readOnly?: boolean;
   onBack?: () => void;
   onComplete: () => void;
   isCompleting?: boolean;
@@ -99,6 +103,9 @@ function renderFieldGroup(fields: NewBikeFitDataFieldDef[]) {
 }
 
 export function NewBikeFitDataStep({
+  bikeFitId,
+  customerName,
+  readOnly = false,
   onBack,
   onComplete,
   isCompleting = false,
@@ -135,6 +142,33 @@ export function NewBikeFitDataStep({
             </section>
           );
         })}
+
+        <section className="flex w-full flex-col items-start gap-3">
+          <span className="text-body-bold font-body-bold text-default-font">
+            Reference photos
+          </span>
+          <span className="text-caption font-caption text-subtext-color">
+            Optional front and side views of the rider on the new bike setup.
+          </span>
+          <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
+            <ReferencePhotoUpload
+              label="Front view"
+              variant="front"
+              fieldKey="final_bike_fit_image_front"
+              bikeFitId={bikeFitId}
+              customerName={customerName}
+              readOnly={readOnly}
+            />
+            <ReferencePhotoUpload
+              label="Side view"
+              variant="side"
+              fieldKey="final_bike_fit_image_side"
+              bikeFitId={bikeFitId}
+              customerName={customerName}
+              readOnly={readOnly}
+            />
+          </div>
+        </section>
       </div>
 
       <WizardStepFooter

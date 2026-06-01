@@ -302,6 +302,9 @@ export function BikeFitWizard({
           )}
           {currentStep === "new-bike-fit-data" && (
             <NewBikeFitDataStep
+              bikeFitId={bikeFitId}
+              customerName={selectedCustomer?.name ?? ""}
+              readOnly={isReadOnly}
               onBack={goToPreviousStep}
               onComplete={handleComplete}
               isCompleting={isCompleting}

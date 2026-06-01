@@ -28,7 +28,7 @@ export default async function AllBikeFitsPage({
   const totalPages = Math.ceil(count / BIKE_FITS_PAGE_SIZE);
 
   return (
-    <div className="container max-w-none flex h-full w-full flex-col items-start gap-8 bg-default-background pb-12">
+    <div className="container max-w-none flex w-full flex-col items-start gap-8 bg-default-background pb-12">
       <div className="flex w-full flex-col items-start justify-end relative">
         <div className="flex h-96 w-full flex-none flex-col items-start gap-2 overflow-hidden rounded-md relative">
           <img
