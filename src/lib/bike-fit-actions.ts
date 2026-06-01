@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import type { ZodError } from "zod";
 import { createClient } from "@/src/utils/supabase/server";
 import { ddMmYyyyToIso } from "@/src/utils/date-format";
 import {
@@ -12,7 +13,12 @@ import {
   type BikeFitNewBikeFitPayload,
 } from "@/src/lib/bike-fit-new-bike-fit-payload";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import { BikeFitFormSchema } from "@/src/lib/bike-fit-schema";
 import { isBikeType, type BikeFitStatus } from "@/src/lib/bike-fits-types";
+
+function firstZodErrorMessage(error: ZodError): string {
+  return error.issues[0]?.message ?? "Invalid bike fit data.";
+}
 
 export type CreateBikeFitDraftResult =
   | { ok: true; id: string }
@@ -133,10 +139,10 @@ export async function saveBikeFitDraft(
 }
 
 /**
- * Final-save path — used by "Mark as Completed". Validates that we have
- * the strictly-required top-level fields (customer, bike_type, fit_date)
- * before flipping status. The Zod schema in the client guards the call
- * site, this is the server-side fallback.
+ * Final-save path — used by "Mark as Completed". Enforces `BikeFitFormSchema`
+ * on the server (same rules as the wizard). Client validation via
+ * react-hook-form remains for UX; `saveBikeFitDraft` intentionally skips
+ * full-schema validation for partial drafts.
  */
 export async function completeBikeFit(
   id: string,
@@ -144,19 +150,16 @@ export async function completeBikeFit(
 ): Promise<SaveBikeFitResult> {
   if (!id) return { ok: false, error: "Missing bike fit id." };
 
-  if (!values.customer.customer_id) {
-    return { ok: false, error: "Customer is required." };
-  }
-  if (!values.bike_type || !isBikeType(values.bike_type)) {
-    return { ok: false, error: "Bike type is required." };
-  }
-  const isoDate = ddMmYyyyToIso(values.fit_date);
-  if (!isoDate) {
-    return { ok: false, error: "Fit date is required." };
+  const parsed = BikeFitFormSchema.safeParse(values);
+  if (!parsed.success) {
+    return { ok: false, error: firstZodErrorMessage(parsed.error) };
   }
 
   const supabase = await createClient();
-  const columns = buildSaveColumns(values, { status: "completed" });
+  const columns = buildSaveColumns(
+    parsed.data as BikeFitFormValues,
+    { status: "completed" },
+  );
 
   const { data, error } = await supabase
     .from("bike_fits")

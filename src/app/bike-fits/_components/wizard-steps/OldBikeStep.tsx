@@ -22,6 +22,7 @@ interface OldBikeStepProps {
   isLastStep?: boolean;
   onComplete?: () => void;
   isCompleting?: boolean;
+  completionError?: string | null;
   readOnly?: boolean;
 }
 
@@ -121,6 +122,7 @@ export function OldBikeStep({
   isLastStep = false,
   onComplete,
   isCompleting = false,
+  completionError = null,
   readOnly = false,
 }: OldBikeStepProps) {
   return (
@@ -160,6 +162,7 @@ export function OldBikeStep({
         onBack={onBack}
         isLastStep={isLastStep}
         loading={isCompleting}
+        completionError={completionError}
       />
     </div>
   );

@@ -10,9 +10,9 @@ import {
   FeatherLoader,
 } from "@subframe/core";
 import { Stepper } from "@/ui/components/Stepper";
-import { Toast } from "@/ui/components/Toast";
 import type { CustomerOption } from "@/src/lib/customers-types";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import { getFirstErrorStepKey } from "@/src/lib/bike-fit-form-errors";
 import { BikeFitFormSchema } from "@/src/lib/bike-fit-schema";
 import {
   completeBikeFit,
@@ -20,6 +20,7 @@ import {
 } from "@/src/lib/bike-fit-actions";
 import type { BikeFitStatus } from "@/src/lib/bike-fits-types";
 import { useDebouncedValue } from "@/src/hooks/use-debounced-value";
+import { scrollMainContentToTop } from "@/src/utils/scroll-main";
 import {
   BIKE_FIT_STEPS,
   type BikeFitStepKey,
@@ -98,6 +99,7 @@ export function BikeFitWizard({
   const hasEverDirtied = useRef(false);
   const lastSavedSerialised = useRef<string | null>(null);
   const isFinalising = useRef(false);
+  const scrollAfterErrorRedirect = useRef(false);
 
   useEffect(() => {
     if (methods.formState.isDirty) {
@@ -147,6 +149,14 @@ export function BikeFitWizard({
     };
   }, [debouncedValues, bikeFitId, status]);
 
+  useEffect(() => {
+    if (!scrollAfterErrorRedirect.current) return;
+    scrollAfterErrorRedirect.current = false;
+    requestAnimationFrame(() => {
+      scrollMainContentToTop();
+    });
+  }, [currentStep]);
+
   const goToStep = (nextKey: BikeFitStepKey) => {
     const nextIndex = BIKE_FIT_STEPS.findIndex((step) => step.key === nextKey);
     if (nextIndex === -1 || nextIndex === currentIndex) return;
@@ -166,6 +176,7 @@ export function BikeFitWizard({
     if (previousStep) goToStep(previousStep.key);
   };
 
+  /** Server / non-field completion failures only (not client Zod errors). */
   const [completionError, setCompletionError] = useState<string | null>(null);
   const [isCompleting, startCompleting] = useTransition();
 
@@ -191,10 +202,14 @@ export function BikeFitWizard({
       }
       router.push("/bike-fits/all-bike-fits");
     },
-    () => {
-      setCompletionError(
-        "Please fill out required fields in previous steps.",
-      );
+    (errors) => {
+      setCompletionError(null);
+      const stepKey = getFirstErrorStepKey(errors);
+      if (!stepKey) return;
+      if (stepKey !== currentStep) {
+        scrollAfterErrorRedirect.current = true;
+        goToStep(stepKey);
+      }
     },
   );
 
@@ -253,17 +268,6 @@ export function BikeFitWizard({
         })}
       </Stepper>
 
-      {completionError ? (
-        <div className="w-full">
-          <Toast
-            variant="error"
-            icon={<FeatherAlertTriangle />}
-            title="Cannot mark as completed"
-            description={completionError}
-          />
-        </div>
-      ) : null}
-
       <div className="flex w-full flex-col gap-4 rounded-md border border-solid border-neutral-border bg-default-background p-8">
         <fieldset
           disabled={isReadOnly}
@@ -277,6 +281,7 @@ export function BikeFitWizard({
               isLastStep={isLastStep}
               onComplete={handleComplete}
               isCompleting={isCompleting}
+              completionError={completionError}
               readOnly={isReadOnly}
             />
           )}
@@ -287,6 +292,7 @@ export function BikeFitWizard({
               isLastStep={isLastStep}
               onComplete={handleComplete}
               isCompleting={isCompleting}
+              completionError={completionError}
               readOnly={isReadOnly}
             />
           )}
@@ -297,6 +303,7 @@ export function BikeFitWizard({
               isLastStep={isLastStep}
               onComplete={handleComplete}
               isCompleting={isCompleting}
+              completionError={completionError}
               readOnly={isReadOnly}
             />
           )}
@@ -308,6 +315,7 @@ export function BikeFitWizard({
               onBack={goToPreviousStep}
               onComplete={handleComplete}
               isCompleting={isCompleting}
+              completionError={completionError}
             />
           )}
         </fieldset>

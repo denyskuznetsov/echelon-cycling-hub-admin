@@ -23,6 +23,7 @@ interface NewBikeFitDataStepProps {
   onBack?: () => void;
   onComplete: () => void;
   isCompleting?: boolean;
+  completionError?: string | null;
 }
 
 function renderField(field: NewBikeFitDataFieldDef) {
@@ -109,6 +110,7 @@ export function NewBikeFitDataStep({
   onBack,
   onComplete,
   isCompleting = false,
+  completionError = null,
 }: NewBikeFitDataStepProps) {
   return (
     <div className="flex w-full flex-col gap-6">
@@ -176,6 +178,7 @@ export function NewBikeFitDataStep({
         onBack={onBack}
         isLastStep={true}
         loading={isCompleting}
+        completionError={completionError}
       />
     </div>
   );

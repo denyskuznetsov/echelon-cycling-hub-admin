@@ -22,7 +22,9 @@ export function nullIfEmptyNumber(value: unknown): number | null {
  * field has been touched OR the user has submitted the form via
  * "Mark as Completed".
  */
-function useFieldError(name: FieldPath<BikeFitFormValues>): string | undefined {
+export function useFieldError(
+  name: FieldPath<BikeFitFormValues>,
+): string | undefined {
   const {
     formState: { errors, touchedFields, isSubmitted },
   } = useFormContext<BikeFitFormValues>();

@@ -226,7 +226,10 @@ const DefaultPageLayoutRoot = React.forwardRef<
         }
       />
       {children ? (
-        <div className="flex min-h-0 w-full grow shrink-0 basis-0 flex-col overflow-y-auto bg-default-background">
+        <div
+          data-app-scroll-container
+          className="flex min-h-0 w-full grow shrink-0 basis-0 flex-col overflow-y-auto bg-default-background"
+        >
           <div className="flex min-h-full w-full flex-1 flex-col">{children}</div>
         </div>
       ) : null}

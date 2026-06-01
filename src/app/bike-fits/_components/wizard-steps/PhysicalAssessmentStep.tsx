@@ -21,6 +21,7 @@ interface PhysicalAssessmentStepProps {
   isLastStep?: boolean;
   onComplete?: () => void;
   isCompleting?: boolean;
+  completionError?: string | null;
   readOnly?: boolean;
 }
 
@@ -112,6 +113,7 @@ export function PhysicalAssessmentStep({
   isLastStep = false,
   onComplete,
   isCompleting = false,
+  completionError = null,
   readOnly = false,
 }: PhysicalAssessmentStepProps) {
   return (
@@ -153,6 +155,7 @@ export function PhysicalAssessmentStep({
         onBack={onBack}
         isLastStep={isLastStep}
         loading={isCompleting}
+        completionError={completionError}
       />
     </div>
   );

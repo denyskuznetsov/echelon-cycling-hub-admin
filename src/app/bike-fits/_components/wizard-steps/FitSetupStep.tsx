@@ -16,6 +16,7 @@ import type { BikeFitFormValues } from "../bike-fit-form-values";
 import { BIKE_TYPE_LABELS } from "@/src/lib/bike-fits-types";
 import { NewCustomerDialog } from "../NewCustomerDialog";
 import {
+  useFieldError,
   WizardDateField,
   WizardSelectField,
 } from "./WizardFormFields";
@@ -35,6 +36,7 @@ interface FitSetupStepProps {
   isLastStep?: boolean;
   onComplete?: () => void;
   isCompleting?: boolean;
+  completionError?: string | null;
   readOnly?: boolean;
 }
 
@@ -45,9 +47,11 @@ export function FitSetupStep({
   isLastStep = false,
   onComplete,
   isCompleting = false,
+  completionError = null,
   readOnly = false,
 }: FitSetupStepProps) {
   const { setValue } = useFormContext<BikeFitFormValues>();
+  const customerError = useFieldError("customer.customer_id");
 
   const [searchInput, setSearchInput] = useState("");
   const [results, setResults] = useState<CustomerOption[]>([]);
@@ -170,7 +174,8 @@ export function FitSetupStep({
         <TextField
           className="w-full"
           label="Search existing customers"
-          helpText=""
+          error={!!customerError}
+          helpText={customerError ?? ""}
           icon={<FeatherSearch />}
         >
           <TextField.Input
@@ -242,6 +247,7 @@ export function FitSetupStep({
         onNext={isLastStep && onComplete ? onComplete : onNext}
         isLastStep={isLastStep}
         loading={isCompleting}
+        completionError={completionError}
       />
     </div>
   );
