@@ -74,7 +74,7 @@ export function AllBikeFitsTable({
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleting] = useTransition();
 
-  const isDeletableStatus = (status: BikeFitRow["status"]) =>
+  const isEditableStatus = (status: BikeFitRow["status"]) =>
     status === "draft" || status === "in_progress";
 
   const handleCreate = () => {
@@ -284,47 +284,45 @@ export function AllBikeFitsTable({
                   <Table.Cell
                     onClick={(event) => event.stopPropagation()}
                   >
-                    <div className="flex grow shrink-0 basis-0 items-center justify-end">
-                      <SubframeCore.DropdownMenu.Root>
-                        <SubframeCore.DropdownMenu.Trigger asChild={true}>
-                          <IconButton icon={<FeatherMoreHorizontal />} />
-                        </SubframeCore.DropdownMenu.Trigger>
-                        <SubframeCore.DropdownMenu.Portal>
-                          <SubframeCore.DropdownMenu.Content
-                            side="bottom"
-                            align="end"
-                            sideOffset={4}
-                            asChild={true}
-                          >
-                            <DropdownMenu>
-                              <DropdownMenu.DropdownItem
-                                icon={<FeatherEdit2 />}
-                                onClick={() =>
-                                  router.push(`/bike-fits/${fit.id}/edit`)
-                                }
-                              >
-                                Edit
-                              </DropdownMenu.DropdownItem>
-                              {isDeletableStatus(fit.status) ? (
-                                <>
-                                  <DropdownMenu.DropdownDivider />
-                                  <DropdownMenu.DropdownItem
-                                    icon={<FeatherTrash2 />}
-                                    className="text-error-700 hover:bg-error-50 active:bg-error-50 data-[highlighted]:bg-error-50"
-                                    onClick={() => {
-                                      setDeleteError(null);
-                                      setDeleteTarget(fit);
-                                    }}
-                                  >
-                                    Delete
-                                  </DropdownMenu.DropdownItem>
-                                </>
-                              ) : null}
-                            </DropdownMenu>
-                          </SubframeCore.DropdownMenu.Content>
-                        </SubframeCore.DropdownMenu.Portal>
-                      </SubframeCore.DropdownMenu.Root>
-                    </div>
+                    {isEditableStatus(fit.status) ? (
+                      <div className="flex grow shrink-0 basis-0 items-center justify-end">
+                        <SubframeCore.DropdownMenu.Root>
+                          <SubframeCore.DropdownMenu.Trigger asChild={true}>
+                            <IconButton icon={<FeatherMoreHorizontal />} />
+                          </SubframeCore.DropdownMenu.Trigger>
+                          <SubframeCore.DropdownMenu.Portal>
+                            <SubframeCore.DropdownMenu.Content
+                              side="bottom"
+                              align="end"
+                              sideOffset={4}
+                              asChild={true}
+                            >
+                              <DropdownMenu>
+                                <DropdownMenu.DropdownItem
+                                  icon={<FeatherEdit2 />}
+                                  onClick={() =>
+                                    router.push(`/bike-fits/${fit.id}/edit`)
+                                  }
+                                >
+                                  Edit
+                                </DropdownMenu.DropdownItem>
+                                <DropdownMenu.DropdownDivider />
+                                <DropdownMenu.DropdownItem
+                                  icon={<FeatherTrash2 />}
+                                  className="text-error-700 hover:bg-error-50 active:bg-error-50 data-[highlighted]:bg-error-50"
+                                  onClick={() => {
+                                    setDeleteError(null);
+                                    setDeleteTarget(fit);
+                                  }}
+                                >
+                                  Delete
+                                </DropdownMenu.DropdownItem>
+                              </DropdownMenu>
+                            </SubframeCore.DropdownMenu.Content>
+                          </SubframeCore.DropdownMenu.Portal>
+                        </SubframeCore.DropdownMenu.Root>
+                      </div>
+                    ) : null}
                   </Table.Cell>
                 </Table.Row>
               );
