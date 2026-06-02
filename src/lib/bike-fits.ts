@@ -31,10 +31,13 @@ type BikeFitDetailRow = {
   status: string;
   assessment_payload: unknown;
   new_bike_fit_payload: unknown;
+  report_storage_path: string | null;
+  report_generated_at: string | null;
   customers: {
     name: string | null;
     email: string | null;
     phone: string | null;
+    sex: string | null;
   } | null;
 };
 
@@ -45,6 +48,7 @@ function mapBikeFitRow(row: BikeFitViewRow): BikeFitRow {
     customer_name: row.customer_name?.trim() || "Unknown",
     customer_email: row.customer_email,
     customer_phone: row.customer_phone,
+    customer_sex: null,
     fit_number: row.fit_number,
     fit_label: row.fit_label?.trim() || "Baseline Fit",
     bike_type: row.bike_type,
@@ -52,6 +56,8 @@ function mapBikeFitRow(row: BikeFitViewRow): BikeFitRow {
     status: row.status as BikeFitStatus,
     assessment_payload: {},
     new_bike_fit_payload: {},
+    report_storage_path: null,
+    report_generated_at: null,
   };
 }
 
@@ -62,6 +68,7 @@ function mapBikeFitDetailRow(row: BikeFitDetailRow): BikeFitRow {
     customer_name: row.customers?.name?.trim() || "Unknown",
     customer_email: row.customers?.email ?? null,
     customer_phone: row.customers?.phone ?? null,
+    customer_sex: row.customers?.sex ?? null,
     fit_number: row.fit_number,
     fit_label: row.fit_label?.trim() || "Baseline Fit",
     bike_type: row.bike_type,
@@ -69,6 +76,8 @@ function mapBikeFitDetailRow(row: BikeFitDetailRow): BikeFitRow {
     status: row.status as BikeFitStatus,
     assessment_payload: row.assessment_payload ?? {},
     new_bike_fit_payload: row.new_bike_fit_payload ?? {},
+    report_storage_path: row.report_storage_path ?? null,
+    report_generated_at: row.report_generated_at ?? null,
   };
 }
 
@@ -129,10 +138,13 @@ export async function loadBikeFitById(id: string): Promise<BikeFitRow | null> {
       status,
       assessment_payload,
       new_bike_fit_payload,
+      report_storage_path,
+      report_generated_at,
       customers (
         name,
         email,
-        phone
+        phone,
+        sex
       )
     `,
     )

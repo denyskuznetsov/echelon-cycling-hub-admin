@@ -3,7 +3,7 @@ import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit-new-
 import {
   BIKE_FIT_IMAGES_BUCKET,
   buildBikeFitStorageFolderPrefix,
-} from "@/src/utils/image-upload";
+} from "@/src/lib/bike-fit-storage-paths";
 
 const STORAGE_LIST_LIMIT = 100;
 

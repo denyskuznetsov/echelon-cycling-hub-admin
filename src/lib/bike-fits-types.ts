@@ -8,6 +8,7 @@ export interface BikeFitRow {
   customer_name: string;
   customer_email: string | null;
   customer_phone: string | null;
+  customer_sex: string | null;
   fit_number: number;
   fit_label: string;
   bike_type: string;
@@ -15,6 +16,8 @@ export interface BikeFitRow {
   status: BikeFitStatus;
   assessment_payload: unknown;
   new_bike_fit_payload: unknown;
+  report_storage_path: string | null;
+  report_generated_at: string | null;
 }
 
 export const BIKE_TYPE_LABELS = {

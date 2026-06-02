@@ -18,6 +18,7 @@ import {
   collectBikeFitImageStoragePaths,
   deleteBikeFitImageStoragePaths,
 } from "@/src/lib/bike-fit-storage-cleanup";
+import { buildBikeFitReportStoragePath } from "@/src/lib/bike-fit-storage-paths";
 import { isBikeType, type BikeFitStatus } from "@/src/lib/bike-fits-types";
 
 function firstZodErrorMessage(error: ZodError): string {
@@ -193,6 +194,10 @@ export async function completeBikeFit(
 /**
  * Re-opens a completed fit for editing by setting status to `in_progress`.
  * Used from the detail page "Unlock to Edit" confirmation dialog.
+ *
+ * Any previously generated report is now stale, so we clear the report columns
+ * in the same update and best-effort delete the stored PDF. This keeps the UI
+ * back on "Generate PDF" and prevents stale reports from lingering in storage.
  */
 export async function unlockBikeFitForEdit(
   id: string,
@@ -202,7 +207,11 @@ export async function unlockBikeFitForEdit(
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bike_fits")
-    .update({ status: "in_progress" })
+    .update({
+      status: "in_progress",
+      report_storage_path: null,
+      report_generated_at: null,
+    })
     .eq("id", id)
     .eq("status", "completed")
     .select("id")
@@ -217,6 +226,16 @@ export async function unlockBikeFitForEdit(
       ok: false,
       error: "This bike fit could not be unlocked. It may no longer be completed.",
     };
+  }
+
+  const reportCleanup = await deleteBikeFitImageStoragePaths(supabase, [
+    buildBikeFitReportStoragePath(id),
+  ]);
+  if (!reportCleanup.ok) {
+    console.error(
+      "unlockBikeFitForEdit: status flipped but report cleanup failed",
+      id,
+    );
   }
 
   revalidatePath("/bike-fits/all-bike-fits");

@@ -1,30 +1,30 @@
 import imageCompression from "browser-image-compression";
 import { createClient } from "@/src/utils/supabase/client";
+import {
+  BIKE_FIT_IMAGES_BUCKET,
+  buildBikeFitImageStoragePath,
+  type BikeFitImageUploadContext,
+} from "@/src/lib/bike-fit-storage-paths";
 
-export const BIKE_FIT_IMAGES_BUCKET = "bike-fit-images";
+/**
+ * Pure storage constants and path builders live in `bike-fit-storage-paths` so
+ * server code can use them without importing this browser-only module. Re-export
+ * them here for existing client-side import sites.
+ */
+export {
+  BIKE_FIT_IMAGES_BUCKET,
+  buildBikeFitImageStoragePath,
+  buildBikeFitStorageFolderPrefix,
+  buildBikeFitReportStoragePath,
+} from "@/src/lib/bike-fit-storage-paths";
+export type {
+  BikeFitImageVariant,
+  BikeFitImageUploadContext,
+} from "@/src/lib/bike-fit-storage-paths";
 
 const MAX_IMAGE_SIZE_MB = 0.2;
 const MAX_IMAGE_DIMENSION_PX = 1920;
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
-
-export type BikeFitImageVariant = "front" | "side";
-
-export interface BikeFitImageUploadContext {
-  bikeFitId: string;
-  variant: BikeFitImageVariant;
-}
-
-/** Builds a unique object path inside the private `bike-fit-images` bucket. */
-export function buildBikeFitImageStoragePath(
-  context: BikeFitImageUploadContext,
-): string {
-  return `${context.bikeFitId}/${context.variant}-${Date.now()}.jpg`;
-}
-
-/** Folder prefix for all reference images belonging to one bike fit. */
-export function buildBikeFitStorageFolderPrefix(bikeFitId: string): string {
-  return bikeFitId;
-}
 
 /** Compresses a rider reference photo before upload (max ~200KB, max 1920px). */
 export async function compressBikeFitImage(file: File): Promise<File> {

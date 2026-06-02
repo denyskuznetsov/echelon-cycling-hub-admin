@@ -38,6 +38,7 @@ import { formatBikeType, type BikeFitRow } from "@/src/lib/bike-fits-types";
 import { BikeFitDataPoint } from "./BikeFitDataPoint";
 import { BikeFitDetailFieldGrid } from "./BikeFitDetailFieldGrid";
 import { BikeFitReferencePhotos } from "./BikeFitReferencePhotos";
+import { BikeFitReportActions } from "./BikeFitReportActions";
 
 interface BikeFitDetailProps {
   bikeFit: BikeFitRow;
@@ -176,41 +177,50 @@ export function BikeFitDetail({ bikeFit, canEdit = true }: BikeFitDetailProps) {
           </div>
 
           {canEdit ? (
-            <div className="flex shrink-0 items-center gap-2">
-              {isEditableStatus ? (
-                <>
-                  <Button
-                    variant="brand-primary"
-                    icon={<FeatherEdit2 />}
-                    onClick={() =>
-                      router.push(`/bike-fits/${bikeFit.id}/edit`)
-                    }
-                  >
-                    Edit Fit
-                  </Button>
+            <div className="flex shrink-0 flex-col items-end gap-2">
+              <div className="flex items-center gap-2">
+                {isEditableStatus ? (
+                  <>
+                    <Button
+                      variant="brand-primary"
+                      icon={<FeatherEdit2 />}
+                      onClick={() =>
+                        router.push(`/bike-fits/${bikeFit.id}/edit`)
+                      }
+                    >
+                      Edit Fit
+                    </Button>
+                    <Button
+                      variant="destructive-secondary"
+                      icon={<FeatherTrash2 />}
+                      onClick={() => {
+                        setDeleteError(null);
+                        setDeleteOpen(true);
+                      }}
+                    >
+                      Delete Fit
+                    </Button>
+                  </>
+                ) : null}
+                {isCompleted ? (
                   <Button
                     variant="destructive-secondary"
-                    icon={<FeatherTrash2 />}
+                    icon={<FeatherUnlock />}
                     onClick={() => {
-                      setDeleteError(null);
-                      setDeleteOpen(true);
+                      setUnlockError(null);
+                      setUnlockOpen(true);
                     }}
                   >
-                    Delete Fit
+                    Unlock to Edit
                   </Button>
-                </>
-              ) : null}
+                ) : null}
+              </div>
               {isCompleted ? (
-                <Button
-                  variant="destructive-secondary"
-                  icon={<FeatherUnlock />}
-                  onClick={() => {
-                    setUnlockError(null);
-                    setUnlockOpen(true);
-                  }}
-                >
-                  Unlock to Edit
-                </Button>
+                <BikeFitReportActions
+                  bikeFitId={bikeFit.id}
+                  reportStoragePath={bikeFit.report_storage_path}
+                  reportGeneratedAt={bikeFit.report_generated_at}
+                />
               ) : null}
             </div>
           ) : null}
