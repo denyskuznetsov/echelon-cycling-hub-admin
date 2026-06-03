@@ -21,7 +21,7 @@ interface BikeFitEmailDialogProps {
   customerEmail: string | null;
   hasCustomerEmail: boolean;
   emailMode: BikeFitEmailMode;
-  onEmailModeChange: (value: BikeFitEmailMode) => void;
+  onEmailModeChange: (value: string) => void;
   customEmail: string;
   onCustomEmailChange: (email: string) => void;
   emailError: string | null;

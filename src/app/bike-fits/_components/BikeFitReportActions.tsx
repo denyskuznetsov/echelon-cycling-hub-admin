@@ -11,6 +11,7 @@ import {
 } from "@/src/lib/bike-fit/actions/report-actions";
 import {
   BikeFitEmailDialog,
+  type BikeFitEmailMode,
   EMAIL_MODE_CUSTOM,
   EMAIL_MODE_CUSTOMER,
 } from "./BikeFitEmailDialog";
@@ -113,9 +114,12 @@ export function BikeFitReportActions({
     setEmailDialogOpen(true);
   };
 
-  const handleEmailModeChange = (value: typeof EMAIL_MODE_CUSTOMER | typeof EMAIL_MODE_CUSTOM) => {
+  const handleEmailModeChange = (value: string) => {
+    if (value !== EMAIL_MODE_CUSTOMER && value !== EMAIL_MODE_CUSTOM) {
+      return;
+    }
     setEmailError(null);
-    setEmailMode(value);
+    setEmailMode(value as BikeFitEmailMode);
   };
 
   const handleSendEmail = () => {
