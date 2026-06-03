@@ -1,6 +1,7 @@
 import React from "react";
 import { notFound } from "next/navigation";
 import { AllCustomersTable } from "../../_components/AllCustomersTable";
+import { DataLoadError } from "@/src/components/DataLoadError";
 import { resolvePartnerBySlug } from "../../_lib/resolvePartner";
 import {
   CUSTOMERS_PAGE_SIZE,
@@ -29,7 +30,7 @@ export default async function PartnerSlugCustomersPage({
     notFound();
   }
 
-  const { customers, count } = await loadPartnerCustomersPage(
+  const { customers, count, error } = await loadPartnerCustomersPage(
     partner.id,
     page,
     query,
@@ -37,11 +38,16 @@ export default async function PartnerSlugCustomersPage({
   const totalPages = Math.max(1, Math.ceil(count / CUSTOMERS_PAGE_SIZE));
 
   return (
-    <AllCustomersTable
-      customers={customers}
-      currentPage={page}
-      totalPages={totalPages}
-      query={query}
-    />
+    <>
+      {error ? (
+        <DataLoadError title="Couldn't load customers" message={error} />
+      ) : null}
+      <AllCustomersTable
+        customers={customers}
+        currentPage={page}
+        totalPages={totalPages}
+        query={query}
+      />
+    </>
   );
 }

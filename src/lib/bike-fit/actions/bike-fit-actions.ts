@@ -135,7 +135,7 @@ export async function saveBikeFitDraft(
 
   if (error) {
     console.error("saveBikeFitDraft:", error);
-    return { ok: false, error: error.message };
+    return { ok: false, error: "Could not save your changes. Please try again." };
   }
   if (!data) {
     return {
@@ -180,7 +180,10 @@ export async function completeBikeFit(
 
   if (error) {
     console.error("completeBikeFit:", error);
-    return { ok: false, error: error.message };
+    return {
+      ok: false,
+      error: "Could not complete this bike fit. Please try again.",
+    };
   }
   if (!data) {
     return { ok: false, error: "Completed fits are read-only." };
@@ -219,7 +222,10 @@ export async function unlockBikeFitForEdit(
 
   if (error) {
     console.error("unlockBikeFitForEdit:", error);
-    return { ok: false, error: error.message };
+    return {
+      ok: false,
+      error: "Could not unlock this bike fit. Please try again.",
+    };
   }
   if (!data) {
     return {

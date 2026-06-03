@@ -5,6 +5,7 @@ import {
   loadOrdersPage,
   resolveTimeframe,
 } from "@/src/lib/orders";
+import { DataLoadError } from "@/src/components/DataLoadError";
 import { AllOrdersTable } from "./_components/AllOrdersTable";
 
 export default async function OrdersPage({
@@ -26,7 +27,7 @@ export default async function OrdersPage({
   const timeframe = resolveTimeframe(timeframeParam);
   const dateThreshold = computeDateThreshold(timeframe);
 
-  const { orders, count } = await loadOrdersPage(
+  const { orders, count, error } = await loadOrdersPage(
     null,
     page,
     query,
@@ -44,6 +45,8 @@ export default async function OrdersPage({
           Admin view - all orders across every partner.
         </span>
       </div>
+
+      {error ? <DataLoadError title="Couldn't load orders" message={error} /> : null}
 
       <AllOrdersTable
         orders={orders}

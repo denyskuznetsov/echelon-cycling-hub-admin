@@ -52,7 +52,7 @@ export async function loadOrdersPage(
   page: number,
   query: string = "",
   dateThreshold: string | null = null,
-): Promise<{ orders: BookingRow[]; count: number }> {
+): Promise<{ orders: BookingRow[]; count: number; error: string | null }> {
   const from = (page - 1) * ORDERS_PAGE_SIZE;
   const to = from + ORDERS_PAGE_SIZE - 1;
 
@@ -77,12 +77,18 @@ export async function loadOrdersPage(
     queryBuilder = queryBuilder.gte("created_at", dateThreshold);
   }
 
-  const { data, count } = await queryBuilder
+  const { data, count, error } = await queryBuilder
     .order("created_at", { ascending: false })
     .range(from, to);
+
+  if (error) {
+    console.error("loadOrdersPage:", error);
+    return { orders: [], count: 0, error: error.message };
+  }
 
   return {
     orders: (data as BookingRow[] | null) ?? [],
     count: count ?? 0,
+    error: null,
   };
 }

@@ -92,7 +92,7 @@ export async function loadBikeFitsPage(
   page: number,
   query: string = "",
   timeframe: BikeFitsTimeframe = "all-time",
-): Promise<{ bikeFits: BikeFitRow[]; count: number }> {
+): Promise<{ bikeFits: BikeFitRow[]; count: number; error: string | null }> {
   const from = (page - 1) * BIKE_FITS_PAGE_SIZE;
   const to = from + BIKE_FITS_PAGE_SIZE - 1;
   const dateThreshold = computeDateThreshold(timeframe);
@@ -121,16 +121,19 @@ export async function loadBikeFitsPage(
 
   if (error) {
     console.error("loadBikeFitsPage:", error);
-    return { bikeFits: [], count: 0 };
+    return { bikeFits: [], count: 0, error: error.message };
   }
 
   return {
     bikeFits: ((data as BikeFitViewRow[] | null) ?? []).map(mapBikeFitRow),
     count: count ?? 0,
+    error: null,
   };
 }
 
-export async function loadBikeFitById(id: string): Promise<BikeFitRow | null> {
+export async function loadBikeFitById(
+  id: string,
+): Promise<{ bikeFit: BikeFitRow | null; error: string | null }> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("bike_fits")
@@ -160,10 +163,13 @@ export async function loadBikeFitById(id: string): Promise<BikeFitRow | null> {
 
   if (error) {
     console.error("loadBikeFitById:", error);
-    return null;
+    return { bikeFit: null, error: error.message };
   }
 
-  if (!data) return null;
+  if (!data) return { bikeFit: null, error: null };
 
-  return mapBikeFitDetailRow(data as unknown as BikeFitDetailRow);
+  return {
+    bikeFit: mapBikeFitDetailRow(data as unknown as BikeFitDetailRow),
+    error: null,
+  };
 }

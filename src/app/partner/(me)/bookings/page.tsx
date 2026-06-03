@@ -1,5 +1,6 @@
 import React from "react";
 import { AllBookingsTable } from "../../_components/AllBookingsTable";
+import { DataLoadError } from "@/src/components/DataLoadError";
 import { resolveMyPartner } from "../../_lib/resolvePartner";
 import {
   ORDERS_PAGE_SIZE,
@@ -28,7 +29,7 @@ export default async function PartnerBookingsPage({
   const dateThreshold = computeDateThreshold(timeframe);
 
   const { partner } = await resolveMyPartner();
-  const { orders, count } = await loadPartnerOrdersPage(
+  const { orders, count, error } = await loadPartnerOrdersPage(
     partner?.id,
     page,
     query,
@@ -37,12 +38,17 @@ export default async function PartnerBookingsPage({
   const totalPages = Math.ceil(count / ORDERS_PAGE_SIZE);
 
   return (
-    <AllBookingsTable
-      orders={orders}
-      currentPage={page}
-      totalPages={totalPages}
-      query={query}
-      timeframe={timeframe}
-    />
+    <>
+      {error ? (
+        <DataLoadError title="Couldn't load bookings" message={error} />
+      ) : null}
+      <AllBookingsTable
+        orders={orders}
+        currentPage={page}
+        totalPages={totalPages}
+        query={query}
+        timeframe={timeframe}
+      />
+    </>
   );
 }

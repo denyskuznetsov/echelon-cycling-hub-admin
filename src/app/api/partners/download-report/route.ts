@@ -76,7 +76,15 @@ export async function GET(request: NextRequest) {
 
   const commissionRate = normalizeCommissionRate(partnerRow.commission_rate);
 
-  const dailyStats = await loadPartnerDailyStats(partnerId, startDate);
+  const { stats: dailyStats, error: dailyStatsError } =
+    await loadPartnerDailyStats(partnerId, startDate);
+
+  if (dailyStatsError) {
+    return NextResponse.json(
+      { error: "Failed to load partner stats", message: dailyStatsError },
+      { status: 500 },
+    );
+  }
 
   const { totalOrderValueCents, totalOrders } = dailyStats.reduce(
     (acc, stat) => {

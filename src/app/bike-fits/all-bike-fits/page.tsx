@@ -4,6 +4,7 @@ import {
   loadBikeFitsPage,
   resolveBikeFitsTimeframe,
 } from "@/src/lib/bike-fit/data/bike-fits";
+import { DataLoadError } from "@/src/components/DataLoadError";
 import { AllBikeFitsTable } from "./_components/AllBikeFitsTable";
 
 export default async function AllBikeFitsPage({
@@ -24,7 +25,11 @@ export default async function AllBikeFitsPage({
   const query = queryParam ?? "";
   const timeframe = resolveBikeFitsTimeframe(timeframeParam);
 
-  const { bikeFits, count } = await loadBikeFitsPage(page, query, timeframe);
+  const { bikeFits, count, error } = await loadBikeFitsPage(
+    page,
+    query,
+    timeframe,
+  );
   const totalPages = Math.ceil(count / BIKE_FITS_PAGE_SIZE);
 
   return (
@@ -39,6 +44,9 @@ export default async function AllBikeFitsPage({
           <div className="flex items-start absolute inset-0 bg-gradient-to-b from-[rgba(0,47,80,0.3)] to-[rgba(28,70,106,0.8)]" />
         </div>
       </div>
+      {error ? (
+        <DataLoadError title="Couldn't load bike fits" message={error} />
+      ) : null}
       <AllBikeFitsTable
         bikeFits={bikeFits}
         currentPage={page}

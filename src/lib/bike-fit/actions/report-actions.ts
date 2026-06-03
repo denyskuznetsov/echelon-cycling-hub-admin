@@ -49,8 +49,8 @@ export async function generateBikeFitReport(
 ): Promise<GenerateBikeFitReportResult> {
   if (!id) return { ok: false, error: "Missing bike fit id." };
 
-  const row = await loadBikeFitById(id);
-  if (!row) {
+  const { bikeFit: row, error: loadError } = await loadBikeFitById(id);
+  if (loadError || !row) {
     return { ok: false, error: "Could not load this bike fit." };
   }
   if (row.status !== "completed") {
@@ -96,7 +96,7 @@ export async function generateBikeFitReport(
 
   if (updateError) {
     console.error("generateBikeFitReport update:", updateError);
-    return { ok: false, error: updateError.message };
+    return { ok: false, error: "Could not save the report. Please try again." };
   }
   if (!data) {
     return {
@@ -171,8 +171,8 @@ export async function sendBikeFitReportEmail(
     };
   }
 
-  const row = await loadBikeFitById(id);
-  if (!row) {
+  const { bikeFit: row, error: loadError } = await loadBikeFitById(id);
+  if (loadError || !row) {
     return { ok: false, error: "Could not load this bike fit." };
   }
   if (row.status !== "completed") {

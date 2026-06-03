@@ -20,11 +20,11 @@ const RECENT_ORDERS_LIMIT = 5;
 
 export async function loadRecentOrders(
   partnerId: string | null | undefined,
-): Promise<PartnerOrder[]> {
-  if (!partnerId) return [];
+): Promise<{ orders: PartnerOrder[]; error: string | null }> {
+  if (!partnerId) return { orders: [], error: null };
 
   const supabase = await createClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("orders")
     .select(
       "id, status, starts_at, stops_at, amount_in_cents, customers(name, email, phone)",
@@ -33,7 +33,12 @@ export async function loadRecentOrders(
     .order("created_at", { ascending: false })
     .limit(RECENT_ORDERS_LIMIT);
 
-  return (data as PartnerOrder[] | null) ?? [];
+  if (error) {
+    console.error("loadRecentOrders:", error);
+    return { orders: [], error: error.message };
+  }
+
+  return { orders: (data as unknown as PartnerOrder[] | null) ?? [], error: null };
 }
 
 export async function loadPartnerOrdersPage(
@@ -41,24 +46,29 @@ export async function loadPartnerOrdersPage(
   page: number,
   query: string = "",
   dateThreshold: string | null = null,
-): Promise<{ orders: PartnerBookingRow[]; count: number }> {
-  if (!partnerId) return { orders: [], count: 0 };
+): Promise<{ orders: PartnerBookingRow[]; count: number; error: string | null }> {
+  if (!partnerId) return { orders: [], count: 0, error: null };
   return loadOrdersPage(partnerId, page, query, dateThreshold);
 }
 
 export async function loadPartnerDailyStats(
   partnerId: string | null | undefined,
   startDate: string | null,
-): Promise<PartnerDailyStat[]> {
-  if (!partnerId) return [];
+): Promise<{ stats: PartnerDailyStat[]; error: string | null }> {
+  if (!partnerId) return { stats: [], error: null };
 
   const supabase = await createClient();
-  const { data } = await supabase.rpc("get_partner_daily_stats", {
+  const { data, error } = await supabase.rpc("get_partner_daily_stats", {
     p_partner_id: partnerId,
     p_start_date: startDate,
   });
 
-  return (data as PartnerDailyStat[] | null) ?? [];
+  if (error) {
+    console.error("loadPartnerDailyStats:", error);
+    return { stats: [], error: error.message };
+  }
+
+  return { stats: (data as PartnerDailyStat[] | null) ?? [], error: null };
 }
 
 export function normalizeCommissionRate(

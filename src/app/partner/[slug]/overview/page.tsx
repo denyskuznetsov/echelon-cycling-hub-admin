@@ -2,6 +2,7 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { RecentBookings } from "../../_components/RecentBookings";
 import { OverviewStats } from "../../_components/OverviewStats";
+import { DataLoadError } from "@/src/components/DataLoadError";
 import { resolvePartnerBySlug } from "../../_lib/resolvePartner";
 import {
   computeDateThreshold,
@@ -32,12 +33,22 @@ export default async function PartnerSlugOverviewPage({
     notFound();
   }
 
-  const recentOrders = await loadRecentOrders(partner.id);
+  const { orders: recentOrders, error: recentOrdersError } =
+    await loadRecentOrders(partner.id);
   const commissionRate = normalizeCommissionRate(partner.commission_rate);
-  const dailyStats = await loadPartnerDailyStats(partner.id, startDate);
+  const { stats: dailyStats, error: dailyStatsError } =
+    await loadPartnerDailyStats(partner.id, startDate);
+
+  const loadError = dailyStatsError ?? recentOrdersError;
 
   return (
     <>
+      {loadError ? (
+        <DataLoadError
+          title="Couldn't load partner overview"
+          message={loadError}
+        />
+      ) : null}
       <OverviewStats
         dailyStats={dailyStats}
         commissionRate={commissionRate}

@@ -1,0 +1,69 @@
+---
+description: Error-handling conventions (server actions, data loaders, UI surfacing)
+alwaysApply: true
+---
+
+# Error Handling
+
+Internal app: the goal is to **catch failures early and show them clearly**, not
+production-grade observability. Never silently swallow an error.
+
+## Mutations (server actions) → `{ ok, error }`
+
+Return a discriminated result; never throw for expected/recoverable failures.
+
+```ts
+export type SaveResult = { ok: true } | { ok: false; error: string };
+
+const { data, error } = await supabase.from("x").update(...).select("id").maybeSingle();
+if (error) {
+  console.error("saveX:", error); // log details with a `name:`/`[tag]` prefix
+  return { ok: false, error: error.message };
+}
+```
+
+Callers check `if (!result.ok)` and surface `result.error` inline (banner, toast,
+field state).
+
+## Reads (data loaders) → data + `error: string | null`
+
+Loaders must return their data **plus** an `error` field. Keep a safe empty
+fallback so rendering never crashes, and let the page decide whether to show a
+banner. Never return empty data as if it were "no results".
+
+```ts
+async function loadThings(): Promise<{ things: Thing[]; error: string | null }> {
+  const { data, error } = await supabase.from("things").select("*");
+  if (error) {
+    console.error("loadThings:", error);
+    return { things: [], error: error.message };
+  }
+  return { things: (data as Thing[] | null) ?? [], error: null };
+}
+```
+
+Single-item loaders distinguish **not-found** from **failed**:
+
+```ts
+// { item: T | null; error: string | null }
+// error set        -> show an error state (do NOT call notFound())
+// item null, no err -> notFound()
+```
+
+## Surfacing in the UI
+
+- List/overview pages: render `<Alert variant="error" ...>` (reuse
+  `@/ui/components/Alert`) when a loader returns `error`.
+- Uncaught throws are caught by `src/app/error.tsx`.
+- In `development`, show `error.message`; in production show stable, friendly copy.
+
+## Throw only for programmer/invariant errors
+
+Missing env vars, misused hooks, etc. (see `utils/supabase/server.ts`,
+`UserContext`). These should fail loudly, not be modeled as `{ ok, error }`.
+
+## Logging
+
+Always `console.error` with a context prefix (`loadThings:`, `[webhooks/booqable]`)
+so failures are greppable in the terminal.
+```
