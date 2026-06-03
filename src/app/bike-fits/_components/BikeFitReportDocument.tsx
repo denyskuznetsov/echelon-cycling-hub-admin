@@ -94,6 +94,9 @@ const styles = StyleSheet.create({
     fontFamily: "Helvetica-Bold",
     color: COLORS.value,
   },
+  riderFields: {
+    marginTop: 6,
+  },
   table: {
     marginTop: 6,
     borderWidth: 1,
@@ -263,10 +266,12 @@ export function BikeFitReportDocument({ data }: { data: BikeFitReportData }) {
         />
 
         <Text style={styles.categoryTitle}>Rider</Text>
-        <RiderField label="Name" value={data.rider.name} />
-        <RiderField label="Email" value={data.rider.email} />
-        <RiderField label="Sex" value={data.rider.sex} />
-        <RiderField label="Phone" value={data.rider.phone} />
+        <View style={styles.riderFields}>
+          <RiderField label="Name" value={data.rider.name} />
+          <RiderField label="Email" value={data.rider.email} />
+          <RiderField label="Sex" value={data.rider.sex} />
+          <RiderField label="Phone" value={data.rider.phone} />
+        </View>
 
         <ReportCategory title="Old Bike" sections={data.oldBikeSections} />
 

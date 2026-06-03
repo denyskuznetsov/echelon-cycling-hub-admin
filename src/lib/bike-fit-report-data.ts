@@ -102,8 +102,9 @@ function buildSections(
     .filter((section) => section.fields.length > 0);
 }
 
-function numText(value: number | null): string {
-  return typeof value === "number" && Number.isFinite(value) ? String(value) : "";
+function mmText(value: number | null): string {
+  const formatted = formatBikeFitDisplayValue(value, "mm");
+  return formatted === EMPTY_VALUE ? "" : formatted;
 }
 
 /** Joins present (non-empty) parts; falls back to the empty placeholder. */
@@ -159,18 +160,18 @@ export function bikeFitRowToReportData(
     newFitPositionRows: [
       {
         label: "Saddle Height",
-        value: numText(newBike.saddle_height_mm) || EMPTY_VALUE,
+        value: mmText(newBike.saddle_height_mm) || EMPTY_VALUE,
         diagram: "Saddle-height.png",
       },
       {
         label: "Saddle Setback",
-        value: numText(newBike.saddle_setback_mm) || EMPTY_VALUE,
+        value: mmText(newBike.saddle_setback_mm) || EMPTY_VALUE,
         diagram: "Saddle-setback.png",
       },
       {
         label: "Handlebar Reach and Drop",
         value: joinParts(
-          [numText(newBike.handlebar_reach_mm), numText(newBike.handlebar_drop_mm)],
+          [mmText(newBike.handlebar_reach_mm), mmText(newBike.handlebar_drop_mm)],
           " ",
         ),
         diagram: "Handlebar-reach-and-drop.png",
@@ -178,14 +179,14 @@ export function bikeFitRowToReportData(
       {
         label: "Grip Reach and Drop",
         value: joinParts(
-          [numText(newBike.grip_reach_mm), numText(newBike.grip_drop_mm)],
+          [mmText(newBike.grip_reach_mm), mmText(newBike.grip_drop_mm)],
           " ",
         ),
         diagram: "Grip-reach-and-drop.png",
       },
       {
         label: "Handlebar Width",
-        value: numText(newBike.handlebar_width_mm) || EMPTY_VALUE,
+        value: mmText(newBike.handlebar_width_mm) || EMPTY_VALUE,
         diagram: "Handlebar-width.png",
       },
     ],
