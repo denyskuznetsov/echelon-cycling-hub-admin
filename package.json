@@ -25,6 +25,7 @@
     "react-dom": "^18",
     "react-email": "^6.1.5",
     "react-hook-form": "^7.76.1",
+    "resend": "^6.12.4",
     "zod": "^4.4.3"
   },
   "devDependencies": {

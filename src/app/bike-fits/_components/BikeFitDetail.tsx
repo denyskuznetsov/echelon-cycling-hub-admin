@@ -223,6 +223,8 @@ export function BikeFitDetail({ bikeFit, canEdit = true }: BikeFitDetailProps) {
                   bikeFitId={bikeFit.id}
                   reportStoragePath={bikeFit.report_storage_path}
                   reportGeneratedAt={bikeFit.report_generated_at}
+                  customerName={bikeFit.customer_name}
+                  customerEmail={bikeFit.customer_email}
                 />
               ) : null}
             </div>

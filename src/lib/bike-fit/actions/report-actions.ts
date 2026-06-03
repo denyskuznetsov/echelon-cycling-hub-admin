@@ -1,6 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { createElement } from "react";
+import { Resend } from "resend";
+import BikeFitReportEmail from "@/emails/BikeFitReportEmail";
 import { createClient } from "@/src/utils/supabase/server";
 import { loadBikeFitById } from "@/src/lib/bike-fit/data/bike-fits";
 import { renderBikeFitReportBuffer } from "@/src/lib/bike-fit/report/render";
@@ -8,8 +11,10 @@ import {
   BIKE_FIT_IMAGES_BUCKET,
   buildBikeFitReportStoragePath,
 } from "@/src/lib/bike-fit/storage";
+import { formatBikeType } from "@/src/lib/bike-fit/types/records";
 
 const DOWNLOAD_SIGNED_URL_TTL_SECONDS = 60 * 5;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export type GenerateBikeFitReportResult =
   | { ok: true }
@@ -18,6 +23,20 @@ export type GenerateBikeFitReportResult =
 export type BikeFitReportDownloadResult =
   | { ok: true; url: string }
   | { ok: false; error: string };
+
+export type SendBikeFitReportEmailResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+function formatFitDateForEmail(isoDate: string): string {
+  const date = new Date(isoDate);
+  if (Number.isNaN(date.getTime())) return isoDate;
+  return date.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 /**
  * Renders the PDF report for a completed bike fit, stores it under
@@ -126,4 +145,87 @@ export async function getBikeFitReportDownloadUrl(
   }
 
   return { ok: true, url: data.signedUrl };
+}
+
+/**
+ * Sends the generated PDF report as an email attachment via Resend.
+ * The target email can be the saved customer email or a manual override.
+ */
+export async function sendBikeFitReportEmail(
+  id: string,
+  email: string,
+): Promise<SendBikeFitReportEmailResult> {
+  if (!id) return { ok: false, error: "Missing bike fit id." };
+
+  const targetEmail = email.trim();
+  if (!targetEmail) return { ok: false, error: "Email is required." };
+  if (!EMAIL_PATTERN.test(targetEmail)) {
+    return { ok: false, error: "Enter a valid email address." };
+  }
+
+  const resendApiKey = process.env.RESEND_API_KEY;
+  if (!resendApiKey) {
+    return {
+      ok: false,
+      error: "Missing RESEND_API_KEY in environment variables.",
+    };
+  }
+
+  const row = await loadBikeFitById(id);
+  if (!row) {
+    return { ok: false, error: "Could not load this bike fit." };
+  }
+  if (row.status !== "completed") {
+    return {
+      ok: false,
+      error: "Only completed bike fits can be emailed to the customer.",
+    };
+  }
+  if (!row.report_storage_path) {
+    return {
+      ok: false,
+      error: "No report has been generated for this fit yet.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { data: reportBlob, error: downloadError } = await supabase.storage
+    .from(BIKE_FIT_IMAGES_BUCKET)
+    .download(row.report_storage_path);
+
+  if (downloadError || !reportBlob) {
+    console.error("sendBikeFitReportEmail download:", downloadError);
+    return {
+      ok: false,
+      error: "Could not retrieve the PDF report from storage.",
+    };
+  }
+
+  const arrayBuffer = await reportBlob.arrayBuffer();
+  const reportBuffer = Buffer.from(arrayBuffer);
+  const resend = new Resend(resendApiKey);
+
+  const { error: sendError } = await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL ?? "Echelon Cycling Hub <fits@echeloncycling.com>",
+    to: [targetEmail],
+    subject: "Your Echelon Bike Fit Report",
+    react: createElement(BikeFitReportEmail, {
+      customerName: row.customer_name,
+      fitDate: formatFitDateForEmail(row.fit_date),
+      bikeType: formatBikeType(row.bike_type),
+    }),
+    attachments: [
+      {
+        filename: `${row.customer_name.trim().replace(/\s+/g, "_") || `bike_fit_${row.fit_number}`}_Bike_Fit_Report.pdf`,
+        content: reportBuffer,
+      },
+    ],
+  });
+
+  if (sendError) {
+    console.error("sendBikeFitReportEmail send:", sendError);
+    return { ok: false, error: "Could not send the email. Please try again." };
+  }
+
+  return { ok: true };
 }
