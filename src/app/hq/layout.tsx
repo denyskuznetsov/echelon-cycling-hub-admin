@@ -38,5 +38,9 @@ export default async function HeadquartersLayout({
     redirect("/unauthorized");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="flex h-screen w-full flex-col overflow-y-auto bg-default-background">
+      <div className="flex min-h-full w-full flex-1 flex-col">{children}</div>
+    </div>
+  );
 }

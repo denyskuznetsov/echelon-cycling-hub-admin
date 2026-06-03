@@ -11,16 +11,22 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "@hookform/resolvers": "^5.4.0",
     "@react-email/components": "^1.0.12",
     "@react-email/tailwind": "^2.0.7",
+    "@react-pdf/renderer": "^4.5.1",
     "@subframe/core": "^1.154.0",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.102.1",
+    "browser-image-compression": "^2.0.2",
     "classnames": "^2.3.2",
     "next": "^14.2.3",
     "react": "^18",
     "react-dom": "^18",
-    "react-email": "^6.1.5"
+    "react-email": "^6.1.5",
+    "react-hook-form": "^7.76.1",
+    "resend": "^6.12.4",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@react-email/ui": "^6.1.5",

@@ -1,0 +1,48 @@
+---
+description: Write idempotent, re-runnable Supabase migrations
+alwaysApply: true
+---
+
+# Supabase Migration Conventions
+
+All migrations (whether authored as SQL files or applied via the Supabase MCP `apply_migration` tool) MUST be idempotent so they can be re-run safely against a partially-applied or fresh database.
+
+## RLS policies: drop-then-create
+
+PostgreSQL has **no** `CREATE OR REPLACE POLICY` syntax. Use `DROP POLICY IF EXISTS` immediately followed by `CREATE POLICY`:
+
+```sql
+DROP POLICY IF EXISTS "Staff can insert customers" ON public.customers;
+
+CREATE POLICY "Staff can insert customers"
+ON public.customers
+FOR INSERT
+TO authenticated
+WITH CHECK (get_user_role() = ANY (ARRAY['admin'::user_role, 'manager'::user_role]));
+```
+
+Anti-pattern:
+
+```sql
+-- ❌ Bare CREATE POLICY fails on re-run / fresh env with a same-named policy
+CREATE POLICY "Staff can insert customers" ON public.customers ...;
+```
+
+## Other DDL: prefer the idempotent variant
+
+| Object | Use |
+|---|---|
+| Table | `CREATE TABLE IF NOT EXISTS ...` |
+| Column | `ALTER TABLE ... ADD COLUMN IF NOT EXISTS ...` |
+| Index | `CREATE INDEX IF NOT EXISTS ...` |
+| Constraint | `ALTER TABLE ... DROP CONSTRAINT IF EXISTS ...; ALTER TABLE ... ADD CONSTRAINT ...;` |
+| Function | `CREATE OR REPLACE FUNCTION ...` |
+| View | `CREATE OR REPLACE VIEW ...` |
+| Trigger | `DROP TRIGGER IF EXISTS ... ON ...; CREATE TRIGGER ...;` |
+| Enum value | `ALTER TYPE ... ADD VALUE IF NOT EXISTS '...';` |
+
+## Why
+
+- A failed migration must be safe to re-run after the downstream cause is fixed.
+- Fresh local DBs may already contain objects created by hand during debugging.
+- Postgres has no general "replace" for policies/constraints/triggers, so the drop-then-create idiom is the canonical replacement.
