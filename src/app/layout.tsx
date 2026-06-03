@@ -1,6 +1,8 @@
 import "./globals.css"
 import type { Metadata } from "next"
 import { UserProvider } from "@/src/context/UserContext"
+import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 
 export const metadata: Metadata = {
   title: "Echelon Cycling Hub Admin",
@@ -22,6 +24,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
       <body>
         <UserProvider>{children}</UserProvider>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   )
