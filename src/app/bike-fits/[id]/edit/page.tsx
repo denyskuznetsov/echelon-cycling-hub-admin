@@ -1,6 +1,6 @@
 import React from "react";
 import { notFound } from "next/navigation";
-import { loadBikeFitById } from "@/src/lib/bike-fits";
+import { loadBikeFitById } from "@/src/lib/bike-fit/data/bike-fits";
 import { BikeFitWizard } from "../../_components/BikeFitWizard";
 import {
   bikeFitRowToInitialCustomer,

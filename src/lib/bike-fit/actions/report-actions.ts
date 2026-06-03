@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/src/utils/supabase/server";
-import { loadBikeFitById } from "@/src/lib/bike-fits";
-import { renderBikeFitReportBuffer } from "@/src/lib/bike-fit-report-render";
+import { loadBikeFitById } from "@/src/lib/bike-fit/data/bike-fits";
+import { renderBikeFitReportBuffer } from "@/src/lib/bike-fit/report/render";
 import {
   BIKE_FIT_IMAGES_BUCKET,
   buildBikeFitReportStoragePath,
-} from "@/src/lib/bike-fit-storage-paths";
+} from "@/src/lib/bike-fit/storage";
 
 const DOWNLOAD_SIGNED_URL_TTL_SECONDS = 60 * 5;
 

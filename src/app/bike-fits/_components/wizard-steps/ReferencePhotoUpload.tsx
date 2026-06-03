@@ -7,8 +7,8 @@ import {
   FeatherImage,
   FeatherLoader,
 } from "@subframe/core";
-import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
-import { newBikeFitDataFieldPath } from "@/src/lib/bike-fit-new-bike-fields";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
+import { newBikeFitDataFieldPath } from "@/src/lib/bike-fit/fields/new-bike-fields";
 import {
   compressBikeFitImage,
   getBikeFitImageSignedUrl,

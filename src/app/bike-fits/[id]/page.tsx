@@ -1,6 +1,6 @@
 import React from "react";
 import { notFound } from "next/navigation";
-import { loadBikeFitById } from "@/src/lib/bike-fits";
+import { loadBikeFitById } from "@/src/lib/bike-fit/data/bike-fits";
 import { BikeFitDetail } from "../_components/BikeFitDetail";
 
 export default async function ViewBikeFitPage({

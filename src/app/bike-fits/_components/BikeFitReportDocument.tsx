@@ -13,7 +13,7 @@ import type {
   BikeFitReportPositionRow,
   BikeFitReportRow,
   BikeFitReportSection,
-} from "@/src/lib/bike-fit-report-data";
+} from "@/src/lib/bike-fit/report/data";
 
 /**
  * Static report assets (logo, measurement diagrams) live in `public/`. This

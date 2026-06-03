@@ -1,11 +1,37 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit-new-bike-fit-payload";
-import {
-  BIKE_FIT_IMAGES_BUCKET,
-  buildBikeFitStorageFolderPrefix,
-} from "@/src/lib/bike-fit-storage-paths";
+import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit/payload/new-bike-fit-payload";
 
 const STORAGE_LIST_LIMIT = 100;
+
+export const BIKE_FIT_IMAGES_BUCKET = "bike-fit-images";
+
+export type BikeFitImageVariant = "front" | "side";
+
+export interface BikeFitImageUploadContext {
+  bikeFitId: string;
+  variant: BikeFitImageVariant;
+}
+
+/** Builds a unique object path inside the private `bike-fit-images` bucket. */
+export function buildBikeFitImageStoragePath(
+  context: BikeFitImageUploadContext,
+): string {
+  return `${context.bikeFitId}/${context.variant}-${Date.now()}.jpg`;
+}
+
+/** Folder prefix for all reference images belonging to one bike fit. */
+export function buildBikeFitStorageFolderPrefix(bikeFitId: string): string {
+  return bikeFitId;
+}
+
+/**
+ * Fixed object path for a bike fit's generated PDF report. Lives in the same
+ * `{bikeFitId}/` folder as reference images (so existing folder cleanup covers
+ * it) and uses a stable name so regeneration overwrites via upsert.
+ */
+export function buildBikeFitReportStoragePath(bikeFitId: string): string {
+  return `${bikeFitId}/report.pdf`;
+}
 
 export type CollectBikeFitImageStoragePathsResult =
   | { ok: true; paths: string[] }

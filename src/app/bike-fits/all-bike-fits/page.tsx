@@ -3,7 +3,7 @@ import {
   BIKE_FITS_PAGE_SIZE,
   loadBikeFitsPage,
   resolveBikeFitsTimeframe,
-} from "@/src/lib/bike-fits";
+} from "@/src/lib/bike-fit/data/bike-fits";
 import { AllBikeFitsTable } from "./_components/AllBikeFitsTable";
 
 export default async function AllBikeFitsPage({

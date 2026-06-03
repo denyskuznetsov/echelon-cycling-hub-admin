@@ -3,7 +3,7 @@ import {
   BIKE_FIT_STEPS,
   type BikeFitStepKey,
 } from "@/src/app/bike-fits/_components/bike-fit-wizard-config";
-import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
 
 export interface FormErrorIssue {
   path: string;

@@ -1,11 +1,11 @@
 import {
   EMPTY_OLD_BIKE,
   OLD_BIKE_FIELD_DEFS,
-} from "@/src/lib/bike-fit-old-bike-fields";
+} from "@/src/lib/bike-fit/fields/old-bike-fields";
 import {
   EMPTY_PHYSICAL_ASSESSMENT,
   PHYSICAL_ASSESSMENT_FIELD_DEFS,
-} from "@/src/lib/bike-fit-physical-assessment-fields";
+} from "@/src/lib/bike-fit/fields/physical-assessment-fields";
 import {
   asLoose,
   compactPayload,
@@ -14,15 +14,15 @@ import {
   readEnumString,
   readNumber,
   readString,
-} from "@/src/lib/bike-fit-payload-utils";
+} from "@/src/lib/bike-fit/payload/payload-utils";
 import type {
   BikeFitAssessmentPayload,
   BikeFitFormValues,
   OldBikeFormValues,
   PhysicalAssessmentFormValues,
-} from "@/src/lib/bike-fit-form-types";
+} from "@/src/lib/bike-fit/types/form-types";
 
-export type { BikeFitAssessmentPayload } from "@/src/lib/bike-fit-form-types";
+export type { BikeFitAssessmentPayload } from "@/src/lib/bike-fit/types/form-types";
 
 function mapOldBikeToPayload(
   oldBike: OldBikeFormValues,

@@ -5,8 +5,8 @@ import type {
   PelvisLevel,
   Rating,
   YesNo,
-} from "@/src/lib/bike-fit-enums";
-import type { BikeType } from "@/src/lib/bike-fits-types";
+} from "@/src/lib/bike-fit/types/enums";
+import type { BikeType } from "@/src/lib/bike-fit/types/records";
 
 export interface OldBikeFormValues {
   cycling_experience: string;

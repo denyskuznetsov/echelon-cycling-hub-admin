@@ -2,7 +2,7 @@ import type { FieldPath } from "react-hook-form";
 import type {
   BikeFitFormValues,
   NewBikeFitDataFormValues,
-} from "@/src/lib/bike-fit-form-types";
+} from "@/src/lib/bike-fit/types/form-types";
 
 export type NewBikeFitDataSectionId =
   | "position"

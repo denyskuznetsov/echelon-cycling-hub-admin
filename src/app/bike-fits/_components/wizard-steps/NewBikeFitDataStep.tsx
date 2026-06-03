@@ -6,7 +6,7 @@ import {
   NEW_BIKE_FIT_DATA_SECTIONS,
   newBikeFitDataFieldPath,
   type NewBikeFitDataFieldDef,
-} from "@/src/lib/bike-fit-new-bike-fields";
+} from "@/src/lib/bike-fit/fields/new-bike-fields";
 import {
   WizardMmField,
   WizardNumberField,

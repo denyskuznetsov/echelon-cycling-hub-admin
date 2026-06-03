@@ -6,7 +6,7 @@ import {
   OLD_BIKE_SECTIONS,
   oldBikeFieldPath,
   type OldBikeFieldDef,
-} from "@/src/lib/bike-fit-old-bike-fields";
+} from "@/src/lib/bike-fit/fields/old-bike-fields";
 import {
   WizardMmField,
   WizardNumberField,

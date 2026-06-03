@@ -7,19 +7,19 @@ import { ddMmYyyyToIso } from "@/src/utils/date-format";
 import {
   formValuesToAssessmentPayload,
   type BikeFitAssessmentPayload,
-} from "@/src/lib/bike-fit-assessment-payload";
+} from "@/src/lib/bike-fit/payload/assessment-payload";
 import {
   formValuesToNewBikeFitPayload,
   type BikeFitNewBikeFitPayload,
-} from "@/src/lib/bike-fit-new-bike-fit-payload";
-import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
-import { BikeFitFormSchema } from "@/src/lib/bike-fit-schema";
+} from "@/src/lib/bike-fit/payload/new-bike-fit-payload";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
+import { BikeFitFormSchema } from "@/src/lib/bike-fit/payload/schema";
 import {
   collectBikeFitImageStoragePaths,
   deleteBikeFitImageStoragePaths,
-} from "@/src/lib/bike-fit-storage-cleanup";
-import { buildBikeFitReportStoragePath } from "@/src/lib/bike-fit-storage-paths";
-import { isBikeType, type BikeFitStatus } from "@/src/lib/bike-fits-types";
+  buildBikeFitReportStoragePath,
+} from "@/src/lib/bike-fit/storage";
+import { isBikeType, type BikeFitStatus } from "@/src/lib/bike-fit/types/records";
 
 function firstZodErrorMessage(error: ZodError): string {
   return error.issues[0]?.message ?? "Invalid bike fit data.";

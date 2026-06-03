@@ -4,10 +4,10 @@ import {
   BIKE_FIT_IMAGES_BUCKET,
   buildBikeFitImageStoragePath,
   type BikeFitImageUploadContext,
-} from "@/src/lib/bike-fit-storage-paths";
+} from "@/src/lib/bike-fit/storage";
 
 /**
- * Pure storage constants and path builders live in `bike-fit-storage-paths` so
+ * Pure storage constants and path builders live in `bike-fit/storage` so
  * server code can use them without importing this browser-only module. Re-export
  * them here for existing client-side import sites.
  */
@@ -16,11 +16,11 @@ export {
   buildBikeFitImageStoragePath,
   buildBikeFitStorageFolderPrefix,
   buildBikeFitReportStoragePath,
-} from "@/src/lib/bike-fit-storage-paths";
+} from "@/src/lib/bike-fit/storage";
 export type {
   BikeFitImageVariant,
   BikeFitImageUploadContext,
-} from "@/src/lib/bike-fit-storage-paths";
+} from "@/src/lib/bike-fit/storage";
 
 const MAX_IMAGE_SIZE_MB = 0.2;
 const MAX_IMAGE_DIMENSION_PX = 1920;

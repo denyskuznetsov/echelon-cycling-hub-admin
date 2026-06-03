@@ -1,10 +1,9 @@
 import type { FieldPath } from "react-hook-form";
-import { ALONE_OR_GROUP_OPTIONS } from "@/src/lib/bike-fit-enums";
+import { ALONE_OR_GROUP_OPTIONS } from "@/src/lib/bike-fit/types/enums";
 import type {
   BikeFitFormValues,
   OldBikeFormValues,
-} from "@/src/lib/bike-fit-form-types";
-
+} from "@/src/lib/bike-fit/types/form-types";
 
 export type OldBikeSectionId =
   | "cycling_history"

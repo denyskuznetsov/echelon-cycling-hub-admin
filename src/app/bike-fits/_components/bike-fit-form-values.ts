@@ -1,14 +1,17 @@
-import { isBikeType, type BikeFitRow } from "@/src/lib/bike-fits-types";
+import {
+  isBikeType,
+  type BikeFitRow,
+} from "@/src/lib/bike-fit/types/records";
 import type { CustomerOption } from "@/src/lib/customers-types";
 import {
   assessmentPayloadToOldBikeValues,
   assessmentPayloadToPhysicalAssessmentValues,
-} from "@/src/lib/bike-fit-assessment-payload";
-import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit-new-bike-fit-payload";
+} from "@/src/lib/bike-fit/payload/assessment-payload";
+import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit/payload/new-bike-fit-payload";
 import { isoDateToDdMmYyyy } from "@/src/utils/date-format";
-import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
 
-export type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+export type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
 
 export function bikeFitRowToInitialData(row: BikeFitRow): BikeFitFormValues {
   return {

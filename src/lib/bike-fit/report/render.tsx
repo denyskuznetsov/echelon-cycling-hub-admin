@@ -2,10 +2,10 @@ import React from "react";
 import { renderToBuffer } from "@react-pdf/renderer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { BikeFitReportDocument } from "@/src/app/bike-fits/_components/BikeFitReportDocument";
-import { bikeFitRowToReportData } from "@/src/lib/bike-fit-report-data";
-import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit-new-bike-fit-payload";
-import { BIKE_FIT_IMAGES_BUCKET } from "@/src/lib/bike-fit-storage-paths";
-import type { BikeFitRow } from "@/src/lib/bike-fits-types";
+import { bikeFitRowToReportData } from "@/src/lib/bike-fit/report/data";
+import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit/payload/new-bike-fit-payload";
+import { BIKE_FIT_IMAGES_BUCKET } from "@/src/lib/bike-fit/storage";
+import type { BikeFitRow } from "@/src/lib/bike-fit/types/records";
 
 /**
  * Short TTL: the URL only needs to live long enough for @react-pdf to fetch the

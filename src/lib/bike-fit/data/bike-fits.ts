@@ -1,9 +1,16 @@
 import { createClient } from "@/src/utils/supabase/server";
 import { computeDateThreshold } from "@/src/lib/orders";
-import type { BikeFitRow, BikeFitStatus, BikeFitsTimeframe } from "./bike-fits-types";
+import type {
+  BikeFitRow,
+  BikeFitStatus,
+  BikeFitsTimeframe,
+} from "@/src/lib/bike-fit/types/records";
 
-export type { BikeFitRow, BikeFitStatus, BikeFitsTimeframe } from "./bike-fits-types";
-export { formatBikeType, resolveBikeFitsTimeframe } from "./bike-fits-types";
+export type { BikeFitRow, BikeFitStatus, BikeFitsTimeframe } from "@/src/lib/bike-fit/types/records";
+export {
+  formatBikeType,
+  resolveBikeFitsTimeframe,
+} from "@/src/lib/bike-fit/types/records";
 
 export const BIKE_FITS_PAGE_SIZE = 10;
 

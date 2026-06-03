@@ -6,7 +6,7 @@ import {
   PHYSICAL_ASSESSMENT_SECTIONS,
   physicalAssessmentFieldPath,
   type PhysicalAssessmentFieldDef,
-} from "@/src/lib/bike-fit-physical-assessment-fields";
+} from "@/src/lib/bike-fit/fields/physical-assessment-fields";
 import {
   WizardMmField,
   WizardSelectField,

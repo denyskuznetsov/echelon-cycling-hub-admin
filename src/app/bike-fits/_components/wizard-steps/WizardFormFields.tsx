@@ -7,7 +7,7 @@ import { Controller, get, useFormContext } from "react-hook-form";
 import { Select } from "@/ui/components/Select";
 import { TextArea } from "@/ui/components/TextArea";
 import { TextField } from "@/ui/components/TextField";
-import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
 
 export function nullIfEmptyNumber(value: unknown): number | null {
   if (value === "" || value == null) return null;

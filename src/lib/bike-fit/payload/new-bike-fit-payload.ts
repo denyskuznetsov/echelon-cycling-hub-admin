@@ -1,7 +1,7 @@
 import {
   EMPTY_NEW_BIKE_FIT_DATA,
   NEW_BIKE_FIT_DATA_FIELD_DEFS,
-} from "@/src/lib/bike-fit-new-bike-fields";
+} from "@/src/lib/bike-fit/fields/new-bike-fields";
 import {
   asLoose,
   compactPayload,
@@ -9,14 +9,14 @@ import {
   normalizeStringKeepEmpty,
   readNumber,
   readString,
-} from "@/src/lib/bike-fit-payload-utils";
+} from "@/src/lib/bike-fit/payload/payload-utils";
 import type {
   BikeFitFormValues,
   BikeFitNewBikeFitPayload,
   NewBikeFitDataFormValues,
-} from "@/src/lib/bike-fit-form-types";
+} from "@/src/lib/bike-fit/types/form-types";
 
-export type { BikeFitNewBikeFitPayload } from "@/src/lib/bike-fit-form-types";
+export type { BikeFitNewBikeFitPayload } from "@/src/lib/bike-fit/types/form-types";
 
 const NEW_BIKE_FIT_IMAGE_PATH_KEYS = [
   "final_bike_fit_image_front",

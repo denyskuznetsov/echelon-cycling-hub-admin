@@ -7,7 +7,7 @@ import { Button } from "@/ui/components/Button";
 import {
   generateBikeFitReport,
   getBikeFitReportDownloadUrl,
-} from "@/src/lib/bike-fit-report-actions";
+} from "@/src/lib/bike-fit/actions/report-actions";
 
 interface BikeFitReportActionsProps {
   bikeFitId: string;

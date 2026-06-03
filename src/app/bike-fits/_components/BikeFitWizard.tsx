@@ -11,14 +11,14 @@ import {
 } from "@subframe/core";
 import { Stepper } from "@/ui/components/Stepper";
 import type { CustomerOption } from "@/src/lib/customers-types";
-import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
-import { getFirstErrorStepKey } from "@/src/lib/bike-fit-form-errors";
-import { BikeFitFormSchema } from "@/src/lib/bike-fit-schema";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
+import { getFirstErrorStepKey } from "@/src/lib/bike-fit/types/errors";
+import { BikeFitFormSchema } from "@/src/lib/bike-fit/payload/schema";
 import {
   completeBikeFit,
   saveBikeFitDraft,
-} from "@/src/lib/bike-fit-actions";
-import type { BikeFitStatus } from "@/src/lib/bike-fits-types";
+} from "@/src/lib/bike-fit/actions/bike-fit-actions";
+import type { BikeFitStatus } from "@/src/lib/bike-fit/types/records";
 import { useDebouncedValue } from "@/src/hooks/use-debounced-value";
 import { scrollMainContentToTop } from "@/src/utils/scroll-main";
 import {

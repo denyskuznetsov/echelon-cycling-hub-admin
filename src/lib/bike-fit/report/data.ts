@@ -1,23 +1,23 @@
 import {
   assessmentPayloadToOldBikeValues,
   assessmentPayloadToPhysicalAssessmentValues,
-} from "@/src/lib/bike-fit-assessment-payload";
-import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit-new-bike-fit-payload";
+} from "@/src/lib/bike-fit/payload/assessment-payload";
+import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit/payload/new-bike-fit-payload";
 import {
   OLD_BIKE_FIELD_DEFS,
   OLD_BIKE_SECTIONS,
-} from "@/src/lib/bike-fit-old-bike-fields";
+} from "@/src/lib/bike-fit/fields/old-bike-fields";
 import {
   PHYSICAL_ASSESSMENT_FIELD_DEFS,
   PHYSICAL_ASSESSMENT_SECTIONS,
-} from "@/src/lib/bike-fit-physical-assessment-fields";
+} from "@/src/lib/bike-fit/fields/physical-assessment-fields";
 import {
   NEW_BIKE_FIT_DATA_FIELD_DEFS,
   NEW_BIKE_FIT_DATA_SECTIONS,
-} from "@/src/lib/bike-fit-new-bike-fields";
-import { formatBikeFitDisplayValue } from "@/src/lib/bike-fit-display-utils";
-import { asLoose } from "@/src/lib/bike-fit-payload-utils";
-import type { BikeFitRow } from "@/src/lib/bike-fits-types";
+} from "@/src/lib/bike-fit/fields/new-bike-fields";
+import { formatBikeFitDisplayValue } from "@/src/lib/bike-fit/report/formatters";
+import { asLoose } from "@/src/lib/bike-fit/payload/payload-utils";
+import type { BikeFitRow } from "@/src/lib/bike-fit/types/records";
 
 /** Hardcoded fitter shown on every report until per-user attribution exists. */
 const BIKE_FIT_REPORT_FITTER = {

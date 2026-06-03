@@ -12,8 +12,8 @@ import { Button } from "@/ui/components/Button";
 import { TextField } from "@/ui/components/TextField";
 import { createClient } from "@/src/utils/supabase/client";
 import type { CustomerOption } from "@/src/lib/customers-types";
+import { BIKE_TYPE_LABELS } from "@/src/lib/bike-fit/types/records";
 import type { BikeFitFormValues } from "../bike-fit-form-values";
-import { BIKE_TYPE_LABELS } from "@/src/lib/bike-fits-types";
 import { NewCustomerDialog } from "../NewCustomerDialog";
 import {
   useFieldError,

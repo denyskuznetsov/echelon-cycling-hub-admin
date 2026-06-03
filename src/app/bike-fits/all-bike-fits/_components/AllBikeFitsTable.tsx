@@ -16,12 +16,15 @@ import { FeatherTrash2 } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
 import { BikeFitDeleteDialog } from "@/src/app/bike-fits/_components/BikeFitDeleteDialog";
 import { TablePagination } from "@/src/components/TablePagination";
-import { createBikeFitDraft, deleteBikeFit } from "@/src/lib/bike-fit-actions";
+import {
+  createBikeFitDraft,
+  deleteBikeFit,
+} from "@/src/lib/bike-fit/actions/bike-fit-actions";
 import {
   formatBikeType,
   type BikeFitRow,
   type BikeFitsTimeframe,
-} from "@/src/lib/bike-fits-types";
+} from "@/src/lib/bike-fit/types/records";
 
 interface AllBikeFitsTableProps {
   bikeFits: BikeFitRow[];

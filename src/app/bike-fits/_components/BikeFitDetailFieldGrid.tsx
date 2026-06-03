@@ -1,6 +1,6 @@
 import React from "react";
-import { formatBikeFitDisplayValue } from "@/src/lib/bike-fit-display-utils";
-import type { LooseFormValues } from "@/src/lib/bike-fit-payload-utils";
+import { formatBikeFitDisplayValue } from "@/src/lib/bike-fit/report/formatters";
+import type { LooseFormValues } from "@/src/lib/bike-fit/payload/payload-utils";
 import { BikeFitDataPoint } from "./BikeFitDataPoint";
 
 export interface BikeFitDetailDisplayField {

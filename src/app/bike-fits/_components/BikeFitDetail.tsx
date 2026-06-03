@@ -16,25 +16,28 @@ import { DialogLayout } from "@/ui/layouts/DialogLayout";
 import {
   assessmentPayloadToOldBikeValues,
   assessmentPayloadToPhysicalAssessmentValues,
-} from "@/src/lib/bike-fit-assessment-payload";
+} from "@/src/lib/bike-fit/payload/assessment-payload";
 import { BikeFitDeleteDialog } from "@/src/app/bike-fits/_components/BikeFitDeleteDialog";
-import { deleteBikeFit, unlockBikeFitForEdit } from "@/src/lib/bike-fit-actions";
+import {
+  deleteBikeFit,
+  unlockBikeFitForEdit,
+} from "@/src/lib/bike-fit/actions/bike-fit-actions";
 import {
   OLD_BIKE_FIELD_DEFS,
   OLD_BIKE_SECTIONS,
-} from "@/src/lib/bike-fit-old-bike-fields";
+} from "@/src/lib/bike-fit/fields/old-bike-fields";
 import {
   NEW_BIKE_FIT_DATA_FIELD_DEFS,
   NEW_BIKE_FIT_DATA_SECTIONS,
-} from "@/src/lib/bike-fit-new-bike-fields";
-import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit-new-bike-fit-payload";
+} from "@/src/lib/bike-fit/fields/new-bike-fields";
+import { newBikeFitPayloadToNewBikeFitDataValues } from "@/src/lib/bike-fit/payload/new-bike-fit-payload";
 import {
   PHYSICAL_ASSESSMENT_FIELD_DEFS,
   PHYSICAL_ASSESSMENT_SECTIONS,
-} from "@/src/lib/bike-fit-physical-assessment-fields";
-import { formatOptionalText } from "@/src/lib/bike-fit-display-utils";
-import { asLoose } from "@/src/lib/bike-fit-payload-utils";
-import { formatBikeType, type BikeFitRow } from "@/src/lib/bike-fits-types";
+} from "@/src/lib/bike-fit/fields/physical-assessment-fields";
+import { formatOptionalText } from "@/src/lib/bike-fit/report/formatters";
+import { asLoose } from "@/src/lib/bike-fit/payload/payload-utils";
+import { formatBikeType, type BikeFitRow } from "@/src/lib/bike-fit/types/records";
 import { BikeFitDataPoint } from "./BikeFitDataPoint";
 import { BikeFitDetailFieldGrid } from "./BikeFitDetailFieldGrid";
 import { BikeFitReferencePhotos } from "./BikeFitReferencePhotos";

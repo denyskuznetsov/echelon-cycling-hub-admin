@@ -6,8 +6,8 @@ import {
   PELVIS_LEVEL_OPTIONS,
   RATING_OPTIONS,
   YES_NO_OPTIONS,
-} from "@/src/lib/bike-fit-enums";
-import { BIKE_TYPE_LABELS, type BikeType } from "@/src/lib/bike-fits-types";
+} from "@/src/lib/bike-fit/types/enums";
+import { BIKE_TYPE_LABELS, type BikeType } from "@/src/lib/bike-fit/types/records";
 import {
   DD_MM_YYYY_PATTERN,
   DD_MM_YYYY_VALIDATION_MESSAGE,
@@ -16,7 +16,7 @@ import {
   SAFE_TEXT_VALIDATION_MESSAGE,
   validateSafeText,
 } from "@/src/utils/validation";
-import type { BikeFitFormValues } from "@/src/lib/bike-fit-form-types";
+import type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
 
 /**
  * Free-text fields don't have a "required" rule today, so the only constraint
