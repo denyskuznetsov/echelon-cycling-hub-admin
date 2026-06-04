@@ -56,7 +56,7 @@ export function ForgotPasswordForm() {
 
   return (
     <div className="flex h-full w-full flex-wrap items-start bg-default-background mobile:h-[100dvh] mobile:flex-col mobile:flex-wrap mobile:gap-0">
-      <div className="relative flex max-w-[576px] grow shrink-0 basis-0 flex-col items-center gap-12 self-stretch overflow-hidden bg-[url('/login-hero.png')] bg-cover bg-left bg-no-repeat px-12 py-12 mobile:hidden">
+      <div className="relative flex max-w-[837px] grow shrink-0 basis-0 flex-col items-center gap-12 self-stretch overflow-hidden bg-[url('/login-hero.png')] bg-cover bg-left bg-no-repeat px-12 py-12 mobile:hidden">
         <div className="absolute inset-0 bg-gradient-to-b from-[rgba(0,47,80,0.3)] to-[rgba(28,70,106,0.8)]" />
         <div className="relative z-10 flex w-full max-w-[448px] grow shrink-0 basis-0 flex-col items-start justify-center gap-12 mobile:h-auto mobile:w-full mobile:max-w-[448px] mobile:flex-none">
           <img
