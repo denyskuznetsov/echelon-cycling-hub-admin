@@ -18,6 +18,7 @@ import {
 import { formatBikeFitDisplayValue } from "@/src/lib/bike-fit/report/formatters";
 import { asLoose } from "@/src/lib/bike-fit/payload/payload-utils";
 import type { BikeFitRow } from "@/src/lib/bike-fit/types/records";
+import type { ReportAssetFilename } from "@/src/lib/bike-fit/report/public-assets";
 
 /** Hardcoded fitter shown on every report until per-user attribution exists. */
 const BIKE_FIT_REPORT_FITTER = {
@@ -41,7 +42,7 @@ export interface BikeFitReportRow {
 
 export interface BikeFitReportPositionRow extends BikeFitReportRow {
   /** Filename (under `public/`) of the measurement diagram for this row. */
-  diagram: string;
+  diagram: ReportAssetFilename;
 }
 
 export interface BikeFitReportSection {

@@ -1,4 +1,3 @@
-import path from "path";
 import React from "react";
 import {
   Document,
@@ -14,17 +13,7 @@ import type {
   BikeFitReportRow,
   BikeFitReportSection,
 } from "@/src/lib/bike-fit/report/data";
-
-/**
- * Static report assets (logo, measurement diagrams) live in `public/`. This
- * document is only ever rendered server-side (via renderToBuffer), so @react-pdf
- * loads them straight off disk by absolute path.
- */
-const PUBLIC_DIR = path.join(process.cwd(), "public");
-
-function publicAssetPath(filename: string): string {
-  return path.join(PUBLIC_DIR, filename);
-}
+import { getReportAssetDataUrl } from "@/src/lib/bike-fit/report/public-assets";
 
 const COLORS = {
   heading: "#1b2a4a",
@@ -225,7 +214,7 @@ function MeasurementTable({ rows }: { rows: BikeFitReportPositionRow[] }) {
           <Text style={styles.tableLabelCell}>{row.label}:</Text>
           <View style={styles.tableDiagramCell}>
             {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf Image has no alt prop */}
-            <Image style={styles.diagramImage} src={publicAssetPath(row.diagram)} />
+            <Image style={styles.diagramImage} src={getReportAssetDataUrl(row.diagram)} />
           </View>
           <Text style={styles.tableValueCell}>{row.value}</Text>
         </View>
@@ -262,7 +251,7 @@ export function BikeFitReportDocument({ data }: { data: BikeFitReportData }) {
         {/* eslint-disable-next-line jsx-a11y/alt-text -- @react-pdf Image has no alt prop */}
         <Image
           style={styles.logo}
-          src={publicAssetPath("echeloncycling_full_logo.jpg")}
+          src={getReportAssetDataUrl("echeloncycling_full_logo.jpg")}
         />
 
         <Text style={styles.categoryTitle}>Rider</Text>
