@@ -14,6 +14,7 @@ import {
 } from "@/src/lib/bike-fit/payload/new-bike-fit-payload";
 import type { BikeFitFormValues } from "@/src/lib/bike-fit/types/form-types";
 import { BikeFitFormSchema } from "@/src/lib/bike-fit/payload/schema";
+import { SAFE_TEXT_VALIDATION_MESSAGE } from "@/src/utils/validation";
 import {
   collectBikeFitImageStoragePaths,
   deleteBikeFitImageStoragePaths,
@@ -23,6 +24,27 @@ import { isBikeType, type BikeFitStatus } from "@/src/lib/bike-fit/types/records
 
 function firstZodErrorMessage(error: ZodError): string {
   return error.issues[0]?.message ?? "Invalid bike fit data.";
+}
+
+/**
+ * Drafts are allowed to be incomplete, so autosave does NOT enforce the full
+ * schema. We DO still reject unsafe (XSS) free-text: run the schema and look
+ * only for the shared safe-text violation, ignoring every other issue (missing
+ * customer, bike type, malformed date, etc.). Reusing `BikeFitFormSchema` keeps
+ * a single source of truth for which fields are free-text.
+ *
+ * Returns the safe-text error message when any free-text field contains unsafe
+ * content, or `null` when the draft is safe to persist.
+ */
+function findUnsafeTextError(values: BikeFitFormValues): string | null {
+  const parsed = BikeFitFormSchema.safeParse(values);
+  if (parsed.success) return null;
+
+  const hasUnsafeContent = parsed.error.issues.some(
+    (issue) => issue.message === SAFE_TEXT_VALIDATION_MESSAGE,
+  );
+
+  return hasUnsafeContent ? SAFE_TEXT_VALIDATION_MESSAGE : null;
 }
 
 export type CreateBikeFitDraftResult =
@@ -121,6 +143,14 @@ export async function saveBikeFitDraft(
   values: BikeFitFormValues,
 ): Promise<SaveBikeFitResult> {
   if (!id) return { ok: false, error: "Missing bike fit id." };
+
+  // Block XSS at the draft stage too — client validation is bypassable, and
+  // without this autosave would silently persist unsafe free-text that only
+  // `completeBikeFit` would otherwise reject.
+  const unsafeTextError = findUnsafeTextError(values);
+  if (unsafeTextError) {
+    return { ok: false, error: unsafeTextError };
+  }
 
   const supabase = await createClient();
   const columns = buildSaveColumns(values);
