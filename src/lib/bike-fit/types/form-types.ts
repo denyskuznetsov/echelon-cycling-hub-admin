@@ -1,5 +1,4 @@
 import type {
-  AloneOrGroup,
   FootStructure,
   FullLimited,
   PelvisLevel,
@@ -11,7 +10,6 @@ import type { BikeType } from "@/src/lib/bike-fit/types/records";
 export interface OldBikeFormValues {
   cycling_experience: string;
   years_cycling: number | null;
-  alone_or_group: AloneOrGroup | "";
   hours_per_week: number | null;
   distance_per_year: string;
   goals: string;
@@ -21,7 +19,9 @@ export interface OldBikeFormValues {
   old_saddle_height_mm: number | null;
   old_saddle_setback_mm: number | null;
   old_handlebar_reach_mm: number | null;
+  old_handlebar_drop_mm: number | null;
   old_grip_reach_mm: number | null;
+  old_grip_drop_mm: number | null;
   old_saddle: string;
   old_handlebar_width_mm: number | null;
   old_crank_length_mm: number | null;

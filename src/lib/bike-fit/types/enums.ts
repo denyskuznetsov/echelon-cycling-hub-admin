@@ -33,9 +33,6 @@ export type FullLimited = (typeof FULL_LIMITED_OPTIONS)[number];
 export const YES_NO_OPTIONS = ["Yes", "No"] as const;
 export type YesNo = (typeof YES_NO_OPTIONS)[number];
 
-export const ALONE_OR_GROUP_OPTIONS = ["Alone", "Group", "Mixed"] as const;
-export type AloneOrGroup = (typeof ALONE_OR_GROUP_OPTIONS)[number];
-
 /**
  * Runtime narrowing helper: returns true (with TS predicate) iff `value` is
  * a member of the provided readonly option tuple.

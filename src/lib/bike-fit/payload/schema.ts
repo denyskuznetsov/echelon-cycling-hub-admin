@@ -1,6 +1,5 @@
 import { z } from "zod";
 import {
-  ALONE_OR_GROUP_OPTIONS,
   FOOT_STRUCTURE_OPTIONS,
   FULL_LIMITED_OPTIONS,
   PELVIS_LEVEL_OPTIONS,
@@ -72,7 +71,6 @@ export const FitSetupSchema = z.object({
 export const OldBikeSchema = z.object({
   cycling_experience: safeTextString,
   years_cycling: optionalNumber,
-  alone_or_group: optionalEnum(ALONE_OR_GROUP_OPTIONS),
   hours_per_week: optionalNumber,
   distance_per_year: safeTextString,
   goals: safeTextString,
@@ -82,7 +80,9 @@ export const OldBikeSchema = z.object({
   old_saddle_height_mm: optionalNumber,
   old_saddle_setback_mm: optionalNumber,
   old_handlebar_reach_mm: optionalNumber,
+  old_handlebar_drop_mm: optionalNumber,
   old_grip_reach_mm: optionalNumber,
+  old_grip_drop_mm: optionalNumber,
   old_saddle: safeTextString,
   old_handlebar_width_mm: optionalNumber,
   old_crank_length_mm: optionalNumber,

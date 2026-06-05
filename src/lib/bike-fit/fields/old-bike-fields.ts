@@ -1,5 +1,4 @@
 import type { FieldPath } from "react-hook-form";
-import { ALONE_OR_GROUP_OPTIONS } from "@/src/lib/bike-fit/types/enums";
 import type {
   BikeFitFormValues,
   OldBikeFormValues,
@@ -13,11 +12,7 @@ export type OldBikeSectionId =
 
 export type OldBikeFieldType = "text" | "textarea" | "mm" | "number" | "select";
 
-/**
- * Keys of OldBikeFormValues whose value type is string-like.
- * Includes plain `string` fields AND enum-union string fields like
- * `alone_or_group: AloneOrGroup | ""`.
- */
+/** Keys of OldBikeFormValues whose value type is string-like. */
 type OldBikeStringKeys = {
   [K in keyof OldBikeFormValues]: OldBikeFormValues[K] extends string
     ? K
@@ -101,15 +96,6 @@ export const OLD_BIKE_FIELD_DEFS: readonly OldBikeFieldDef[] = [
     width: "half",
   },
   {
-    key: "alone_or_group",
-    type: "select",
-    label: "Alone or group",
-    placeholder: "",
-    section: "cycling_history",
-    width: "half",
-    options: ALONE_OR_GROUP_OPTIONS,
-  },
-  {
     key: "hours_per_week",
     type: "number",
     label: "Hours per week",
@@ -182,9 +168,25 @@ export const OLD_BIKE_FIELD_DEFS: readonly OldBikeFieldDef[] = [
     width: "half",
   },
   {
+    key: "old_handlebar_drop_mm",
+    type: "mm",
+    label: "Old handlebar drop",
+    placeholder: "0",
+    section: "old_fit_measurements",
+    width: "half",
+  },
+  {
     key: "old_grip_reach_mm",
     type: "mm",
     label: "Old grip reach",
+    placeholder: "0",
+    section: "old_fit_measurements",
+    width: "half",
+  },
+  {
+    key: "old_grip_drop_mm",
+    type: "mm",
+    label: "Old grip drop",
     placeholder: "0",
     section: "old_fit_measurements",
     width: "half",
@@ -234,7 +236,6 @@ export const OLD_BIKE_FIELD_DEFS: readonly OldBikeFieldDef[] = [
 export const EMPTY_OLD_BIKE: OldBikeFormValues = {
   cycling_experience: "",
   years_cycling: null,
-  alone_or_group: "",
   hours_per_week: null,
   distance_per_year: "",
   goals: "",
@@ -244,7 +245,9 @@ export const EMPTY_OLD_BIKE: OldBikeFormValues = {
   old_saddle_height_mm: null,
   old_saddle_setback_mm: null,
   old_handlebar_reach_mm: null,
+  old_handlebar_drop_mm: null,
   old_grip_reach_mm: null,
+  old_grip_drop_mm: null,
   old_saddle: "",
   old_handlebar_width_mm: null,
   old_crank_length_mm: null,
