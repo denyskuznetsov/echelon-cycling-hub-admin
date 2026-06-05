@@ -23,7 +23,7 @@ import type { ReportAssetFilename } from "@/src/lib/bike-fit/report/public-asset
 /** Hardcoded fitter shown on every report until per-user attribution exists. */
 const BIKE_FIT_REPORT_FITTER = {
   name: "Dmytro Petrov",
-  email: "echeloncyclinghub@gmail.com",
+  email: "dmytro.petrov@echeloncyclinghub.com",
 } as const;
 
 const EMPTY_VALUE = "—";

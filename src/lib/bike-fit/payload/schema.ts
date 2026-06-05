@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  ARCH_HEIGHT_OPTIONS,
   FOOT_STRUCTURE_OPTIONS,
   FULL_LIMITED_OPTIONS,
   PELVIS_LEVEL_OPTIONS,
@@ -99,7 +100,7 @@ export const PhysicalAssessmentSchema = z.object({
   forefoot_structure_right: optionalEnum(FOOT_STRUCTURE_OPTIONS),
   rearfoot_structure_left: optionalEnum(FOOT_STRUCTURE_OPTIONS),
   rearfoot_structure_right: optionalEnum(FOOT_STRUCTURE_OPTIONS),
-  arch_height: safeTextString,
+  arch_height: optionalEnum(ARCH_HEIGHT_OPTIONS),
   pelvis_level: optionalEnum(PELVIS_LEVEL_OPTIONS),
   low_back_flexibility: optionalEnum(RATING_OPTIONS),
   shoulders_flexibility: optionalEnum(RATING_OPTIONS),

@@ -206,7 +206,7 @@ export async function sendBikeFitReportEmail(
   const resend = new Resend(resendApiKey);
 
   const { error: sendError } = await resend.emails.send({
-    from: process.env.RESEND_FROM_EMAIL ?? "Echelon Cycling Hub <fits@echeloncycling.com>",
+    from: process.env.RESEND_FROM_EMAIL ?? "Echelon Cycling Hub <info@echeloncyclinghub.com>",
     to: [targetEmail],
     subject: "Your Echelon Bike Fit Report",
     react: createElement(BikeFitReportEmail, {

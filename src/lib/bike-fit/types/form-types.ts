@@ -1,4 +1,5 @@
 import type {
+  ArchHeight,
   FootStructure,
   FullLimited,
   PelvisLevel,
@@ -37,7 +38,7 @@ export interface PhysicalAssessmentFormValues {
   forefoot_structure_right: FootStructure | "";
   rearfoot_structure_left: FootStructure | "";
   rearfoot_structure_right: FootStructure | "";
-  arch_height: string;
+  arch_height: ArchHeight | "";
   pelvis_level: PelvisLevel | "";
   low_back_flexibility: Rating | "";
   shoulders_flexibility: Rating | "";

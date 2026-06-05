@@ -33,6 +33,9 @@ export type FullLimited = (typeof FULL_LIMITED_OPTIONS)[number];
 export const YES_NO_OPTIONS = ["Yes", "No"] as const;
 export type YesNo = (typeof YES_NO_OPTIONS)[number];
 
+export const ARCH_HEIGHT_OPTIONS = ["Low", "Moderate", "High"] as const;
+export type ArchHeight = (typeof ARCH_HEIGHT_OPTIONS)[number];
+
 /**
  * Runtime narrowing helper: returns true (with TS predicate) iff `value` is
  * a member of the provided readonly option tuple.

@@ -1,5 +1,6 @@
 import type { FieldPath } from "react-hook-form";
 import {
+  ARCH_HEIGHT_OPTIONS,
   FOOT_STRUCTURE_OPTIONS,
   FULL_LIMITED_OPTIONS,
   PELVIS_LEVEL_OPTIONS,
@@ -124,11 +125,11 @@ export const PHYSICAL_ASSESSMENT_FIELD_DEFS: readonly PhysicalAssessmentFieldDef
     },
     {
       key: "arch_height",
-      type: "text",
+      type: "select",
       label: "Arch height (L + R)",
-      placeholder: "e.g. Low / Neutral / High; note differences L vs R",
       section: "foot_structure",
-      width: "full",
+      width: "half",
+      options: ARCH_HEIGHT_OPTIONS,
     },
     {
       key: "pelvis_level",
