@@ -9,50 +9,12 @@
  */
 
 import React from "react";
-import { useRouter, usePathname } from "next/navigation";
-import { FeatherLogOut } from "@subframe/core";
-import { FeatherMenu } from "@subframe/core";
-import { FeatherSettings } from "@subframe/core";
-import { FeatherUser } from "@subframe/core";
-import * as SubframeCore from "@subframe/core";
-import { createClient } from "@/src/utils/supabase/client";
-import { useUser, type UserRole } from "@/src/context/UserContext";
-import { Avatar } from "../components/Avatar";
-import { DropdownMenu } from "../components/DropdownMenu";
-import { TopbarWithRightNav } from "../components/TopbarWithRightNav";
+import { useUser } from "@/src/context/UserContext";
 import * as SubframeUtils from "../utils";
-
-const NAV_ITEMS: {
-  label: string;
-  roles: UserRole[];
-  href?: string;
-}[] = [
-  { label: "Partners", roles: ["admin", "manager"], href: "/all-partners" },
-  { label: "Orders", roles: ["admin", "manager"], href: "/orders" },
-  {
-    label: "Bike Fits",
-    roles: ["admin", "manager"],
-    href: "/bike-fits/all-bike-fits",
-  },
-  { label: "Customers", roles: ["admin", "manager"] },
-  {
-    label: "Task Management",
-    roles: ["admin", "manager", "mechanic"],
-    href: "/workshop",
-  },
-];
-
-type NavItem = (typeof NAV_ITEMS)[number];
-
-function isNavItemSelected(
-  item: NavItem,
-  pathname: string | null,
-  isPartnersRoute: boolean
-): boolean {
-  return item.label === "Partners"
-    ? isPartnersRoute
-    : !!item.href && !!pathname?.startsWith(item.href);
-}
+import { AppTopbar } from "./AppTopbar";
+import { PageScrollArea } from "./NavigationPendingOverlay";
+import { getVisibleNavItems } from "./nav-config";
+import { useAppNavigation } from "./useAppNavigation";
 
 interface DefaultPageLayoutRootProps
   extends React.HTMLAttributes<HTMLDivElement> {
@@ -67,13 +29,9 @@ const DefaultPageLayoutRoot = React.forwardRef<
   { children, className, ...otherProps }: DefaultPageLayoutRootProps,
   ref
 ) {
-  const router = useRouter();
-  const pathname = usePathname();
+  const { isPending, navigate, isNavigatingTo } = useAppNavigation();
   const { user, profile } = useUser();
-  const role = profile?.role;
-  const visibleNavItems = role
-    ? NAV_ITEMS.filter((item) => item.roles.includes(role))
-    : [];
+  const visibleNavItems = getVisibleNavItems(profile?.role);
   const profileName = [profile?.first_name, profile?.last_name]
     .filter(Boolean)
     .join(" ")
@@ -81,23 +39,6 @@ const DefaultPageLayoutRoot = React.forwardRef<
   const avatarLabel = profileName || user?.email || "U";
   const avatarInitial = avatarLabel.charAt(0).toUpperCase();
   const userEmail = user?.email ?? "No email";
-  const isPartnersRoute =
-    pathname === "/partner" ||
-    pathname?.startsWith("/partner/") ||
-    pathname?.startsWith("/all-partners");
-
-  const handleLogout = async () => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      console.error("Error signing out:", error);
-      return;
-    }
-
-    router.push("/login");
-    router.refresh();
-  };
 
   return (
     <div
@@ -108,130 +49,16 @@ const DefaultPageLayoutRoot = React.forwardRef<
       ref={ref}
       {...otherProps}
     >
-      <TopbarWithRightNav
-        className="mobile:px-4"
-        leftSlot={
-          <>
-            <img
-              className="h-8 flex-none object-cover"
-              src="https://res.cloudinary.com/subframe/image/upload/v1771493398/uploads/36440/znvfvrhfhlzyaeoslprx.png"
-            />
-            <div className="flex items-center gap-4 mobile:hidden">
-              {visibleNavItems.map((item) => {
-                const isSelected = isNavItemSelected(
-                  item,
-                  pathname,
-                  isPartnersRoute
-                );
-                return (
-                  <TopbarWithRightNav.NavItem
-                    key={item.label}
-                    selected={isSelected}
-                    onClick={
-                      item.href
-                        ? () => router.push(item.href as string)
-                        : undefined
-                    }
-                  >
-                    {item.label}
-                  </TopbarWithRightNav.NavItem>
-                );
-              })}
-            </div>
-            {visibleNavItems.length > 0 ? (
-              <SubframeCore.DropdownMenu.Root>
-                <SubframeCore.DropdownMenu.Trigger asChild={true}>
-                  <button
-                    type="button"
-                    aria-label="Open navigation menu"
-                    className="hidden mobile:inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-md text-default-font hover:bg-brand-100"
-                  >
-                    <FeatherMenu className="text-heading-3 font-heading-3" />
-                  </button>
-                </SubframeCore.DropdownMenu.Trigger>
-                <SubframeCore.DropdownMenu.Portal>
-                  <SubframeCore.DropdownMenu.Content
-                    side="bottom"
-                    align="start"
-                    sideOffset={4}
-                    asChild={true}
-                  >
-                    <DropdownMenu className="z-20">
-                      {visibleNavItems.map((item) => {
-                        const isSelected = isNavItemSelected(
-                          item,
-                          pathname,
-                          isPartnersRoute
-                        );
-                        return (
-                          <DropdownMenu.DropdownItem
-                            key={item.label}
-                            icon={null}
-                            onClick={
-                              item.href
-                                ? () => router.push(item.href as string)
-                                : undefined
-                            }
-                            className={
-                              isSelected ? "bg-brand-100" : undefined
-                            }
-                          >
-                            {item.label}
-                          </DropdownMenu.DropdownItem>
-                        );
-                      })}
-                    </DropdownMenu>
-                  </SubframeCore.DropdownMenu.Content>
-                </SubframeCore.DropdownMenu.Portal>
-              </SubframeCore.DropdownMenu.Root>
-            ) : null}
-          </>
-        }
-        rightSlot={
-          <div className="flex items-center gap-2">
-            <TopbarWithRightNav.NavItem className="max-w-64 cursor-default hover:bg-transparent mobile:hidden">
-              <span className="truncate">{userEmail}</span>
-            </TopbarWithRightNav.NavItem>
-            <SubframeCore.DropdownMenu.Root>
-              <SubframeCore.DropdownMenu.Trigger asChild={true}>
-                <Avatar className="cursor-pointer">
-                  <span className="font-body-bold">{avatarInitial}</span>
-                </Avatar>
-              </SubframeCore.DropdownMenu.Trigger>
-              <SubframeCore.DropdownMenu.Portal>
-                <SubframeCore.DropdownMenu.Content
-                  side="bottom"
-                  align="end"
-                  sideOffset={4}
-                  asChild={true}
-                >
-                  <DropdownMenu className="z-20">
-                    {/* <DropdownMenu.DropdownItem icon={<FeatherUser />}>
-                      Profile
-                    </DropdownMenu.DropdownItem>
-                    <DropdownMenu.DropdownItem icon={<FeatherSettings />}>
-                      Settings
-                    </DropdownMenu.DropdownItem> */}
-                    <DropdownMenu.DropdownItem
-                      icon={<FeatherLogOut />}
-                      onClick={handleLogout}
-                    >
-                      Log out
-                    </DropdownMenu.DropdownItem>
-                  </DropdownMenu>
-                </SubframeCore.DropdownMenu.Content>
-              </SubframeCore.DropdownMenu.Portal>
-            </SubframeCore.DropdownMenu.Root>
-          </div>
-        }
+      <AppTopbar
+        navItems={visibleNavItems}
+        isPending={isPending}
+        navigate={navigate}
+        isNavigatingTo={isNavigatingTo}
+        userEmail={userEmail}
+        avatarInitial={avatarInitial}
       />
       {children ? (
-        <div
-          data-app-scroll-container
-          className="flex min-h-0 w-full grow shrink-0 basis-0 flex-col overflow-y-auto bg-default-background"
-        >
-          <div className="flex min-h-full w-full flex-1 flex-col">{children}</div>
-        </div>
+        <PageScrollArea isPending={isPending}>{children}</PageScrollArea>
       ) : null}
     </div>
   );
