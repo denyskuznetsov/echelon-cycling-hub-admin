@@ -2,9 +2,10 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
-import { FeatherLogOut } from "@subframe/core";
+import { FeatherBookOpen, FeatherLogOut } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
 import { createClient } from "@/src/utils/supabase/client";
+import { useHasRole } from "@/src/context/UserContext";
 import { Avatar } from "../components/Avatar";
 import { DropdownMenu } from "../components/DropdownMenu";
 import { TopbarWithRightNav } from "../components/TopbarWithRightNav";
@@ -16,6 +17,8 @@ interface UserMenuProps {
 
 export function UserMenu({ userEmail, avatarInitial }: UserMenuProps) {
   const router = useRouter();
+  // The Wiki is internal-only: visible to staff, never to partners.
+  const canViewWiki = useHasRole("admin", "manager", "mechanic");
 
   const handleLogout = async () => {
     const supabase = createClient();
@@ -49,6 +52,17 @@ export function UserMenu({ userEmail, avatarInitial }: UserMenuProps) {
             asChild={true}
           >
             <DropdownMenu className="z-20">
+              {canViewWiki ? (
+                <>
+                  <DropdownMenu.DropdownItem
+                    icon={<FeatherBookOpen />}
+                    onClick={() => router.push("/wiki")}
+                  >
+                    Wiki
+                  </DropdownMenu.DropdownItem>
+                  <DropdownMenu.DropdownDivider />
+                </>
+              ) : null}
               <DropdownMenu.DropdownItem
                 icon={<FeatherLogOut />}
                 onClick={handleLogout}
