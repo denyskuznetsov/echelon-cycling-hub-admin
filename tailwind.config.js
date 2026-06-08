@@ -13,6 +13,6 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [require("@tailwindcss/typography")],
   presets: [require("./src/ui/tailwind.config.js")]
 }

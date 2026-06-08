@@ -22,3 +22,34 @@ body {
     transform: translateX(420%);
   }
 }
+
+/*
+ * Wiki TipTap editor. The contenteditable itself is styled with Tailwind
+ * `prose` classes via editorProps; these rules cover what those classes can't
+ * reach: a tall click target and the empty-state placeholder injected by the
+ * Placeholder extension.
+ */
+.ProseMirror {
+  min-height: 24rem;
+}
+
+.ProseMirror:focus,
+.ProseMirror:focus-visible {
+  outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+  color: #a3a3a3; /* neutral-400 */
+}
+
+/*
+ * Wiki read-only view: leave a gap above headings when jumped to via the
+ * table-of-contents so they don't sit flush against the scroll container edge.
+ */
+.wiki-article :is(h1, h2, h3) {
+  scroll-margin-top: 1.5rem;
+}

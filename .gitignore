@@ -39,3 +39,6 @@ next-env.d.ts
 
 # cursor agent debug sessions
 .cursor/debug*.log
+
+# supabase
+supabase/seed.sql
