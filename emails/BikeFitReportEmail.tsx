@@ -6,21 +6,12 @@ import {
   Heading,
   Html,
   Img,
+  Link,
   Section,
   Text,
 } from "@react-email/components";
 
-interface BikeFitReportEmailProps {
-  customerName: string;
-  fitDate: string;
-  bikeType: string;
-}
-
-export default function BikeFitReportEmail({
-  customerName,
-  fitDate,
-  bikeType,
-}: BikeFitReportEmailProps) {
+export default function BikeFitReportEmail() {
   return (
     <Html>
       <Head />
@@ -49,19 +40,41 @@ export default function BikeFitReportEmail({
               style={{ margin: "0 auto" }}
             />
           </Section>
-          <Heading>Your Bike Fit Report</Heading>
-          <Text>Hi {customerName},</Text>
           <Text>
-            Thank you for visiting Echelon Cycling Hub! Attached to this email is
-            the complete PDF report from your {bikeType} bike fit on {fitDate}.
+            Thank you for visiting echelon cycling hub for your bike fit and I
+            hope you enjoyed the session. Bike fit report is attached.
           </Text>
           <Text>
-            If you have any questions about your measurements or experience any
-            discomfort as you adjust to the new setup, please do not hesitate to
-            reach out.
+            Video guide how to transfer numbers is here -{" "}
+            <Link href="https://youtu.be/-M55e0utY0Q">
+              https://youtu.be/-M55e0utY0Q
+            </Link>
           </Text>
-          <Text>Ride safely,</Text>
-          <Text>The Echelon Team</Text>
+          <Text>
+            It is essential to verify the fit under real world riding conditions.
+            The body will take a couple of rides to adapt to the new position and
+            it is normal to experience different muscle usages during this period.
+            I recommend that you reduce the duration and intensity of your rides
+            while this adaptation process occurs.
+          </Text>
+          <Text>
+            I also recommend that riders have follow up fits every 2-3 years,
+            particularly in cases where you&apos;ve lost/gained weight,
+            increased/decreased your mileage significantly or there are soft
+            tissue restrictions or weakness that is causing incorrect
+            neuromuscular mechanics.
+          </Text>
+          <Text>
+            If you have time and will you can leave your review here, it will
+            help our shop.
+            <br />
+            <Link href="https://maps.app.goo.gl/xk1iGa6prWDtCYKn7">
+              https://maps.app.goo.gl/xk1iGa6prWDtCYKn7
+            </Link>
+          </Text>
+          <Text>
+            Thanks again, enjoy the ride! Any questions, feel free to reach out.
+          </Text>
         </Container>
       </Body>
     </Html>
