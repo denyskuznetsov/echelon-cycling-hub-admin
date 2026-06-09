@@ -17,3 +17,8 @@ export interface CreateCustomerInput {
 export type CreateCustomerResult =
   | { ok: true; customer: CustomerOption }
   | { ok: false; error: string };
+
+export interface SearchCustomersResult {
+  customers: CustomerOption[];
+  error: string | null;
+}

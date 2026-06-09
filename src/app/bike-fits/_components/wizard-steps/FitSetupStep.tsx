@@ -10,7 +10,7 @@ import {
 } from "@subframe/core";
 import { Button } from "@/ui/components/Button";
 import { TextField } from "@/ui/components/TextField";
-import { createClient } from "@/src/utils/supabase/client";
+import { searchCustomers } from "@/src/lib/customers";
 import type { CustomerOption } from "@/src/lib/customers-types";
 import { BIKE_TYPE_LABELS } from "@/src/lib/bike-fit/types/records";
 import type { BikeFitFormValues } from "../bike-fit-form-values";
@@ -23,7 +23,6 @@ import {
 import { WizardStepFooter } from "./WizardStepFooter";
 
 const SEARCH_DEBOUNCE_MS = 300;
-const SEARCH_LIMIT = 20;
 
 const BIKE_TYPE_OPTIONS = Object.entries(BIKE_TYPE_LABELS).map(
   ([value, label]) => ({ value, label }),
@@ -63,34 +62,14 @@ export function FitSetupStep({
     setLoading(true);
 
     const handle = setTimeout(async () => {
-      const supabase = createClient();
-      const trimmed = searchInput.trim();
-      let query = supabase
-        .from("customers")
-        .select("id, name, email, phone")
-        .order("name", { ascending: true })
-        .limit(SEARCH_LIMIT);
-
-      if (trimmed) {
-        const escaped = trimmed.replace(/[,()]/g, "");
-        query = query.or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%`);
-      }
-
-      const { data, error } = await query;
+      const { customers, error } = await searchCustomers(searchInput);
       if (cancelled) return;
 
       if (error) {
         console.error("FitSetupStep search:", error);
         setResults([]);
       } else {
-        setResults(
-          (data ?? []).map((row) => ({
-            id: row.id as string,
-            name: (row.name as string | null)?.trim() || "Unknown",
-            email: row.email as string | null,
-            phone: row.phone as string | null,
-          })),
-        );
+        setResults(customers);
       }
       setLoading(false);
     }, SEARCH_DEBOUNCE_MS);

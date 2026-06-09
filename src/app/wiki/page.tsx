@@ -1,5 +1,4 @@
 import React from "react";
-import { createClient } from "@/src/utils/supabase/server";
 import { DataLoadError } from "@/src/components/DataLoadError";
 import {
   WIKI_PAGE_SIZE,
@@ -7,6 +6,7 @@ import {
   getWikiDocuments,
   type WikiStatusFilter,
 } from "@/src/lib/wiki/data/wiki";
+import { getMyProfile } from "@/src/lib/profile";
 import { WikiDirectory } from "./_components/WikiDirectory";
 
 function resolveStatusFilter(value: string | undefined): WikiStatusFilter {
@@ -35,22 +35,11 @@ export default async function WikiPage({
   const categorySlug = categoryParam?.trim() || null;
   const status = resolveStatusFilter(statusParam);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   // The layout already gated access; this just decides whether to show
   // management controls (drafts, create/edit/delete) vs. a read-only directory.
-  let canManage = false;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    canManage = profile?.role === "admin" || profile?.role === "manager";
-  }
+  // getMyProfile() is cached — no extra round-trip when layout already called it.
+  const { role } = await getMyProfile();
+  const canManage = role === "admin" || role === "manager";
 
   // Non-managers can never see drafts, so force "all" (RLS filters to published).
   const effectiveStatus: WikiStatusFilter = canManage ? status : "all";

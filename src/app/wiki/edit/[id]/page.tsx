@@ -2,11 +2,11 @@ import React from "react";
 import { notFound, redirect } from "next/navigation";
 import { FeatherAlertTriangle } from "@subframe/core";
 import { Alert } from "@/ui/components/Alert";
-import { createClient } from "@/src/utils/supabase/server";
 import {
   getWikiCategories,
   getWikiDocumentById,
 } from "@/src/lib/wiki/data/wiki";
+import { getMyProfile } from "@/src/lib/profile";
 import { WikiEditor } from "../../_components/WikiEditor";
 
 // Edit pages are keyed on the immutable document id (not the slug): the slug
@@ -19,25 +19,16 @@ export default async function WikiEditPage({
 }) {
   const { id } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // The Wiki layout already lets staff in, but editing is admin/manager only.
+  // Mechanics get bounced back to the read-only directory.
+  // getMyProfile() is cached — no extra round-trip when layout already called it.
+  const { role, error: profileError } = await getMyProfile();
 
-  if (!user) {
+  if (profileError || !role) {
     redirect("/login");
   }
 
-  // The Wiki layout already lets staff in, but editing is admin/manager only.
-  // Mechanics get bounced back to the read-only directory.
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  const canManage = profile?.role === "admin" || profile?.role === "manager";
-  if (!canManage) {
+  if (role !== "admin" && role !== "manager") {
     redirect("/wiki");
   }
 
