@@ -3,11 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
-
 type JsonApiResource = {
   id: string;
   type: string;
@@ -32,6 +27,11 @@ function formatBirthday(dateStr: string | null | undefined): string | null {
 }
 
 export async function GET(_request: Request) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+
   try {
     const slug = process.env.BOOQABLE_COMPANY_SLUG;
     const apiKey = process.env.BOOQABLE_API_KEY;

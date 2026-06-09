@@ -2,8 +2,10 @@
 
 import { createClient } from "@/src/utils/supabase/server";
 import type {
+  CustomerOption,
   CreateCustomerInput,
   CreateCustomerResult,
+  SearchCustomersResult,
 } from "./customers-types";
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -69,4 +71,40 @@ export async function createCustomer(
       phone: data.phone as string | null,
     },
   };
+}
+
+const SEARCH_LIMIT = 20;
+
+export async function searchCustomers(
+  query: string,
+): Promise<SearchCustomersResult> {
+  const supabase = await createClient();
+  const trimmed = query.trim();
+
+  let dbQuery = supabase
+    .from("customers")
+    .select("id, name, email, phone")
+    .order("name", { ascending: true })
+    .limit(SEARCH_LIMIT);
+
+  if (trimmed) {
+    const escaped = trimmed.replace(/[,()]/g, "");
+    dbQuery = dbQuery.or(`name.ilike.%${escaped}%,email.ilike.%${escaped}%`);
+  }
+
+  const { data, error } = await dbQuery;
+
+  if (error) {
+    console.error("searchCustomers:", error);
+    return { customers: [], error: error.message };
+  }
+
+  const customers: CustomerOption[] = (data ?? []).map((row) => ({
+    id: row.id as string,
+    name: (row.name as string | null)?.trim() || "Unknown",
+    email: row.email as string | null,
+    phone: row.phone as string | null,
+  }));
+
+  return { customers, error: null };
 }

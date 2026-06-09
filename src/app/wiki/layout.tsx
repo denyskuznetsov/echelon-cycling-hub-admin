@@ -1,7 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
 import { DefaultPageLayout } from "@/ui/layouts/DefaultPageLayout";
-import { createClient } from "@/src/utils/supabase/server";
+import { getMyProfile } from "@/src/lib/profile";
 
 // The Wiki is internal-only. Staff (admin/manager/mechanic) may reach it;
 // partners are bounced back to their own area.
@@ -13,33 +13,22 @@ export default async function WikiLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
+  const { role, error: profileError } = await getMyProfile();
 
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser();
-
-  if (userError || !user) {
-    redirect("/login");
-  }
-
-  const { data: profile, error: profileError } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profileError || !profile || !profile.role) {
+  if (profileError) {
     console.error("Wiki layout: failed to load profile", profileError);
     redirect("/pending");
   }
 
-  if (profile.role === "partner") {
+  if (!role) {
+    redirect("/login");
+  }
+
+  if (role === "partner") {
     redirect("/partner/overview");
   }
 
-  if (!ALLOWED_ROLES.includes(profile.role as AllowedRole)) {
+  if (!ALLOWED_ROLES.includes(role as AllowedRole)) {
     redirect("/unauthorized");
   }
 

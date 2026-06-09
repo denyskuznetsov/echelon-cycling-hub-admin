@@ -3,11 +3,6 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-);
-
 function formatBirthday(dateStr: string | null | undefined): string | null {
   if (!dateStr) return null;
 
@@ -45,6 +40,11 @@ function pickFloat(data: Record<string, string>, key: string): number | null {
 }
 
 export async function POST(request: Request) {
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  );
+
   try {
     // --- 1. SECURITY CHECK: VERIFY THE WEBHOOK SECRET ---
     // Extract the 'secret' parameter from the incoming URL
