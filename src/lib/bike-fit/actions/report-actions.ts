@@ -11,7 +11,6 @@ import {
   BIKE_FIT_IMAGES_BUCKET,
   buildBikeFitReportStoragePath,
 } from "@/src/lib/bike-fit/storage";
-import { formatBikeType } from "@/src/lib/bike-fit/types/records";
 
 const DOWNLOAD_SIGNED_URL_TTL_SECONDS = 60 * 5;
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -28,15 +27,6 @@ export type SendBikeFitReportEmailResult =
   | { ok: true }
   | { ok: false; error: string };
 
-function formatFitDateForEmail(isoDate: string): string {
-  const date = new Date(isoDate);
-  if (Number.isNaN(date.getTime())) return isoDate;
-  return date.toLocaleDateString("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
 
 /**
  * Renders the PDF report for a completed bike fit, stores it under
@@ -209,11 +199,7 @@ export async function sendBikeFitReportEmail(
     from: process.env.RESEND_FROM_EMAIL ?? "Echelon Cycling Hub <info@echeloncyclinghub.com>",
     to: [targetEmail],
     subject: "Your Echelon Bike Fit Report",
-    react: createElement(BikeFitReportEmail, {
-      customerName: row.customer_name,
-      fitDate: formatFitDateForEmail(row.fit_date),
-      bikeType: formatBikeType(row.bike_type),
-    }),
+    react: createElement(BikeFitReportEmail, {}),
     attachments: [
       {
         filename: `${row.customer_name.trim().replace(/\s+/g, "_") || `bike_fit_${row.fit_number}`}_Bike_Fit_Report.pdf`,
