@@ -2,8 +2,8 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { FeatherAlertTriangle } from "@subframe/core";
 import { Alert } from "@/ui/components/Alert";
-import { createClient } from "@/src/utils/supabase/server";
 import { getWikiDocumentBySlug } from "@/src/lib/wiki/data/wiki";
+import { getMyProfile } from "@/src/lib/profile";
 import { WikiDocumentView } from "../_components/WikiDocumentView";
 
 export default async function WikiViewPage({
@@ -13,14 +13,13 @@ export default async function WikiViewPage({
 }) {
   const { slug } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   // RLS hides drafts from non-managers, so a draft slug returns no row for them
   // (handled as not-found below). The layout already gated partners out.
-  const { document, error } = await getWikiDocumentBySlug(slug);
+  const [{ document, error }, { role }] = await Promise.all([
+    getWikiDocumentBySlug(slug),
+    // getMyProfile() is cached — no extra round-trip when layout already called it.
+    getMyProfile(),
+  ]);
 
   if (error) {
     return (
@@ -40,15 +39,7 @@ export default async function WikiViewPage({
   }
 
   // Drives the Edit button and the Draft badge.
-  let canManage = false;
-  if (user) {
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    canManage = profile?.role === "admin" || profile?.role === "manager";
-  }
+  const canManage = role === "admin" || role === "manager";
 
   return (
     <div className="container max-w-none flex w-full flex-col items-start gap-8 bg-default-background py-12">
