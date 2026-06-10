@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { Button } from "@/ui/components/Button";
 import { PartnerTabs } from "./PartnerTabs";
 import { FeatherLink } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
@@ -103,13 +102,6 @@ export function PartnerShell({
               Overview of your bike rental performance and customers
             </span>
           </div>
-          <Button
-            className="mobile:h-8 mobile:w-full mobile:flex-none"
-            variant="neutral-secondary"
-            onClick={() => {}}
-          >
-            Download
-          </Button>
         </div>
         <PartnerTabs basePath={basePath} />
       </div>

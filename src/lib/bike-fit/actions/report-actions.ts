@@ -3,8 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { createElement } from "react";
 import { Resend } from "resend";
+import type { User } from "@supabase/supabase-js";
 import BikeFitReportEmail from "@/emails/BikeFitReportEmail";
 import { createClient } from "@/src/utils/supabase/server";
+import { withAuth } from "@/src/utils/auth/with-auth";
 import { loadBikeFitById } from "@/src/lib/bike-fit/data/bike-fits";
 import { renderBikeFitReportBuffer } from "@/src/lib/bike-fit/report/render";
 import {
@@ -34,7 +36,13 @@ export type SendBikeFitReportEmailResult =
  * `report_storage_path` / `report_generated_at`. Only completed fits are
  * eligible so reports always reflect a finalised fit.
  */
-export async function generateBikeFitReport(
+export const generateBikeFitReport = withAuth(
+  "generateBikeFitReport",
+  generateBikeFitReportAction,
+);
+
+async function generateBikeFitReportAction(
+  _user: User,
   id: string,
 ): Promise<GenerateBikeFitReportResult> {
   if (!id) return { ok: false, error: "Missing bike fit id." };
@@ -102,7 +110,13 @@ export async function generateBikeFitReport(
 /**
  * Returns a short-lived signed URL that forces a download of the stored report.
  */
-export async function getBikeFitReportDownloadUrl(
+export const getBikeFitReportDownloadUrl = withAuth(
+  "getBikeFitReportDownloadUrl",
+  getBikeFitReportDownloadUrlAction,
+);
+
+async function getBikeFitReportDownloadUrlAction(
+  _user: User,
   id: string,
 ): Promise<BikeFitReportDownloadResult> {
   if (!id) return { ok: false, error: "Missing bike fit id." };
@@ -141,7 +155,13 @@ export async function getBikeFitReportDownloadUrl(
  * Sends the generated PDF report as an email attachment via Resend.
  * The target email can be the saved customer email or a manual override.
  */
-export async function sendBikeFitReportEmail(
+export const sendBikeFitReportEmail = withAuth(
+  "sendBikeFitReportEmail",
+  sendBikeFitReportEmailAction,
+);
+
+async function sendBikeFitReportEmailAction(
+  _user: User,
   id: string,
   email: string,
 ): Promise<SendBikeFitReportEmailResult> {
