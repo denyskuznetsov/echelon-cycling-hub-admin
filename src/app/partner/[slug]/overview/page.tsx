@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { RecentBookings } from "../../_components/RecentBookings";
 import { OverviewStats } from "../../_components/OverviewStats";
 import { DataLoadError } from "@/src/components/DataLoadError";
+import { OrderDetailsPanel } from "@/src/components/orders/OrderDetailsPanel";
 import { resolvePartnerBySlug } from "../../_lib/resolvePartner";
 import {
   computeDateThreshold,
@@ -17,12 +18,10 @@ export default async function PartnerSlugOverviewPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ timeframe?: string }>;
+  searchParams: Promise<{ timeframe?: string; order?: string }>;
 }) {
-  const [{ slug }, { timeframe: timeframeParam }] = await Promise.all([
-    params,
-    searchParams,
-  ]);
+  const [{ slug }, { timeframe: timeframeParam, order: orderParam }] =
+    await Promise.all([params, searchParams]);
   const timeframe = resolveTimeframe(timeframeParam);
   const startDate = computeDateThreshold(timeframe);
 
@@ -59,6 +58,7 @@ export default async function PartnerSlugOverviewPage({
         orders={recentOrders}
         viewAllHref={`/partner/${slug}/bookings`}
       />
+      <OrderDetailsPanel orderId={orderParam} />
     </>
   );
 }
