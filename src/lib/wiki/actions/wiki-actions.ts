@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
+import { withAuth } from "@/src/utils/auth/with-auth";
 import {
   UpdateWikiDocPayloadSchema,
   type UpdateWikiDocPayload,
@@ -31,7 +33,14 @@ export type DeleteWikiDocumentResult =
  * and slug (the before-insert trigger). RLS restricts
  * inserts to admin/manager.
  */
-export async function createWikiDocument(): Promise<CreateWikiDocumentResult> {
+export const createWikiDocument = withAuth(
+  "createWikiDocument",
+  createWikiDocumentAction,
+);
+
+async function createWikiDocumentAction(
+  _user: User,
+): Promise<CreateWikiDocumentResult> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -58,7 +67,13 @@ export async function createWikiDocument(): Promise<CreateWikiDocumentResult> {
  * so we return the resulting slug for the caller to react to URL changes.
  * RLS ensures only admin/manager can update (a blocked update returns no row).
  */
-export async function updateWikiDocument(
+export const updateWikiDocument = withAuth(
+  "updateWikiDocument",
+  updateWikiDocumentAction,
+);
+
+async function updateWikiDocumentAction(
+  _user: User,
   id: string,
   payload: UpdateWikiDocPayload,
 ): Promise<SaveWikiDocumentResult> {
@@ -104,7 +119,13 @@ export async function updateWikiDocument(
  * Permanently deletes a document. RLS restricts deletion to admin/manager — a
  * blocked delete returns no row, surfaced as an error.
  */
-export async function deleteWikiDocument(
+export const deleteWikiDocument = withAuth(
+  "deleteWikiDocument",
+  deleteWikiDocumentAction,
+);
+
+async function deleteWikiDocumentAction(
+  _user: User,
   id: string,
 ): Promise<DeleteWikiDocumentResult> {
   if (!id) return { ok: false, error: "Missing document id." };

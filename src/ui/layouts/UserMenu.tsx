@@ -4,8 +4,7 @@ import React from "react";
 import { useRouter } from "next/navigation";
 import { FeatherBookOpen, FeatherLogOut } from "@subframe/core";
 import * as SubframeCore from "@subframe/core";
-import { createClient } from "@/src/utils/supabase/client";
-import { useHasRole } from "@/src/context/UserContext";
+import { useHasRole, useUser } from "@/src/context/UserContext";
 import { Avatar } from "../components/Avatar";
 import { DropdownMenu } from "../components/DropdownMenu";
 import { TopbarWithRightNav } from "../components/TopbarWithRightNav";
@@ -19,16 +18,12 @@ export function UserMenu({ userEmail, avatarInitial }: UserMenuProps) {
   const router = useRouter();
   // The Wiki is internal-only: visible to staff, never to partners.
   const canViewWiki = useHasRole("admin", "manager", "mechanic");
+  // Use the context signOut so the auth listener treats this as an explicit
+  // logout (plain /login) rather than session expiry (/login?next=...).
+  const { signOut } = useUser();
 
   const handleLogout = async () => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signOut();
-
-    if (error) {
-      console.error("Error signing out:", error);
-      return;
-    }
-
+    await signOut();
     router.push("/login");
     router.refresh();
   };

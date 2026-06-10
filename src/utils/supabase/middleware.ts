@@ -1,13 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-
-const protectedRoutePrefixes = ["/workshop", "/hq", "/partner"];
-
-function isRouteMatch(pathname: string, prefixes: string[]) {
-  return prefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`)
-  );
-}
+import { isPublicRoute } from "@/src/utils/auth/public-routes";
 
 export async function updateSession(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -42,12 +35,27 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isProtectedRoute = isRouteMatch(pathname, protectedRoutePrefixes);
 
-  if (!user && isProtectedRoute) {
+  // Default-deny: every route requires a session unless it is explicitly
+  // public. Exceptions that handle auth themselves:
+  // - /api/* routes (webhook secrets, service role, RLS) — external callers
+  //   must never receive an HTML login redirect.
+  // - Server action POSTs (identified by the Next-Action header) — withAuth()
+  //   wraps every action and redirects via the framework mechanism, which
+  //   navigates the client correctly (a raw 307 here would break the action
+  //   protocol).
+  const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
+  const isServerAction = request.headers.has("next-action");
+
+  if (!user && !isApiRoute && !isServerAction && !isPublicRoute(pathname)) {
     const url = request.nextUrl.clone();
+    const next =
+      pathname !== "/" ? `${pathname}${request.nextUrl.search}` : null;
     url.pathname = "/login";
-    url.searchParams.set("next", pathname);
+    url.search = "";
+    if (next) {
+      url.searchParams.set("next", next);
+    }
     return NextResponse.redirect(url);
   }
 

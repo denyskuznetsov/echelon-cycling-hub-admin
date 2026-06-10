@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import type { ZodError } from "zod";
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
+import { withAuth } from "@/src/utils/auth/with-auth";
 import { ddMmYyyyToIso } from "@/src/utils/date-format";
 import {
   formValuesToAssessmentPayload,
@@ -67,7 +69,14 @@ export type DeleteBikeFitResult =
  * change it in the Fit Setup step before marking the fit as completed.
  * `date_of_fit` defaults to CURRENT_DATE at the DB layer.
  */
-export async function createBikeFitDraft(): Promise<CreateBikeFitDraftResult> {
+export const createBikeFitDraft = withAuth(
+  "createBikeFitDraft",
+  createBikeFitDraftAction,
+);
+
+async function createBikeFitDraftAction(
+  _user: User,
+): Promise<CreateBikeFitDraftResult> {
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -138,7 +147,13 @@ function buildSaveColumns(
  * blank cases where there is nothing valid to save yet (caller treats this
  * as a no-op, not an error).
  */
-export async function saveBikeFitDraft(
+export const saveBikeFitDraft = withAuth(
+  "saveBikeFitDraft",
+  saveBikeFitDraftAction,
+);
+
+async function saveBikeFitDraftAction(
+  _user: User,
   id: string,
   values: BikeFitFormValues,
 ): Promise<SaveBikeFitResult> {
@@ -183,7 +198,13 @@ export async function saveBikeFitDraft(
  * react-hook-form remains for UX; `saveBikeFitDraft` intentionally skips
  * full-schema validation for partial drafts.
  */
-export async function completeBikeFit(
+export const completeBikeFit = withAuth(
+  "completeBikeFit",
+  completeBikeFitAction,
+);
+
+async function completeBikeFitAction(
+  _user: User,
   id: string,
   values: BikeFitFormValues,
 ): Promise<SaveBikeFitResult> {
@@ -232,7 +253,13 @@ export async function completeBikeFit(
  * in the same update and best-effort delete the stored PDF. This keeps the UI
  * back on "Generate PDF" and prevents stale reports from lingering in storage.
  */
-export async function unlockBikeFitForEdit(
+export const unlockBikeFitForEdit = withAuth(
+  "unlockBikeFitForEdit",
+  unlockBikeFitForEditAction,
+);
+
+async function unlockBikeFitForEditAction(
+  _user: User,
   id: string,
 ): Promise<SaveBikeFitResult> {
   if (!id) return { ok: false, error: "Missing bike fit id." };
@@ -287,7 +314,12 @@ export async function unlockBikeFitForEdit(
  * Order: collect storage paths (abort on list error) → delete row → best-effort
  * storage cleanup so a failed row delete never leaves the fit without photos.
  */
-export async function deleteBikeFit(id: string): Promise<DeleteBikeFitResult> {
+export const deleteBikeFit = withAuth("deleteBikeFit", deleteBikeFitAction);
+
+async function deleteBikeFitAction(
+  _user: User,
+  id: string,
+): Promise<DeleteBikeFitResult> {
   if (!id) return { ok: false, error: "Missing bike fit id." };
 
   const supabase = await createClient();

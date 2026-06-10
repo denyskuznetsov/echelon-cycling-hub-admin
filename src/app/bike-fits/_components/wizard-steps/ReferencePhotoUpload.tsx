@@ -18,6 +18,19 @@ import {
 
 type UploadState = "idle" | "uploading" | "success" | "error";
 
+const SESSION_EXPIRED_MESSAGE =
+  "Your session has expired. Please log in again.";
+
+/**
+ * Storage uploads go straight from the browser to Supabase, so an expired
+ * session surfaces as a raw JWT/auth error message. The global SIGNED_OUT
+ * redirect usually preempts this, but as a fallback show friendly copy
+ * instead of e.g. "JWT expired".
+ */
+function isAuthErrorMessage(message: string): boolean {
+  return /jwt|token|unauthorized|not authenticated|session/i.test(message);
+}
+
 interface ReferencePhotoUploadProps {
   label: string;
   variant: BikeFitImageVariant;
@@ -103,8 +116,11 @@ export function ReferencePhotoUpload({
       }
     } catch (error: unknown) {
       setUploadState("error");
+      const message = error instanceof Error ? error.message : "";
       setErrorMessage(
-        error instanceof Error ? error.message : "Upload failed. Please try again.",
+        message && isAuthErrorMessage(message)
+          ? SESSION_EXPIRED_MESSAGE
+          : message || "Upload failed. Please try again.",
       );
     }
   };
