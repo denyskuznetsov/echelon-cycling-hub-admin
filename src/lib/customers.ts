@@ -1,6 +1,8 @@
 "use server";
 
+import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
+import { withAuth } from "@/src/utils/auth/with-auth";
 import type {
   CustomerOption,
   CreateCustomerInput,
@@ -12,7 +14,10 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const PHONE_PATTERN = /^[+()\d][\d\s()+\-./]{6,}\d$/;
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-export async function createCustomer(
+export const createCustomer = withAuth("createCustomer", createCustomerAction);
+
+async function createCustomerAction(
+  _user: User,
   input: CreateCustomerInput,
 ): Promise<CreateCustomerResult> {
   const name = input.name?.trim();
@@ -75,7 +80,13 @@ export async function createCustomer(
 
 const SEARCH_LIMIT = 20;
 
-export async function searchCustomers(
+export const searchCustomers = withAuth(
+  "searchCustomers",
+  searchCustomersAction,
+);
+
+async function searchCustomersAction(
+  _user: User,
   query: string,
 ): Promise<SearchCustomersResult> {
   const supabase = await createClient();

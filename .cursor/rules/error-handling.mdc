@@ -8,17 +8,31 @@ alwaysApply: true
 Internal app: the goal is to **catch failures early and show them clearly**, not
 production-grade observability. Never silently swallow an error.
 
-## Mutations (server actions) → `{ ok, error }`
+## Mutations (server actions) → `withAuth` + `{ ok, error }`
 
-Return a discriminated result; never throw for expected/recoverable failures.
+Every server action MUST be defined through `withAuth` from
+`@/src/utils/auth/with-auth`. It validates the session via
+`supabase.auth.getUser()` and `redirect()`s to `/login?next=<calling page>` when
+the session is missing or expired, so a dead session never surfaces as an
+opaque RLS/save failure. Session expiry is an auth boundary (like layout
+guards) — never model it as `{ ok: false, error }`.
+
+For everything else, return a discriminated result; never throw for
+expected/recoverable failures.
 
 ```ts
 export type SaveResult = { ok: true } | { ok: false; error: string };
 
-const { data, error } = await supabase.from("x").update(...).select("id").maybeSingle();
-if (error) {
-  console.error("saveX:", error); // log details with a `name:`/`[tag]` prefix
-  return { ok: false, error: error.message };
+export const saveX = withAuth("saveX", saveXAction);
+
+async function saveXAction(_user: User, id: string): Promise<SaveResult> {
+  // session is guaranteed valid here
+  const { data, error } = await supabase.from("x").update(...).select("id").maybeSingle();
+  if (error) {
+    console.error("saveX:", error); // log details with a `name:`/`[tag]` prefix
+    return { ok: false, error: error.message };
+  }
+  return { ok: true };
 }
 ```
 
