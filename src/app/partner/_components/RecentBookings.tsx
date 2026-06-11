@@ -18,6 +18,7 @@ import {
 } from "@/src/utils/formatters";
 import type { PartnerOrder } from "./types";
 import { OrderStatusBadge } from "@/src/components/OrderStatusBadge";
+import { useOpenOrderDetails } from "@/src/components/orders/useOpenOrderDetails";
 
 interface RecentBookingsProps {
   orders: PartnerOrder[];
@@ -29,6 +30,7 @@ export function RecentBookings({
   viewAllHref = "/partner/bookings",
 }: RecentBookingsProps) {
   const router = useRouter();
+  const openOrderDetails = useOpenOrderDetails();
 
   useEffect(() => {
     router.prefetch(viewAllHref);
@@ -78,7 +80,12 @@ export function RecentBookings({
               // TODO: replace with real bike relation once modelled.
               const bike = "Standard E-Bike";
               return (
-                <Table.Row key={order.id}>
+                <Table.Row
+                  key={order.id}
+                  clickable={true}
+                  className="cursor-pointer"
+                  onClick={() => openOrderDetails(order.id)}
+                >
                   <Table.Cell>
                     <div className="flex items-center gap-2">
                       <Avatar size="small" square={true}>

@@ -14,6 +14,7 @@ import {
 import { createClient } from "@/src/utils/supabase/client";
 import { OrderStatusBadge } from "@/src/components/OrderStatusBadge";
 import { TablePagination } from "@/src/components/TablePagination";
+import { useOpenOrderDetails } from "@/src/components/orders/useOpenOrderDetails";
 import type { BookingRow, BookingsTimeframe } from "@/src/lib/orders";
 
 interface AllOrdersTableProps {
@@ -42,6 +43,7 @@ export function AllOrdersTable({
 }: AllOrdersTableProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const openOrderDetails = useOpenOrderDetails();
   const [search, setSearch] = useState(query);
 
   useEffect(() => {
@@ -165,7 +167,12 @@ export function AllOrdersTable({
               const orderNumber =
                 order.order_number != null ? `#${order.order_number}` : "—";
               return (
-                <Table.Row key={order.id}>
+                <Table.Row
+                  key={order.id}
+                  clickable={true}
+                  className="cursor-pointer"
+                  onClick={() => openOrderDetails(order.id)}
+                >
                   <Table.Cell>
                     <span className="whitespace-nowrap text-body-bold font-body-bold text-default-font">
                       {orderNumber}
@@ -193,6 +200,7 @@ export function AllOrdersTable({
                       <Link
                         href={buildPartnerHref(order.partner_slug)}
                         className="whitespace-nowrap text-body-bold font-body-bold text-brand-700 hover:underline"
+                        onClick={(event) => event.stopPropagation()}
                       >
                         {order.partner_name}
                       </Link>

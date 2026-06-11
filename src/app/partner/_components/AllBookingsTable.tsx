@@ -21,6 +21,7 @@ import type { PartnerBookingRow } from "./types";
 import type { BookingsTimeframe } from "../_lib/loadPartnerOverview";
 import { OrderStatusBadge } from "@/src/components/OrderStatusBadge";
 import { TablePagination } from "@/src/components/TablePagination";
+import { useOpenOrderDetails } from "@/src/components/orders/useOpenOrderDetails";
 
 interface AllBookingsTableProps {
   orders: PartnerBookingRow[];
@@ -41,6 +42,7 @@ export function AllBookingsTable({
 }: AllBookingsTableProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const openOrderDetails = useOpenOrderDetails();
   const [search, setSearch] = useState(query);
 
   useEffect(() => {
@@ -167,7 +169,12 @@ export function AllBookingsTable({
               // TODO: replace with real bike relation once modelled.
               const bike = "Standard E-Bike";
               return (
-                <Table.Row key={order.id}>
+                <Table.Row
+                  key={order.id}
+                  clickable={true}
+                  className="cursor-pointer"
+                  onClick={() => openOrderDetails(order.id)}
+                >
                   <Table.Cell>
                     <span className="whitespace-nowrap text-body-bold font-body-bold text-default-font">
                       {orderNumber}
