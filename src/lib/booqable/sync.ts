@@ -204,6 +204,7 @@ export async function syncBooqableOrder(
         fulfillment_type: attrs.fulfillment_type || null,
         delivery_address: attrs.properties?.delivery_address || null,
         billing_address: attrs.properties?.billing_address || null,
+        maps_link_order: attrs.properties?.maps_link_order || null,
         amount_in_cents: toIntOrNull(attrs.amount_in_cents) ?? 0,
         discount_type: attrs.discount_type || null,
         discount_percentage: attrs.discount_percentage ?? null,
