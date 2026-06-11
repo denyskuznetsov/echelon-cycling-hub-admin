@@ -6,6 +6,7 @@ import {
   resolveTimeframe,
 } from "@/src/lib/orders";
 import { DataLoadError } from "@/src/components/DataLoadError";
+import { OrderDetailsPanel } from "@/src/components/orders/OrderDetailsPanel";
 import { AllOrdersTable } from "./_components/AllOrdersTable";
 
 export default async function OrdersPage({
@@ -15,12 +16,14 @@ export default async function OrdersPage({
     page?: string;
     query?: string;
     timeframe?: string;
+    order?: string;
   }>;
 }) {
   const {
     page: pageParam,
     query: queryParam,
     timeframe: timeframeParam,
+    order: orderParam,
   } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const query = queryParam ?? "";
@@ -55,6 +58,8 @@ export default async function OrdersPage({
         query={query}
         timeframe={timeframe}
       />
+
+      <OrderDetailsPanel orderId={orderParam} />
     </div>
   );
 }

@@ -2,6 +2,7 @@ import React from "react";
 import { RecentBookings } from "../../_components/RecentBookings";
 import { OverviewStats } from "../../_components/OverviewStats";
 import { DataLoadError } from "@/src/components/DataLoadError";
+import { OrderDetailsPanel } from "@/src/components/orders/OrderDetailsPanel";
 import { resolveMyPartner } from "../../_lib/resolvePartner";
 import {
   computeDateThreshold,
@@ -14,9 +15,9 @@ import {
 export default async function PartnerOverviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ timeframe?: string }>;
+  searchParams: Promise<{ timeframe?: string; order?: string }>;
 }) {
-  const { timeframe: timeframeParam } = await searchParams;
+  const { timeframe: timeframeParam, order: orderParam } = await searchParams;
   const timeframe = resolveTimeframe(timeframeParam);
   const startDate = computeDateThreshold(timeframe);
 
@@ -49,6 +50,7 @@ export default async function PartnerOverviewPage({
         partnerId={partner?.id ?? ""}
       />
       <RecentBookings orders={recentOrders} viewAllHref="/partner/bookings" />
+      <OrderDetailsPanel orderId={orderParam} />
     </>
   );
 }
