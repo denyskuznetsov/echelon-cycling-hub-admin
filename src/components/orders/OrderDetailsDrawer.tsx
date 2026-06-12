@@ -1,8 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useCallback } from "react";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Avatar } from "@/ui/components/Avatar";
 import { Badge } from "@/ui/components/Badge";
 import { DetailsDrawer } from "@/src/components/DetailsDrawer";
@@ -199,22 +199,21 @@ function OrderItemsList({ items }: { items: OrderItemRow[] }) {
 /**
  * Right-side drawer with the full order breakdown. Open state lives in the
  * URL (?order=<id>): the parent server component loads the order and renders
- * this drawer only when the param is present; closing removes the param.
+ * this drawer only when the param is present. Closing plays the exit animation
+ * first (handled by DetailsDrawer), then removes the param from the URL.
  */
 export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
 
-  const handleOpenChange = (open: boolean) => {
-    if (open) return;
-    const params = new URLSearchParams(searchParams.toString());
+  const handleCloseComplete = useCallback(() => {
+    const params = new URLSearchParams(window.location.search);
     params.delete("order");
     const queryString = params.toString();
-    router.push(queryString ? `${pathname}?${queryString}` : pathname, {
+    const path = window.location.pathname;
+    router.push(queryString ? `${path}?${queryString}` : path, {
       scroll: false,
     });
-  };
+  }, [router]);
 
   const title =
     order?.order_number != null ? `Order #${order.order_number}` : "Order details";
@@ -233,7 +232,7 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
   return (
     <DetailsDrawer
       open={true}
-      onOpenChange={handleOpenChange}
+      onCloseComplete={handleCloseComplete}
       title={title}
       subtitle={headerSubtitle}
       titleAdornment={headerAdornment}
