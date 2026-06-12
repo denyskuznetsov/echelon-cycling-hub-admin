@@ -1,5 +1,6 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { OrderDetailsDrawerHost } from "@/src/components/orders/OrderDetailsDrawerHost";
 import { DefaultPageLayout } from "@/ui/layouts/DefaultPageLayout";
 import { createClient } from "@/src/utils/supabase/server";
 
@@ -41,5 +42,12 @@ export default async function OrdersLayout({
     redirect("/unauthorized");
   }
 
-  return <DefaultPageLayout>{children}</DefaultPageLayout>;
+  return (
+    <DefaultPageLayout>
+      <Suspense fallback={null}>
+        <OrderDetailsDrawerHost />
+      </Suspense>
+      {children}
+    </DefaultPageLayout>
+  );
 }

@@ -2,7 +2,6 @@ import React from "react";
 import { notFound } from "next/navigation";
 import { AllBookingsTable } from "../../_components/AllBookingsTable";
 import { DataLoadError } from "@/src/components/DataLoadError";
-import { OrderDetailsPanel } from "@/src/components/orders/OrderDetailsPanel";
 import { resolvePartnerBySlug } from "../../_lib/resolvePartner";
 import {
   ORDERS_PAGE_SIZE,
@@ -20,7 +19,6 @@ export default async function PartnerSlugBookingsPage({
     page?: string;
     query?: string;
     timeframe?: string;
-    order?: string;
   }>;
 }) {
   const [
@@ -29,7 +27,6 @@ export default async function PartnerSlugBookingsPage({
       page: pageParam,
       query: queryParam,
       timeframe: timeframeParam,
-      order: orderParam,
     },
   ] = await Promise.all([params, searchParams]);
   const page = Math.max(1, Number(pageParam) || 1);
@@ -62,7 +59,6 @@ export default async function PartnerSlugBookingsPage({
         query={query}
         timeframe={timeframe}
       />
-      <OrderDetailsPanel orderId={orderParam} />
     </>
   );
 }
