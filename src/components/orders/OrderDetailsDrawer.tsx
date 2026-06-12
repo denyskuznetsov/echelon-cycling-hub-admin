@@ -61,11 +61,11 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex w-full flex-col items-start gap-3 border-t border-solid border-neutral-border pt-5 first:border-t-0 first:pt-0">
-      <span className="text-caption-bold font-caption-bold uppercase text-subtext-color">
+    <div className="mb-4 w-full rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+      <span className="mb-3 block text-caption-bold font-caption-bold uppercase text-subtext-color">
         {title}
       </span>
-      {children}
+      <div className="flex w-full flex-col items-start gap-3">{children}</div>
     </div>
   );
 }
@@ -78,11 +78,11 @@ function DetailRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex w-full items-start justify-between gap-4">
-      <span className="flex-none text-body font-body text-subtext-color">
+    <div className="flex w-full items-center justify-between gap-4">
+      <span className="flex-none text-body font-body text-slate-500">
         {label}
       </span>
-      <span className="text-right text-body-bold font-body-bold text-default-font">
+      <span className="text-right text-body font-medium text-slate-900">
         {children}
       </span>
     </div>
@@ -97,19 +97,17 @@ function ItemRow({ item, nested }: { item: OrderItemRow; nested?: boolean }) {
     .filter(Boolean)
     .join(" · ");
 
+  const isZeroPriceAccessory =
+    nested && item.price_in_cents != null && item.price_in_cents === 0;
+  const showMeta = meta && !isZeroPriceAccessory;
+
   return (
-    <div
-      className={
-        nested
-          ? "flex w-full items-start justify-between gap-3 border-l-2 border-solid border-neutral-border pl-3"
-          : "flex w-full items-start justify-between gap-3"
-      }
-    >
+    <div className="flex w-full items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col items-start">
         <span className="text-body-bold font-body-bold text-default-font">
           {item.title || "Untitled item"}
         </span>
-        {meta ? (
+        {showMeta ? (
           <span className="text-caption font-caption text-subtext-color">
             {meta}
           </span>
@@ -176,11 +174,21 @@ function OrderItemsList({ items }: { items: OrderItemRow[] }) {
         ) : (
           <React.Fragment key={item.booqable_line_id}>
             <ItemRow item={item} />
-            {(childrenByParent.get(item.booqable_line_id) ?? []).map(
-              (child) => (
-                <ItemRow key={child.booqable_line_id} item={child} nested />
-              ),
-            )}
+            {(childrenByParent.get(item.booqable_line_id) ?? []).length > 0 ? (
+              <div className="ml-2 w-full border-l-2 border-slate-200 pl-3">
+                <div className="flex w-full flex-col items-start gap-2">
+                  {(childrenByParent.get(item.booqable_line_id) ?? []).map(
+                    (child) => (
+                      <ItemRow
+                        key={child.booqable_line_id}
+                        item={child}
+                        nested
+                      />
+                    ),
+                  )}
+                </div>
+              </div>
+            ) : null}
           </React.Fragment>
         ),
       )}
@@ -211,8 +219,26 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
   const title =
     order?.order_number != null ? `Order #${order.order_number}` : "Order details";
 
+  const headerAdornment = order ? (
+    <>
+      <OrderStatusBadge status={order.status} />
+      <PaymentStatusBadge status={order.payment_status} />
+    </>
+  ) : null;
+
+  const headerSubtitle = order
+    ? `Created ${formatDate(order.created_at)}`
+    : undefined;
+
   return (
-    <DetailsDrawer open={true} onOpenChange={handleOpenChange} title={title}>
+    <DetailsDrawer
+      open={true}
+      onOpenChange={handleOpenChange}
+      title={title}
+      subtitle={headerSubtitle}
+      titleAdornment={headerAdornment}
+      bodyClassName="bg-slate-50"
+    >
       {error ? (
         <DataLoadError title="Couldn't load order details" message={error} />
       ) : !order ? (
@@ -222,15 +248,33 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
         </span>
       ) : (
         <>
-          <Section title="Status">
-            <div className="flex w-full items-center gap-2">
-              <OrderStatusBadge status={order.status} />
-              <PaymentStatusBadge status={order.payment_status} />
-            </div>
-            <DetailRow label="Created">{formatDate(order.created_at)}</DetailRow>
-          </Section>
+          {order.customers ? (
+            <Section title="Customer">
+              <div className="flex w-full items-center gap-2">
+                <Avatar size="small" square={true}>
+                  <span className="font-body-bold">
+                    {(order.customers.name || "?").charAt(0).toUpperCase()}
+                  </span>
+                </Avatar>
+                <span className="text-body-bold font-body-bold text-default-font">
+                  {order.customers.name || "Unknown"}
+                </span>
+              </div>
+              {order.customers.email ? (
+                <DetailRow label="Email">{order.customers.email}</DetailRow>
+              ) : null}
+              {order.customers.phone ? (
+                <DetailRow label="Phone">{order.customers.phone}</DetailRow>
+              ) : null}
+              {order.customers.birthday ? (
+                <DetailRow label="Birthday">
+                  {formatDate(order.customers.birthday)}
+                </DetailRow>
+              ) : null}
+            </Section>
+          ) : null}
 
-          <Section title="Rental">
+          <Section title="Rental details">
             <DetailRow label="Period">
               {order.starts_at && order.stops_at
                 ? formatRentalPeriod(order.starts_at, order.stops_at)
@@ -241,24 +285,28 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
                 {formatLabel(order.fulfillment_type)}
               </DetailRow>
             ) : null}
-            {order.delivery_address ? (
-              <div className="flex w-full flex-col items-start gap-1">
-                <span className="text-body font-body text-subtext-color">
-                  Delivery address
-                </span>
-                <span className="whitespace-pre-line text-body-bold font-body-bold text-default-font">
-                  {order.delivery_address}
-                </span>
-              </div>
-            ) : null}
-            {order.billing_address ? (
-              <div className="flex w-full flex-col items-start gap-1">
-                <span className="text-body font-body text-subtext-color">
-                  Billing address
-                </span>
-                <span className="whitespace-pre-line text-body-bold font-body-bold text-default-font">
-                  {order.billing_address}
-                </span>
+            {order.delivery_address || order.billing_address ? (
+              <div className="grid w-full grid-cols-2 gap-4">
+                {order.delivery_address ? (
+                  <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                    <span className="mb-1 block text-caption font-caption text-slate-500">
+                      Delivery address
+                    </span>
+                    <span className="whitespace-pre-line text-body font-medium text-slate-900">
+                      {order.delivery_address}
+                    </span>
+                  </div>
+                ) : null}
+                {order.billing_address ? (
+                  <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
+                    <span className="mb-1 block text-caption font-caption text-slate-500">
+                      Billing address
+                    </span>
+                    <span className="whitespace-pre-line text-body font-medium text-slate-900">
+                      {order.billing_address}
+                    </span>
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </Section>
@@ -317,32 +365,6 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
               </DetailRow>
             ) : null}
           </Section>
-
-          {order.customers ? (
-            <Section title="Customer">
-              <div className="flex w-full items-center gap-2">
-                <Avatar size="small" square={true}>
-                  <span className="font-body-bold">
-                    {(order.customers.name || "?").charAt(0).toUpperCase()}
-                  </span>
-                </Avatar>
-                <span className="text-body-bold font-body-bold text-default-font">
-                  {order.customers.name || "Unknown"}
-                </span>
-              </div>
-              {order.customers.email ? (
-                <DetailRow label="Email">{order.customers.email}</DetailRow>
-              ) : null}
-              {order.customers.phone ? (
-                <DetailRow label="Phone">{order.customers.phone}</DetailRow>
-              ) : null}
-              {order.customers.birthday ? (
-                <DetailRow label="Birthday">
-                  {formatDate(order.customers.birthday)}
-                </DetailRow>
-              ) : null}
-            </Section>
-          ) : null}
 
           {order.partners || order.partner_promo ? (
             <Section title="Partner">
