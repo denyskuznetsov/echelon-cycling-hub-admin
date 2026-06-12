@@ -13,10 +13,12 @@ import {
   formatRentalPeriod,
 } from "@/src/utils/formatters";
 import type { OrderDetails, OrderItemRow } from "@/src/lib/orders";
+import { OrderDetailsDrawerSkeleton } from "./OrderDetailsDrawerSkeleton";
 
 interface OrderDetailsDrawerProps {
   order: OrderDetails | null;
   error: string | null;
+  loading?: boolean;
 }
 
 type BadgeVariant = React.ComponentProps<typeof Badge>["variant"];
@@ -198,11 +200,15 @@ function OrderItemsList({ items }: { items: OrderItemRow[] }) {
 
 /**
  * Right-side drawer with the full order breakdown. Open state lives in the
- * URL (?order=<id>): the parent server component loads the order and renders
- * this drawer only when the param is present. Closing plays the exit animation
+ * URL (?order=<id>): OrderDetailsDrawerHost opens the drawer immediately and
+ * passes loaded data (or a loading skeleton). Closing plays the exit animation
  * first (handled by DetailsDrawer), then removes the param from the URL.
  */
-export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
+export function OrderDetailsDrawer({
+  order,
+  error,
+  loading = false,
+}: OrderDetailsDrawerProps) {
   const router = useRouter();
 
   const handleCloseComplete = useCallback(() => {
@@ -215,8 +221,11 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
     });
   }, [router]);
 
-  const title =
-    order?.order_number != null ? `Order #${order.order_number}` : "Order details";
+  const title = loading
+    ? "Order details"
+    : order?.order_number != null
+      ? `Order #${order.order_number}`
+      : "Order details";
 
   const headerAdornment = order ? (
     <>
@@ -238,7 +247,9 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
       titleAdornment={headerAdornment}
       bodyClassName="bg-slate-50"
     >
-      {error ? (
+      {loading ? (
+        <OrderDetailsDrawerSkeleton />
+      ) : error ? (
         <DataLoadError title="Couldn't load order details" message={error} />
       ) : !order ? (
         <span className="text-body font-body text-subtext-color">
