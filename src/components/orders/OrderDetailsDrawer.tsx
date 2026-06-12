@@ -61,7 +61,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-4 w-full rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+    <div className="mb-4 w-full rounded-lg border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
       <span className="mb-3 block text-caption-bold font-caption-bold uppercase text-subtext-color">
         {title}
       </span>
@@ -82,7 +82,7 @@ function DetailRow({
       <span className="flex-none text-body font-body text-slate-500">
         {label}
       </span>
-      <span className="text-right text-body font-medium text-slate-900">
+      <span className="min-w-0 break-words text-right text-body font-medium text-slate-900">
         {children}
       </span>
     </div>
@@ -104,11 +104,11 @@ function ItemRow({ item, nested }: { item: OrderItemRow; nested?: boolean }) {
   return (
     <div className="flex w-full items-start justify-between gap-3">
       <div className="flex min-w-0 flex-col items-start">
-        <span className="text-body-bold font-body-bold text-default-font">
+        <span className="break-words text-body-bold font-body-bold text-default-font">
           {item.title || "Untitled item"}
         </span>
         {showMeta ? (
-          <span className="text-caption font-caption text-subtext-color">
+          <span className="break-words text-caption font-caption text-subtext-color">
             {meta}
           </span>
         ) : null}
@@ -249,13 +249,13 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
         <>
           {order.customers ? (
             <Section title="Customer">
-              <div className="flex w-full items-center gap-2">
+              <div className="flex w-full min-w-0 items-center gap-2">
                 <Avatar size="small" square={true}>
                   <span className="font-body-bold">
                     {(order.customers.name || "?").charAt(0).toUpperCase()}
                   </span>
                 </Avatar>
-                <span className="text-body-bold font-body-bold text-default-font">
+                <span className="min-w-0 break-words text-body-bold font-body-bold text-default-font">
                   {order.customers.name || "Unknown"}
                 </span>
               </div>
@@ -285,13 +285,13 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
               </DetailRow>
             ) : null}
             {order.delivery_address || order.billing_address ? (
-              <div className="grid w-full grid-cols-2 gap-4">
+              <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
                 {order.delivery_address ? (
                   <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
                     <span className="mb-1 block text-caption font-caption text-slate-500">
                       Delivery address
                     </span>
-                    <span className="whitespace-pre-line text-body font-medium text-slate-900">
+                    <span className="whitespace-pre-line break-words text-body font-medium text-slate-900">
                       {order.delivery_address}
                     </span>
                   </div>
@@ -301,7 +301,7 @@ export function OrderDetailsDrawer({ order, error }: OrderDetailsDrawerProps) {
                     <span className="mb-1 block text-caption font-caption text-slate-500">
                       Billing address
                     </span>
-                    <span className="whitespace-pre-line text-body font-medium text-slate-900">
+                    <span className="whitespace-pre-line break-words text-body font-medium text-slate-900">
                       {order.billing_address}
                     </span>
                   </div>
