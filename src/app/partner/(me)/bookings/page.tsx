@@ -1,7 +1,6 @@
 import React from "react";
 import { AllBookingsTable } from "../../_components/AllBookingsTable";
 import { DataLoadError } from "@/src/components/DataLoadError";
-import { OrderDetailsPanel } from "@/src/components/orders/OrderDetailsPanel";
 import { resolveMyPartner } from "../../_lib/resolvePartner";
 import {
   ORDERS_PAGE_SIZE,
@@ -17,14 +16,12 @@ export default async function PartnerBookingsPage({
     page?: string;
     query?: string;
     timeframe?: string;
-    order?: string;
   }>;
 }) {
   const {
     page: pageParam,
     query: queryParam,
     timeframe: timeframeParam,
-    order: orderParam,
   } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
   const query = queryParam ?? "";
@@ -52,7 +49,6 @@ export default async function PartnerBookingsPage({
         query={query}
         timeframe={timeframe}
       />
-      <OrderDetailsPanel orderId={orderParam} />
     </>
   );
 }
