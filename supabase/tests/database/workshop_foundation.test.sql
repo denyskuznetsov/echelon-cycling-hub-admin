@@ -1603,6 +1603,227 @@ SELECT is(
 );
 RESET ROLE;
 
+-- Active checklist answers can be cleared; submitted stages stay immutable.
+CREATE TEMP TABLE ws_uncheck_task AS
+  SELECT pg_temp.make_task('workshop-road-bike', false, true, 'fp-v1') AS id;
+GRANT SELECT ON ws_uncheck_task TO authenticated;
+SELECT pg_temp.become((SELECT mechanic FROM ws_ids));
+SET ROLE authenticated;
+SELECT public.workshop_start_preparation((SELECT id FROM ws_uncheck_task), 1);
+
+SELECT public.workshop_set_item_outcome(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-02'),
+  'completed',
+  NULL
+);
+SELECT ok(
+  (public.workshop_set_item_outcome(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+    (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-02'),
+    NULL,
+    NULL
+  )->>'ok')::boolean,
+  'selected action can be cleared'
+);
+SELECT is(
+  (SELECT m1_outcome::text FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-02'),
+  NULL,
+  'cleared action persists as incomplete'
+);
+
+SELECT public.workshop_set_item_outcome(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-16'),
+  'not_applicable',
+  NULL
+);
+SELECT public.workshop_set_item_outcome(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-16'),
+  NULL,
+  NULL
+);
+SELECT is(
+  (SELECT m1_outcome::text FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-16'),
+  NULL,
+  'selected N/A can be cleared'
+);
+
+SELECT public.workshop_set_item_outcome(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-10'),
+  'completed',
+  80
+);
+SELECT public.workshop_set_item_outcome(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-10'),
+  NULL,
+  NULL
+);
+SELECT is(
+  (SELECT m1_outcome::text FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-10'),
+  NULL,
+  'saved PSI outcome can be cleared'
+);
+SELECT is(
+  (SELECT m1_psi FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-10'),
+  NULL,
+  'clearing PSI removes its saved value'
+);
+SELECT is(
+  public.workshop_complete_m1(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task))
+  ) ->> 'code',
+  'INCOMPLETE_CHECKLIST',
+  'cleared required M1 answer blocks completion'
+);
+
+SELECT pg_temp.fill_m1((SELECT id FROM ws_uncheck_task));
+SELECT public.workshop_complete_m1(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task))
+);
+SELECT is(
+  public.workshop_set_item_outcome(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+    (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-02'),
+    NULL,
+    NULL
+  ) ->> 'code',
+  'INVALID_TRANSITION',
+  'submitted M1 rejects clearing an old item command'
+);
+SELECT is(
+  (SELECT m1_outcome::text FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-02'),
+  'completed',
+  'rejected post-M1 clear leaves the answer unchanged'
+);
+
+SELECT pg_temp.fill_m2((SELECT id FROM ws_uncheck_task));
+SELECT is(
+  public.workshop_confirm_m2_item(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+    (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-07'),
+    NULL::boolean
+  ) ->> 'code',
+  'INVALID_TRANSITION',
+  'M2 confirmation requires an explicit checked state'
+);
+SELECT ok(
+  (public.workshop_confirm_m2_item(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+    (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-07'),
+    false
+  )->>'ok')::boolean,
+  'confirmed M2 item can be unchecked'
+);
+SELECT is(
+  public.workshop_complete_m2(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+    'fp-v1',
+    true
+  ) ->> 'code',
+  'INCOMPLETE_CHECKLIST',
+  'unchecked required M2 confirmation blocks completion'
+);
+SELECT public.workshop_confirm_m2_item(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-07'),
+  true
+);
+SELECT public.workshop_complete_m2(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  'fp-v1',
+  true
+);
+SELECT is(
+  public.workshop_confirm_m2_item(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+    (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-07'),
+    false
+  ) ->> 'code',
+  'INVALID_TRANSITION',
+  'submitted M2 rejects unchecking an old confirmation command'
+);
+SELECT is(
+  (SELECT m2_confirmed FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'ROAD-07'),
+  true,
+  'rejected post-M2 uncheck leaves confirmation unchanged'
+);
+
+SELECT public.workshop_mark_picked_up(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task))
+);
+SELECT public.workshop_mark_returned(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task))
+);
+SELECT public.workshop_start_storage(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task))
+);
+SELECT pg_temp.fill_storage((SELECT id FROM ws_uncheck_task));
+SELECT public.workshop_set_item_outcome(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'STORAGE-02'),
+  NULL,
+  NULL
+);
+SELECT is(
+  public.workshop_complete_storage(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task))
+  ) ->> 'code',
+  'INCOMPLETE_CHECKLIST',
+  'cleared required storage answer blocks completion'
+);
+SELECT public.workshop_set_item_outcome(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+  (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'STORAGE-02'),
+  'not_applicable',
+  NULL
+);
+SELECT public.workshop_complete_storage(
+  (SELECT id FROM ws_uncheck_task),
+  (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task))
+);
+SELECT is(
+  public.workshop_set_item_outcome(
+    (SELECT id FROM ws_uncheck_task),
+    (SELECT version FROM public.bike_tasks WHERE id = (SELECT id FROM ws_uncheck_task)),
+    (SELECT id FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'STORAGE-02'),
+    NULL,
+    NULL
+  ) ->> 'code',
+  'INVALID_TRANSITION',
+  'submitted storage rejects clearing an old item command'
+);
+SELECT is(
+  (SELECT m1_outcome::text FROM public.bike_task_items WHERE task_id = (SELECT id FROM ws_uncheck_task) AND item_key = 'STORAGE-02'),
+  'not_applicable',
+  'rejected post-storage clear leaves the answer unchanged'
+);
+RESET ROLE;
+
 -- Empty M2 list: every designated item is valid N/A
 CREATE TEMP TABLE ws_empty_m2 AS
   SELECT pg_temp.make_task('workshop-road-bike', false, true, 'fp-v1') AS id;
@@ -1664,6 +1885,11 @@ SELECT is(
   public.workshop_confirm_m2_item((SELECT id FROM ws_partner_task), 1, gen_random_uuid()) ->> 'code',
   'FORBIDDEN',
   'partner confirm_m2_item → FORBIDDEN'
+);
+SELECT is(
+  public.workshop_confirm_m2_item((SELECT id FROM ws_partner_task), 1, gen_random_uuid(), false) ->> 'code',
+  'FORBIDDEN',
+  'partner unconfirm_m2_item → FORBIDDEN'
 );
 SELECT is(
   public.workshop_complete_m1((SELECT id FROM ws_partner_task), 1) ->> 'code',

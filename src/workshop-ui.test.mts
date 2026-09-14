@@ -365,6 +365,10 @@ test("task page I/O matrix: checklist stays clickable while item saves chain", (
     join(root, "src/app/workshop/_components/WorkshopTask.tsx"),
     "utf8",
   );
+  const actions = readFileSync(
+    join(root, "src/lib/workshop/actions/task-actions.ts"),
+    "utf8",
+  );
   const enqueueStart = task.indexOf("const enqueueItemCommand");
   const runStart = task.indexOf("const runCommand");
   assert.notEqual(enqueueStart, -1);
@@ -403,10 +407,26 @@ test("task page I/O matrix: checklist stays clickable while item saves chain", (
   // Rapid M2
   assert.match(
     task,
-    /enqueueItemCommand\(\s*itemId,\s*\{\s*m2Confirmed: true/,
+    /enqueueItemCommand\(\s*itemId,\s*\{\s*m2Confirmed: checked/,
   );
   assert.match(enqueue, /command\(taskVersionRef\.current\)/);
   assert.match(task, /confirmM2Item/);
+
+  // Selected M1/M2 answers toggle clear through the same serialized queue.
+  assert.match(task, /outcome: ChecklistItemOutcome \| null/);
+  assert.match(task, /onClear=\{\(itemId\) => setOutcome\(itemId, null\)\}/);
+  assert.match(task, /isDone \? onClear\(item\.itemId\) : onComplete\(item\.itemId\)/);
+  assert.match(task, /isNa\s+\? onClear\(item\.itemId\)\s+: onNotApplicable\(item\.itemId\)/);
+  assert.match(task, />\s*Clear\s*<\/Button>/);
+  assert.match(task, /aria-label=\{`Clear \$\{item\.label\} value`\}/);
+  assert.match(task, /aria-pressed=\{isDone\}/);
+  assert.equal([...task.matchAll(/aria-pressed=\{isNa\}/g)].length, 2);
+  assert.match(task, /aria-pressed=\{item\.m2Confirmed\}/);
+  assert.match(task, /onConfirm\(item\.itemId, !item\.m2Confirmed\)/);
+  assert.match(task, /\{ m2Confirmed: checked \}/);
+  assert.match(actions, /outcome: ChecklistItemOutcome \| null/);
+  assert.match(actions, /checked: boolean/);
+  assert.match(actions, /item_id: itemId,\s+checked,/);
 
   // Add-ons / same-person / PSI drafts survive item success
   assert.doesNotMatch(enqueue, /setAddonsAcknowledged/);
@@ -418,6 +438,7 @@ test("task page I/O matrix: checklist stays clickable while item saves chain", (
   assert.match(enqueue, /revertItemOverrideIfCurrent\(itemId, override\)/);
   assert.match(enqueue, /console\.error\("workshop:"/);
   assert.match(enqueue, /setCommandError/);
+  assert.match(enqueue, /savedItemStatesRef\.current\[itemId\]/);
 
   // Own-version race: stage waits for the item queue, then latest version
   assert.match(run, /await itemQueueRef\.current/);

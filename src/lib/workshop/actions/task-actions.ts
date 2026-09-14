@@ -34,7 +34,7 @@ export const setItemOutcome = withAuth(
     taskId: string,
     expectedVersion: number,
     itemId: string,
-    outcome: ChecklistItemOutcome,
+    outcome: ChecklistItemOutcome | null,
     psi: number | null = null,
   ): Promise<WorkshopCommandResult> =>
     callWorkshopCommand("workshop_set_item_outcome", {
@@ -53,11 +53,13 @@ export const confirmM2Item = withAuth(
     taskId: string,
     expectedVersion: number,
     itemId: string,
+    checked: boolean,
   ): Promise<WorkshopCommandResult> =>
     callWorkshopCommand("workshop_confirm_m2_item", {
       task_id: taskId,
       expected_version: expectedVersion,
       item_id: itemId,
+      checked,
     }),
 );
 
