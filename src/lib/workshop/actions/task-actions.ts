@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
 import { withAuth } from "@/src/utils/auth/with-auth";
@@ -148,9 +149,14 @@ export const completeStorage = withAuth(
     _user: User,
     taskId: string,
     expectedVersion: number,
-  ): Promise<WorkshopCommandResult> =>
-    callWorkshopCommand("workshop_complete_storage", {
+  ): Promise<WorkshopCommandResult> => {
+    const result = await callWorkshopCommand("workshop_complete_storage", {
       task_id: taskId,
       expected_version: expectedVersion,
-    }),
+    });
+    if (result.ok) {
+      revalidatePath("/workshop");
+    }
+    return result;
+  },
 );
