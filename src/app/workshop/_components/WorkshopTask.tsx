@@ -233,19 +233,17 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
   const namedActionLockRef = useRef(false);
   const itemEnqueueBlockedRef = useRef(false);
   const savedItemStatesRef = useRef(itemStates(serverItems));
-  const serverItemsRef = useRef(serverItems);
-  serverItemsRef.current = serverItems;
 
   useEffect(() => {
     taskIdRef.current = task.taskId;
-    taskVersionRef.current = task.version;
+    taskVersionRef.current = 0;
     queueGenerationRef.current += 1;
     itemQueueRef.current = Promise.resolve();
     itemSavesInFlightRef.current = 0;
     itemSuccessPendingRefreshRef.current = false;
     namedActionLockRef.current = false;
     itemEnqueueBlockedRef.current = false;
-    savedItemStatesRef.current = itemStates(serverItemsRef.current);
+    savedItemStatesRef.current = {};
     // Task identity is the source of truth for these optimistic item-save values.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setItemSavesInFlight(0);
@@ -257,12 +255,12 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
     if (task.version >= taskVersionRef.current) {
       taskVersionRef.current = task.version;
       itemEnqueueBlockedRef.current = false;
-      savedItemStatesRef.current = itemStates(serverItemsRef.current);
+      savedItemStatesRef.current = itemStates(serverItems);
       setItemOverrides((current) =>
         Object.keys(current).length === 0 ? current : {},
       );
     }
-  }, [task.version]);
+  }, [serverItems, task.version]);
 
   const revertItemOverrideIfCurrent = (
     itemId: string,
