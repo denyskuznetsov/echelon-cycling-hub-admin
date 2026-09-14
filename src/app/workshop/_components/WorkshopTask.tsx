@@ -92,6 +92,20 @@ function applyItemOverrides(
   });
 }
 
+function itemState(item: WorkshopTaskItem): ItemOverride {
+  return {
+    m1Outcome: item.m1Outcome,
+    m1Psi: item.m1Psi,
+    m2Confirmed: item.m2Confirmed,
+  };
+}
+
+function itemStates(items: WorkshopTaskItem[]): Record<string, ItemOverride> {
+  return Object.fromEntries(
+    items.map((item) => [item.itemId, itemState(item)]),
+  );
+}
+
 const TABLET_BADGE_CLASS = "h-7 [&_span]:!text-body [&_span]:!font-body";
 
 function taskCopyClass(tabletMode: boolean, bold = false): string {
@@ -218,16 +232,18 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
   const queueGenerationRef = useRef(0);
   const namedActionLockRef = useRef(false);
   const itemEnqueueBlockedRef = useRef(false);
+  const savedItemStatesRef = useRef(itemStates(serverItems));
 
   useEffect(() => {
     taskIdRef.current = task.taskId;
-    taskVersionRef.current = task.version;
+    taskVersionRef.current = 0;
     queueGenerationRef.current += 1;
     itemQueueRef.current = Promise.resolve();
     itemSavesInFlightRef.current = 0;
     itemSuccessPendingRefreshRef.current = false;
     namedActionLockRef.current = false;
     itemEnqueueBlockedRef.current = false;
+    savedItemStatesRef.current = {};
     // Task identity is the source of truth for these optimistic item-save values.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setItemSavesInFlight(0);
@@ -239,11 +255,12 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
     if (task.version >= taskVersionRef.current) {
       taskVersionRef.current = task.version;
       itemEnqueueBlockedRef.current = false;
+      savedItemStatesRef.current = itemStates(serverItems);
       setItemOverrides((current) =>
         Object.keys(current).length === 0 ? current : {},
       );
     }
-  }, [task.version]);
+  }, [serverItems, task.version]);
 
   const revertItemOverrideIfCurrent = (
     itemId: string,
@@ -259,9 +276,11 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
       ) {
         return current;
       }
-      const next = { ...current };
-      delete next[itemId];
-      return next;
+      const saved = savedItemStatesRef.current[itemId];
+      if (saved) return { ...current, [itemId]: saved };
+      const withoutItem = { ...current };
+      delete withoutItem[itemId];
+      return withoutItem;
     });
   };
 
@@ -321,6 +340,10 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
           taskVersionRef.current,
           result,
         );
+        savedItemStatesRef.current[itemId] = {
+          ...savedItemStatesRef.current[itemId],
+          ...override,
+        };
         itemSuccessPendingRefreshRef.current = true;
       } catch (error) {
         console.error("workshop:", error);
@@ -390,14 +413,22 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
 
   const setOutcome = (
     itemId: string,
-    outcome: ChecklistItemOutcome,
+    outcome: ChecklistItemOutcome | null,
     psi: number | null = null,
   ) => {
+    if (outcome == null) {
+      setPsiDrafts((current) => {
+        if (!(itemId in current)) return current;
+        const next = { ...current };
+        delete next[itemId];
+        return next;
+      });
+    }
     enqueueItemCommand(
       itemId,
       {
         m1Outcome: outcome,
-        m1Psi: outcome === "not_applicable" ? null : psi,
+        m1Psi: outcome === "completed" ? psi : null,
       },
       (expectedVersion) =>
         workshopActions.setItemOutcome(
@@ -575,6 +606,7 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
                 onNotApplicable={(itemId) =>
                   setOutcome(itemId, "not_applicable")
                 }
+                onClear={(itemId) => setOutcome(itemId, null)}
                 onSetPsi={(itemId, psi) =>
                   setOutcome(itemId, "completed", psi)
                 }
@@ -614,15 +646,16 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
                 items={m2Items}
                 disabled={shouldLockChecklistForPending(isPending)}
                 tabletMode={tabletMode}
-                onConfirm={(itemId) =>
+                onConfirm={(itemId, checked) =>
                   enqueueItemCommand(
                     itemId,
-                    { m2Confirmed: true },
+                    { m2Confirmed: checked },
                     (expectedVersion) =>
                       workshopActions.confirmM2Item(
                         task.taskId,
                         expectedVersion,
                         itemId,
+                        checked,
                       ),
                   )
                 }
@@ -740,6 +773,7 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
                 onNotApplicable={(itemId) =>
                   setOutcome(itemId, "not_applicable")
                 }
+                onClear={(itemId) => setOutcome(itemId, null)}
                 onSetPsi={(itemId, psi) =>
                   setOutcome(itemId, "completed", psi)
                 }
@@ -940,6 +974,7 @@ function ChecklistItems({
   onPsiDraftChange,
   onComplete,
   onNotApplicable,
+  onClear,
   onSetPsi,
 }: {
   items: WorkshopTaskItem[];
@@ -949,6 +984,7 @@ function ChecklistItems({
   onPsiDraftChange: (itemId: string, value: string) => void;
   onComplete: (itemId: string) => void;
   onNotApplicable: (itemId: string) => void;
+  onClear: (itemId: string) => void;
   onSetPsi: (itemId: string, psi: number) => void;
 }) {
   const firstPsiId = items.find(
@@ -962,7 +998,6 @@ function ChecklistItems({
       {items.map((item) => {
         const isDone = item.m1Outcome === "completed";
         const isNa = item.m1Outcome === "not_applicable";
-        const hasOutcome = isDone || isNa;
         const doneChrome = isDone
           ? "border-brand-600 bg-brand-50"
           : "border-neutral-border";
@@ -1034,12 +1069,28 @@ function ChecklistItems({
                 >
                   Set
                 </Button>
+                {isDone ? (
+                  <Button
+                    size={buttonSize}
+                    variant="neutral-tertiary"
+                    aria-label={`Clear ${item.label} value`}
+                    disabled={disabled}
+                    onClick={() => onClear(item.itemId)}
+                  >
+                    Clear
+                  </Button>
+                ) : null}
                 {item.naAllowed ? (
                   <Button
                     size={buttonSize}
                     variant="neutral-tertiary"
-                    disabled={disabled || hasOutcome}
-                    onClick={() => onNotApplicable(item.itemId)}
+                    aria-pressed={isNa}
+                    disabled={disabled || isDone}
+                    onClick={() =>
+                      isNa
+                        ? onClear(item.itemId)
+                        : onNotApplicable(item.itemId)
+                    }
                   >
                     N/A
                   </Button>
@@ -1056,8 +1107,11 @@ function ChecklistItems({
           >
             <button
               type="button"
-              disabled={disabled || hasOutcome}
-              onClick={() => onComplete(item.itemId)}
+              aria-pressed={isDone}
+              disabled={disabled || isNa}
+              onClick={() =>
+                isDone ? onClear(item.itemId) : onComplete(item.itemId)
+              }
               className="flex min-w-0 grow items-center gap-3 px-4 py-3 text-left disabled:cursor-default"
             >
               {isDone ? (
@@ -1074,8 +1128,11 @@ function ChecklistItems({
             {item.naAllowed ? (
               <button
                 type="button"
-                disabled={disabled || hasOutcome}
-                onClick={() => onNotApplicable(item.itemId)}
+                aria-pressed={isNa}
+                disabled={disabled || isDone}
+                onClick={() =>
+                  isNa ? onClear(item.itemId) : onNotApplicable(item.itemId)
+                }
                 className={
                   isNa
                     ? `flex flex-none items-center border-l border-solid border-neutral-border bg-brand-100 px-4 ${taskCopyClass(tabletMode, true)} text-brand-800 disabled:cursor-default`
@@ -1101,7 +1158,7 @@ function M2Checklist({
   items: WorkshopTaskItem[];
   disabled: boolean;
   tabletMode: boolean;
-  onConfirm: (itemId: string) => void;
+  onConfirm: (itemId: string, checked: boolean) => void;
 }) {
   const rowMinH = tabletMode ? "min-h-16" : "min-h-12";
   return (
@@ -1112,8 +1169,9 @@ function M2Checklist({
           <button
             key={item.itemId}
             type="button"
-            disabled={disabled || item.m2Confirmed}
-            onClick={() => onConfirm(item.itemId)}
+            aria-pressed={item.m2Confirmed}
+            disabled={disabled}
+            onClick={() => onConfirm(item.itemId, !item.m2Confirmed)}
             className={
               item.m2Confirmed
                 ? `flex h-full ${rowMinH} min-w-0 w-full items-center gap-3 rounded-md border border-solid border-brand-600 bg-brand-50 px-4 py-3 text-left disabled:cursor-default`
