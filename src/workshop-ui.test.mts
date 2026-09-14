@@ -873,6 +873,10 @@ test("task page: not-found vs error vs cancelled tombstone and named actions", (
     join(root, "src/app/workshop/_components/WorkshopTask.tsx"),
     "utf8",
   );
+  const actions = readFileSync(
+    join(root, "src/lib/workshop/actions/task-actions.ts"),
+    "utf8",
+  );
   assert.match(page, /notFound\(\)/);
   assert.match(page, /Couldn't load this task/);
   assert.doesNotMatch(page, /fallback=\{null\}/);
@@ -885,6 +889,11 @@ test("task page: not-found vs error vs cancelled tombstone and named actions", (
   assert.match(task, /markPickedUp/);
   assert.match(task, /markReturned/);
   assert.match(task, /completeStorage/);
+  assert.match(
+    task,
+    /"completeStorage",\s*\(\) => router\.replace\("\/workshop"\)/,
+  );
+  assert.match(actions, /if \(result\.ok\) \{\s*revalidatePath\("\/workshop"\)/);
   assert.match(task, /STALE_VERSION/);
   assert.match(task, /CONFIGURATION_BLOCKED|hasConfigurationWarning/);
   assert.match(task, /Start preparation is blocked until the Booqable product tag is corrected/);
