@@ -339,6 +339,7 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
   const runCommand = (
     fn: () => Promise<WorkshopCommandResult | WorkshopSyncResult>,
     namedAction?: WorkshopNamedAction,
+    onSuccess?: () => void,
   ) => {
     if (isPending || namedActionLockRef.current) return;
     const commandTaskId = task.taskId;
@@ -367,7 +368,11 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
         setAddonsAcknowledged(false);
         setSamePersonConfirmed(false);
         setPsiDrafts({});
-        router.refresh();
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          router.refresh();
+        }
       } catch (error) {
         console.error("workshop:", error);
         const message =
@@ -752,6 +757,7 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
                           taskVersionRef.current,
                         ),
                       "completeStorage",
+                      () => router.replace("/workshop"),
                     )
                   }
                 >
