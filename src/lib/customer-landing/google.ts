@@ -112,12 +112,24 @@ async function accessToken(
   }
   const payload = await readJson(res);
   if (!res.ok) {
-    console.error(LOG_PREFIX, res.status, payload);
+    const oauthError =
+      isRecord(payload) &&
+      typeof payload.error === "string" &&
+      /^[a-z_]{1,64}$/.test(payload.error)
+        ? payload.error
+        : null;
+    // Log the error code, never an OAuth response that could contain credentials.
+    console.error(LOG_PREFIX, "token refresh failed", res.status, oauthError);
+    let detail = `Could not refresh the access token (${res.status}${oauthError ? `, ${oauthError}` : ""}). Ask an administrator to check the Google OAuth configuration.`;
+    if (res.status === 429 || res.status >= 500) {
+      detail = `Google's token service is temporarily unavailable (${res.status}). Try again later.`;
+    } else if (oauthError === "invalid_grant") {
+      detail = "Google authorization expired or was revoked (invalid_grant). Ask an administrator to check the OAuth app's publishing status and reconnect the Google account. Testing authorizations expire after seven days.";
+    } else if (oauthError === "invalid_client" || oauthError === "unauthorized_client") {
+      detail = `Google rejected the app's OAuth client credentials (${oauthError}). Ask an administrator to check the configured client ID and client secret.`;
+    }
     return {
-      error: destNextAction(
-        "Google Contacts",
-        `refresh token was rejected (${res.status}). Re-authorize the Google account.`,
-      ),
+      error: destNextAction("Google Contacts", detail),
     };
   }
   const token =
