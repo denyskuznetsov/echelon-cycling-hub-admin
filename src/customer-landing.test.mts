@@ -483,6 +483,71 @@ function googleEnv() {
   };
 }
 
+test("Google token failures identify the recovery action and never call People API", async (t) => {
+  const log = t.mock.method(console, "error", () => {});
+  const cases = [
+    { status: 400, error: "invalid_grant", expected: /expired or was revoked.*publishing status.*seven days/ },
+    { status: 401, error: "invalid_client", expected: /client credentials.*client ID and client secret/ },
+    { status: 400, error: "unauthorized_client", expected: /client credentials.*client ID and client secret/ },
+    { status: 429, error: "rate_limit_exceeded", expected: /temporarily unavailable.*Try again later/ },
+    { status: 503, error: "temporarily_unavailable", expected: /temporarily unavailable.*Try again later/ },
+    { status: 400, error: "invalid_request", expected: /400, invalid_request.*check the Google OAuth configuration/ },
+    { status: 400, error: "unexpected provider text", expected: /\(400\).*check the Google OAuth configuration/ },
+  ];
+  for (const scenario of cases) {
+    const calls: string[] = [];
+    const result = await writeGoogleContact(
+      { passport: passport(), storedId: "people/c-stored" },
+      googleEnv(),
+      async (url) => {
+        calls.push(String(url));
+        return jsonResponse(scenario.status, {
+          error: scenario.error,
+          error_description: "untrusted provider detail",
+          access_token: "must-not-be-logged",
+        });
+      },
+    );
+    assert.equal(result.ok, false);
+    if (result.ok) throw new Error("expected token failure");
+    assert.equal(result.destId, "people/c-stored");
+    assert.match(result.error, scenario.expected);
+    assert.match(result.error, /Save the customer in Booqable again/);
+    assert.doesNotMatch(result.error, /untrusted provider detail|must-not-be-logged/);
+    assert.deepEqual(calls, ["https://oauth2.googleapis.com/token"]);
+  }
+  assert.doesNotMatch(JSON.stringify(log.mock.calls), /untrusted provider detail|must-not-be-logged/);
+});
+
+test("Google automatically obtains a new access token for each contact write", async () => {
+  let refreshes = 0;
+  const fetchImpl: typeof fetch = async (url, init) => {
+    const href = String(url);
+    if (href === "https://oauth2.googleapis.com/token") {
+      assert.equal(init?.method, "POST");
+      assert.deepEqual(Object.fromEntries(new URLSearchParams(String(init?.body))), {
+        client_id: "id",
+        client_secret: "secret",
+        refresh_token: "refresh",
+        grant_type: "refresh_token",
+      });
+      refreshes += 1;
+      return jsonResponse(200, { access_token: `token-${refreshes}` });
+    }
+    assert.equal(new Headers(init?.headers).get("Authorization"), `Bearer token-${refreshes}`);
+    return jsonResponse(200, { resourceName: "people/c-stored", etag: "etag-1" });
+  };
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const result = await writeGoogleContact(
+      { passport: passport(), storedId: "people/c-stored" },
+      googleEnv(),
+      fetchImpl,
+    );
+    assert.deepEqual(result, { ok: true, destId: "people/c-stored" });
+  }
+  assert.equal(refreshes, 2);
+});
+
 test("first Google land creates when search finds nothing and updates a search hit", async () => {
   const created: string[] = [];
   const createdWhenEmpty = await writeGoogleContact(
