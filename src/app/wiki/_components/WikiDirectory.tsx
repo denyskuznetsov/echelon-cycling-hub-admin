@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   FeatherEdit2,
@@ -16,7 +16,7 @@ import { Button } from "@/ui/components/Button";
 import { DropdownMenu } from "@/ui/components/DropdownMenu";
 import { IconButton } from "@/ui/components/IconButton";
 import { Select } from "@/ui/components/Select";
-import { TextField } from "@/ui/components/TextField";
+import { SearchField } from "@/src/components/SearchField";
 import { TablePagination } from "@/src/components/TablePagination";
 import {
   createWikiDocument,
@@ -42,8 +42,6 @@ interface WikiDirectoryProps {
   status: WikiStatusFilter;
   canManage: boolean;
 }
-
-const SEARCH_DEBOUNCE_MS = 300;
 
 function formatUpdated(iso: string): string {
   return new Date(iso).toLocaleDateString("en-GB", {
@@ -78,17 +76,12 @@ export function WikiDirectory({
   const router = useRouter();
   const pathname = usePathname();
 
-  const [search, setSearch] = useState(query);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, startCreating] = useTransition();
   const [deleteTarget, setDeleteTarget] = useState<WikiDocument | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleting] = useTransition();
   const [editCategoryOpen, setEditCategoryOpen] = useState(false);
-
-  useEffect(() => {
-    setSearch(query);
-  }, [query]);
 
   const buildHref = (
     nextQuery: string,
@@ -103,17 +96,6 @@ export function WikiDirectory({
     const queryString = params.toString();
     return queryString ? `${pathname}?${queryString}` : pathname;
   };
-
-  useEffect(() => {
-    if (search === query) return;
-
-    const handle = setTimeout(() => {
-      router.push(buildHref(search, 1, status));
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, query, status, pathname, router]);
 
   const handleCreate = () => {
     if (isCreating) return;
@@ -187,19 +169,14 @@ export function WikiDirectory({
           {categoryName}
         </span>
         <div className="flex items-center gap-2 mobile:w-full">
-          <TextField
-            className="mobile:grow mobile:shrink mobile:basis-0"
-            label=""
-            helpText=""
-          >
-            <TextField.Input
-              placeholder="Search by title or content"
-              value={search}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                setSearch(event.target.value)
-              }
-            />
-          </TextField>
+          <SearchField
+            className="flex grow shrink basis-0 items-center gap-2"
+            inputClassName="grow shrink basis-0"
+            query={query}
+            urlState={`${query}:${currentPage}:${status}`}
+            placeholder="Search by title or content"
+            onSubmit={(nextQuery) => router.push(buildHref(nextQuery, 1, status))}
+          />
           {canManage ? (
             <Select
               className="w-40 flex-none"
