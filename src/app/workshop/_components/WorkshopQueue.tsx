@@ -10,7 +10,7 @@ import { Loader } from "@/ui/components/Loader";
 import { Select } from "@/ui/components/Select";
 import { Table } from "@/ui/components/Table";
 import { Tabs } from "@/ui/components/Tabs";
-import { TextField } from "@/ui/components/TextField";
+import { SearchField } from "@/src/components/SearchField";
 import { TablePagination } from "@/src/components/TablePagination";
 import * as workshopActions from "@/src/lib/workshop/actions";
 import type { WorkshopSyncHealth } from "@/src/lib/workshop/data";
@@ -54,15 +54,15 @@ interface WorkshopQueueProps {
   health: WorkshopSyncHealth;
 }
 
-const SEARCH_DEBOUNCE_MS = 300;
 /** Overrides Subframe Cell `h-12` (48px) for workshop touch screens. */
 const QUEUE_CELL_CLASS = "!h-16";
 const QUEUE_HEADER_CELL_CLASS =
   "[&_span]:!text-body-bold [&_span]:!font-body-bold";
 const QUEUE_BADGE_CLASS = "h-7 [&_span]:!text-body [&_span]:!font-body";
 const QUEUE_TAB_CLASS = "[&_span]:!text-heading-3 [&_span]:!font-heading-3";
-const QUEUE_SEARCH_CLASS =
-  "w-full max-w-md [&>div]:h-10 [&_input]:text-heading-3 [&_input]:font-heading-3";
+const QUEUE_SEARCH_CLASS = "w-full max-w-md";
+const QUEUE_SEARCH_INPUT_CLASS =
+  "grow shrink basis-0 [&>div]:h-10 [&_input]:text-heading-3 [&_input]:font-heading-3";
 const QUEUE_SELECT_CLASS = "w-full [&_span]:text-heading-3 [&_span]:font-heading-3";
 
 function queueCopyClass(tabletMode: boolean, bold = false): string {
@@ -153,8 +153,6 @@ export function WorkshopQueue({
   const pathname = usePathname();
   const { tabletMode } = useWorkshopTabletMode();
   const buttonSize = tabletMode ? "large" : "medium";
-  const [search, setSearch] = useState(query);
-  const [prevQuery, setPrevQuery] = useState(query);
   const [isQueueNavigationPending, startQueueNavigationTransition] =
     useTransition();
   const [isSyncPending, startSyncTransition] = useTransition();
@@ -163,11 +161,6 @@ export function WorkshopQueue({
     error: string;
   } | null>(null);
   const [pendingScope, setPendingScope] = useState<ManualSyncScope | null>(null);
-  if (query !== prevQuery) {
-    setPrevQuery(query);
-    setSearch(query);
-  }
-
   const syncInFlight = shouldBlockQueueNavigation(isSyncPending, health);
   const overlayListed = workshopSyncOverlayListed(health);
 
@@ -225,17 +218,6 @@ export function WorkshopQueue({
       router.push(buildHref(nextQuery, nextPage, nextFilter, nextStatus));
     });
   };
-
-  useEffect(() => {
-    if (search === query) return;
-
-    const handle = setTimeout(() => {
-      pushQueue(search, 1, filter, status);
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, query, filter, status, pathname, router]);
 
   const syncStatusLabel = (() => {
     if (isLiveQueueSyncInProgress(health)) return "Sync in progress";
@@ -413,22 +395,22 @@ export function WorkshopQueue({
           ))}
         </Tabs>
 
-        <TextField
-          className={
-            tabletMode ? QUEUE_SEARCH_CLASS : "w-full max-w-md [&>div]:h-10"
+        <SearchField
+          className={`flex items-center gap-2 ${QUEUE_SEARCH_CLASS}`}
+          inputClassName={
+            tabletMode
+              ? QUEUE_SEARCH_INPUT_CLASS
+              : "grow shrink basis-0 [&>div]:h-10"
           }
-          label=""
-          helpText=""
+          query={query}
+          urlState={`${query}:${currentPage}:${filter}:${status ?? ""}`}
+          placeholder="Search by bike, title, order #, or customer"
+          ariaLabel="Search workshop tasks"
           icon={<FeatherSearch />}
-        >
-          <TextField.Input
-            placeholder="Search by bike, title, order #, or customer"
-            value={search}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearch(event.target.value)
-            }
-          />
-        </TextField>
+          disabled={syncInFlight}
+          buttonSize={buttonSize}
+          onSubmit={(nextQuery) => pushQueue(nextQuery, 1, filter, status)}
+        />
 
         <div className="flex w-full flex-col items-start gap-6 overflow-hidden overflow-x-auto mobile:overflow-auto mobile:max-w-full">
           {isQueueNavigationPending ? (

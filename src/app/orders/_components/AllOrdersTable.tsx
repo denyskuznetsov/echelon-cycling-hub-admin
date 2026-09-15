@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar } from "@/ui/components/Avatar";
 import { Select } from "@/ui/components/Select";
 import { Table } from "@/ui/components/Table";
-import { TextField } from "@/ui/components/TextField";
+import { SearchField } from "@/src/components/SearchField";
 import {
   formatCentsToEuros,
   formatRentalPeriod,
@@ -25,8 +25,6 @@ interface AllOrdersTableProps {
   timeframe: BookingsTimeframe;
 }
 
-const SEARCH_DEBOUNCE_MS = 300;
-
 function buildPartnerHref(partnerSlug: string): string {
   const trimmed = partnerSlug.startsWith("/")
     ? partnerSlug.slice(1)
@@ -44,12 +42,6 @@ export function AllOrdersTable({
   const router = useRouter();
   const pathname = usePathname();
   const openOrderDetails = useOpenOrderDetails();
-  const [search, setSearch] = useState(query);
-
-  useEffect(() => {
-    setSearch(query);
-  }, [query]);
-
   useEffect(() => {
     const supabase = createClient();
     const channel = supabase
@@ -83,17 +75,6 @@ export function AllOrdersTable({
     return queryString ? `${pathname}?${queryString}` : pathname;
   };
 
-  useEffect(() => {
-    if (search === query) return;
-
-    const handle = setTimeout(() => {
-      router.push(buildHref(search, 1, timeframe));
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, query, timeframe, pathname, router]);
-
   const handleTimeframeChange = (newTimeframe: string) => {
     const next = (
       newTimeframe === "week" || newTimeframe === "month"
@@ -111,19 +92,14 @@ export function AllOrdersTable({
           All Bookings
         </span>
         <div className="flex items-center gap-2 mobile:w-full">
-          <TextField
-            className="mobile:grow mobile:shrink mobile:basis-0"
-            label=""
-            helpText=""
-          >
-            <TextField.Input
-              placeholder="Search by order #, name, or email"
-              value={search}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                setSearch(event.target.value)
-              }
-            />
-          </TextField>
+          <SearchField
+            className="flex grow shrink basis-0 items-center gap-2"
+            inputClassName="grow shrink basis-0"
+            query={query}
+            urlState={`${query}:${currentPage}:${timeframe}`}
+            placeholder="Search by order #, name, or email"
+            onSubmit={(nextQuery) => router.push(buildHref(nextQuery, 1, timeframe))}
+          />
           <Select
             className="w-40 flex-none"
             value={timeframe}

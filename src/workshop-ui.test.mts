@@ -844,7 +844,8 @@ test("queue refreshes use a table-local transition skeleton, separate from sync"
   assert.match(queue, /shouldBlockQueueNavigation\(isSyncPending, health\)/);
   assert.match(queue, /isQueueNavigationPending \? \(\s*<WorkshopTaskTableSkeleton \/>\s*\)/s);
   assert.match(queue, /syncInFlight \? \(\s*<WorkshopQueueSyncOverlay/s);
-  assert.match(queue, /pushQueue\(search, 1, filter, status\)/);
+  assert.match(queue, /<SearchField/);
+  assert.match(queue, /onSubmit=\{\(nextQuery\) => pushQueue\(nextQuery, 1, filter, status\)\}/);
   assert.match(
     queue,
     /onValueChange=\{\(value\) => \{\s*pushQueue\(query, 1, filter, statusFromQueueSelectValue\(value\)\);/s,
