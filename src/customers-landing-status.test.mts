@@ -41,15 +41,15 @@ test("directory starts at customer_directory and searches all contact identifier
   assert.match(page, /queryParam\.trim\(\)/);
 });
 
-test("directory table keeps URL state, debounces search, opens customer drawer, and replaces stale rows", () => {
+test("directory table keeps URL state, explicitly submits search, opens customer drawer, and replaces stale rows", () => {
   const table = readSrc("app/customers/_components/CustomersLandingTable.tsx");
-  assert.match(table, /SEARCH_DEBOUNCE_MS = 300/);
+  assert.match(table, /SearchField/);
+  assert.match(table, /onSubmit=\{\(nextQuery\) =>/);
   assert.match(table, /useTransition/);
-  assert.match(table, /startTransition\(\(\) => router\.push\(buildHref\(search, 1\)\)\)/);
+  assert.match(table, /startTransition\(\(\) => router\.push\(buildHref\(nextQuery, 1\)\)\)/);
   assert.match(table, /startTransition\(\(\) => router\.push\(buildHref\(query, page\)\)\)/);
   assert.match(table, /params\.set\("customer", customerId\)/);
-  assert.match(table, /aria-label="Search customers"/);
-  assert.match(table, /event\.key === "Enter"/);
+  assert.match(table, /ariaLabel="Search customers"/);
   assert.match(table, /<CustomersLandingTableSkeleton \/>/);
   assert.match(table, /HeaderCell>Name<\/Table.HeaderCell>\s*<Table.HeaderCell>Email<\/Table.HeaderCell>\s*<Table.HeaderCell>Phone<\/Table.HeaderCell>\s*<Table.HeaderCell>Birthday<\/Table.HeaderCell>/);
   assert.doesNotMatch(table, /customer_sync_list|HeaderCell>Google|HeaderCell>Holded|HeaderCell>Mailchimp/);

@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Table } from "@/ui/components/Table";
-import { TextField } from "@/ui/components/TextField";
+import { SearchField } from "@/src/components/SearchField";
 import { TablePagination } from "@/src/components/TablePagination";
 import type { CustomerDirectoryRow } from "@/src/lib/customers";
 import { CustomersLandingTableSkeleton } from "./CustomersLandingTableSkeleton";
@@ -15,8 +15,6 @@ interface CustomersLandingTableProps {
   query: string;
 }
 
-const SEARCH_DEBOUNCE_MS = 300;
-
 export function CustomersLandingTable({
   customers,
   currentPage,
@@ -26,12 +24,7 @@ export function CustomersLandingTable({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const [search, setSearch] = useState(query);
   const [isPending, startTransition] = useTransition();
-
-  useEffect(() => {
-    setSearch(query);
-  }, [query]);
 
   const buildHref = (nextQuery: string, nextPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -50,17 +43,6 @@ export function CustomersLandingTable({
     return queryString ? `${pathname}?${queryString}` : pathname;
   };
 
-  useEffect(() => {
-    if (search === query) return;
-
-    const handle = setTimeout(() => {
-      startTransition(() => router.push(buildHref(search, 1)));
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, query, pathname, router, searchParams]);
-
   const openCustomer = (customerId: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("customer", customerId);
@@ -70,17 +52,16 @@ export function CustomersLandingTable({
   return (
     <div className="flex w-full flex-col items-start gap-6">
       <div className="flex w-full items-center justify-end gap-2">
-        <TextField label="" helpText="">
-          <TextField.Input
-            placeholder="Search by name, email, or phone"
-            aria-label="Search customers"
-            type="search"
-            value={search}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearch(event.target.value)
-            }
-          />
-        </TextField>
+        <SearchField
+          className="w-full max-w-md"
+          inputClassName="grow shrink basis-0"
+          query={query}
+          placeholder="Search by name, email, or phone"
+          ariaLabel="Search customers"
+          onSubmit={(nextQuery) =>
+            startTransition(() => router.push(buildHref(nextQuery, 1)))
+          }
+        />
       </div>
       <div className="flex w-full flex-col items-start gap-6 overflow-hidden overflow-x-auto mobile:overflow-auto mobile:max-w-full">
         {isPending ? (

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import * as SubframeCore from "@subframe/core";
 import {
@@ -13,7 +13,7 @@ import { CopyToClipboardButton } from "@/ui/components/CopyToClipboardButton";
 import { IconButton } from "@/ui/components/IconButton";
 import { Select } from "@/ui/components/Select";
 import { Table } from "@/ui/components/Table";
-import { TextField } from "@/ui/components/TextField";
+import { SearchField } from "@/src/components/SearchField";
 import { Tooltip } from "@/ui/components/Tooltip";
 import { TablePagination } from "@/src/components/TablePagination";
 import { deleteMarketingLink } from "@/src/lib/marketing-links-actions";
@@ -32,8 +32,6 @@ interface MarketingLinksTableProps {
   assignment: string;
 }
 
-const SEARCH_DEBOUNCE_MS = 300;
-
 export function MarketingLinksTable({
   links,
   partners,
@@ -45,15 +43,10 @@ export function MarketingLinksTable({
   const router = useRouter();
   const pathname = usePathname();
 
-  const [search, setSearch] = useState(query);
   const [qrTarget, setQrTarget] = useState<MarketingLinkRow | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<MarketingLinkRow | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [isDeleting, startDeleting] = useTransition();
-
-  useEffect(() => {
-    setSearch(query);
-  }, [query]);
 
   const buildHref = (
     nextQuery: string,
@@ -68,15 +61,6 @@ export function MarketingLinksTable({
     const qs = params.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   };
-
-  useEffect(() => {
-    if (search === query) return;
-    const handle = setTimeout(() => {
-      router.push(buildHref(search, 1, assignment));
-    }, SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(handle);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, query, assignment, pathname, router]);
 
   const handleAssignmentChange = (value: string) => {
     if (value === assignment) return;
@@ -107,19 +91,13 @@ export function MarketingLinksTable({
             All Links
           </span>
           <div className="flex items-center gap-2 mobile:w-full">
-            <TextField
-              className="mobile:grow mobile:shrink mobile:basis-0"
-              label=""
-              helpText=""
-            >
-              <TextField.Input
-                placeholder="Search by title or URL"
-                value={search}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-                  setSearch(event.target.value)
-                }
-              />
-            </TextField>
+            <SearchField
+              className="flex grow shrink basis-0 items-center gap-2"
+              inputClassName="grow shrink basis-0"
+              query={query}
+              placeholder="Search by title or URL"
+              onSubmit={(nextQuery) => router.push(buildHref(nextQuery, 1, assignment))}
+            />
             <Select
               className="w-48 flex-none"
               value={assignmentSelectValue}

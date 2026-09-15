@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { FeatherPlus, FeatherSearch, FeatherX } from "@subframe/core";
 import { Button } from "@/ui/components/Button";
-import { TextField } from "@/ui/components/TextField";
+import { SearchField } from "@/src/components/SearchField";
 import { createWikiDocument } from "@/src/lib/wiki/actions/wiki-actions";
 import type { WikiCategory, WikiDocument } from "@/src/lib/wiki/types/records";
 import { WikiCategoryFormDialog } from "./WikiCategoryFormDialog";
@@ -22,8 +22,6 @@ interface WikiHomeProps {
   searchError: string | null;
 }
 
-const SEARCH_DEBOUNCE_MS = 300;
-
 export function WikiHome({
   categories,
   uncategorizedCount,
@@ -35,31 +33,9 @@ export function WikiHome({
   searchError,
 }: WikiHomeProps) {
   const router = useRouter();
-  const [search, setSearch] = useState(query);
   const [createCategoryOpen, setCreateCategoryOpen] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
   const [isCreating, startCreating] = useTransition();
-
-  useEffect(() => {
-    setSearch(query);
-  }, [query]);
-
-  useEffect(() => {
-    if (search === query) return;
-
-    const handle = setTimeout(() => {
-      const trimmed = search.trim();
-      if (!trimmed) {
-        router.push("/wiki");
-        return;
-      }
-      const params = new URLSearchParams();
-      params.set("query", trimmed);
-      router.push(`/wiki?${params.toString()}`);
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => clearTimeout(handle);
-  }, [search, query, router]);
 
   const handleCreateDocument = () => {
     if (isCreating) return;
@@ -118,21 +94,23 @@ export function WikiHome({
           ) : null}
         </div>
 
-        <TextField className="w-full max-w-xl" label="" helpText="">
-          <TextField.Input
-            placeholder="Search for articles…"
-            value={search}
-            onChange={(event: React.ChangeEvent<HTMLInputElement>) =>
-              setSearch(event.target.value)
-            }
-          />
-        </TextField>
+        <SearchField
+          className="flex w-full max-w-xl items-center gap-2"
+          inputClassName="grow shrink basis-0"
+          query={query}
+          placeholder="Search for articles…"
+          onSubmit={(nextQuery) => {
+            const params = new URLSearchParams();
+            if (nextQuery) params.set("query", nextQuery);
+            const queryString = params.toString();
+            router.push(queryString ? `/wiki?${queryString}` : "/wiki");
+          }}
+        />
         {query.trim() ? (
           <button
             type="button"
             className="inline-flex items-center gap-1 text-caption font-caption text-brand-700 hover:underline"
             onClick={() => {
-              setSearch("");
               router.push("/wiki");
             }}
           >
