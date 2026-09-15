@@ -96,6 +96,7 @@ export function AllOrdersTable({
             className="flex grow shrink basis-0 items-center gap-2"
             inputClassName="grow shrink basis-0"
             query={query}
+            urlState={`${query}:${currentPage}:${timeframe}`}
             placeholder="Search by order #, name, or email"
             onSubmit={(nextQuery) => router.push(buildHref(nextQuery, 1, timeframe))}
           />

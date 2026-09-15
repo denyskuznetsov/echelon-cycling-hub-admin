@@ -6,6 +6,7 @@ import { TextField } from "@/ui/components/TextField";
 import {
   createSearchFieldState,
   editSearchField,
+  isSearchFieldCompositionEvent,
   reconcileSearchField,
   submitSearchField,
   type SearchFieldState,
@@ -13,6 +14,7 @@ import {
 
 interface SearchFieldProps {
   query: string;
+  urlState: string;
   placeholder: string;
   onSubmit: (query: string) => void;
   ariaLabel?: string;
@@ -25,6 +27,7 @@ interface SearchFieldProps {
 
 export function SearchField({
   query,
+  urlState,
   placeholder,
   onSubmit,
   ariaLabel = "Search",
@@ -40,6 +43,7 @@ export function SearchField({
   const isHistoryNavigationRef = useRef(false);
 
   const updateState = (next: SearchFieldState) => {
+    if (next === stateRef.current) return;
     stateRef.current = next;
     setState(next);
   };
@@ -51,7 +55,7 @@ export function SearchField({
       }),
     );
     isHistoryNavigationRef.current = false;
-  }, [query]);
+  }, [query, urlState]);
 
   useEffect(() => {
     const markHistoryNavigation = () => {
@@ -65,7 +69,11 @@ export function SearchField({
     event.preventDefault();
     const result = submitSearchField(stateRef.current, {
       disabled,
-      isComposing: isComposingRef.current,
+      isComposing:
+        isComposingRef.current ||
+        isSearchFieldCompositionEvent(
+          event.nativeEvent as { isComposing?: boolean; keyCode?: number },
+        ),
     });
     updateState(result.state);
     if (result.query !== null) onSubmit(result.query);
@@ -73,7 +81,7 @@ export function SearchField({
 
   return (
     <form
-      className={["flex min-w-0 items-center gap-2", className]
+      className={["flex w-full min-w-0 flex-wrap items-center gap-2", className]
         .filter(Boolean)
         .join(" ")}
       onSubmit={handleSubmit}
@@ -81,7 +89,7 @@ export function SearchField({
       aria-label={`${ariaLabel} form`}
     >
       <TextField
-        className={["min-w-0", inputClassName].filter(Boolean).join(" ")}
+        className={["min-w-[12rem] grow", inputClassName].filter(Boolean).join(" ")}
         label=""
         helpText=""
         icon={icon}
@@ -103,13 +111,17 @@ export function SearchField({
             isComposingRef.current = false;
           }}
           onKeyDown={(event) => {
-            if (event.key === "Enter" && isComposingRef.current) {
+            if (
+              event.key === "Enter" &&
+              (isComposingRef.current ||
+                isSearchFieldCompositionEvent(event.nativeEvent))
+            ) {
               event.preventDefault();
             }
           }}
         />
       </TextField>
-      <Button type="submit" size={buttonSize} disabled={disabled}>
+      <Button className="flex-none" type="submit" size={buttonSize} disabled={disabled}>
         Search
       </Button>
     </form>

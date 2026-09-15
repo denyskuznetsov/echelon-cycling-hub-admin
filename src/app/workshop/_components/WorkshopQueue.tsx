@@ -403,6 +403,7 @@ export function WorkshopQueue({
               : "grow shrink basis-0 [&>div]:h-10"
           }
           query={query}
+          urlState={`${query}:${currentPage}:${filter}:${status ?? ""}`}
           placeholder="Search by bike, title, order #, or customer"
           ariaLabel="Search workshop tasks"
           icon={<FeatherSearch />}

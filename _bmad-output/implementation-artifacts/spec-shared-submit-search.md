@@ -115,3 +115,32 @@ Approved on 2026-09-15. The user explicitly deferred implementation to a new ses
 
 - Retains existing Workshop navigation and customer transition coverage after the migration.
   [`workshop-ui.test.mts:844`](../../src/workshop-ui.test.mts#L844)
+
+## Suggested Review Order
+
+**Shared interaction contract**
+
+- Separates draft input from applied URL state and preserves ordered submission acknowledgements.
+  [`search-field-state.ts:45`](../../src/components/search-field-state.ts#L45)
+
+- Reconciles URL changes safely, including history navigation and stale responses.
+  [`search-field-state.ts:77`](../../src/components/search-field-state.ts#L77)
+
+- Binds accessible explicit submission, IME suppression, and responsive input/button layout.
+  [`SearchField.tsx:51`](../../src/components/SearchField.tsx#L51)
+
+**URL-driven integrations**
+
+- Keeps Workshop sync blocking, tablet sizing, and applied filters intact at submission.
+  [`WorkshopQueue.tsx:398`](../../src/app/workshop/_components/WorkshopQueue.tsx#L398)
+
+- Preserves existing customer URL parameters while resetting only pagination for a submitted search.
+  [`CustomersLandingTable.tsx:29`](../../src/app/customers/_components/CustomersLandingTable.tsx#L29)
+
+**Regression coverage**
+
+- Exercises draft, race, history, empty, duplicate, blocked, and composition state transitions.
+  [`search-field.test.mts:11`](../../src/search-field.test.mts#L11)
+
+- Retains Workshop navigation and customer transition assertions after the shared-control migration.
+  [`workshop-ui.test.mts:844`](../../src/workshop-ui.test.mts#L844)

@@ -31,6 +31,17 @@ export interface SearchFieldReconciliationOptions {
   isHistoryNavigation?: boolean;
 }
 
+export interface SearchFieldNativeEvent {
+  isComposing?: boolean;
+  keyCode?: number;
+}
+
+export function isSearchFieldCompositionEvent(
+  nativeEvent: SearchFieldNativeEvent,
+): boolean {
+  return nativeEvent.isComposing === true || nativeEvent.keyCode === 229;
+}
+
 export function submitSearchField(
   state: SearchFieldState,
   guard: SearchFieldSubmissionGuard = {

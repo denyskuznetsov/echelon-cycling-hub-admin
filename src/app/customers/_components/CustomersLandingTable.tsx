@@ -56,6 +56,7 @@ export function CustomersLandingTable({
           className="w-full max-w-md"
           inputClassName="grow shrink basis-0"
           query={query}
+          urlState={`${query}:${currentPage}`}
           placeholder="Search by name, email, or phone"
           ariaLabel="Search customers"
           onSubmit={(nextQuery) =>

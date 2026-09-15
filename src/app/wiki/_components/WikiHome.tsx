@@ -98,6 +98,7 @@ export function WikiHome({
           className="flex w-full max-w-xl items-center gap-2"
           inputClassName="grow shrink basis-0"
           query={query}
+          urlState={query}
           placeholder="Search for articles…"
           onSubmit={(nextQuery) => {
             const params = new URLSearchParams();

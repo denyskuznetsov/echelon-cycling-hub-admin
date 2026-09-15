@@ -95,6 +95,7 @@ export function MarketingLinksTable({
               className="flex grow shrink basis-0 items-center gap-2"
               inputClassName="grow shrink basis-0"
               query={query}
+              urlState={`${query}:${currentPage}:${assignment}`}
               placeholder="Search by title or URL"
               onSubmit={(nextQuery) => router.push(buildHref(nextQuery, 1, assignment))}
             />

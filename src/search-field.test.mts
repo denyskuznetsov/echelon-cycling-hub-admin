@@ -3,6 +3,7 @@ import { test } from "node:test";
 import {
   createSearchFieldState,
   editSearchField,
+  isSearchFieldCompositionEvent,
   reconcileSearchField,
   submitSearchField,
 } from "./components/search-field-state.ts";
@@ -86,6 +87,24 @@ test("history restores a previously submitted query instead of treating it as a 
   assert.deepEqual(state.staleAcknowledgements, []);
 });
 
+test("same-query history clears its marker before a later submission can acknowledge", () => {
+  let state = createSearchFieldState("active");
+  state = editSearchField(state, "unsubmitted");
+
+  state = reconcileSearchField(state, "active", {
+    isHistoryNavigation: true,
+  });
+  assert.equal(state.draft, "active");
+
+  state = editSearchField(state, "later");
+  const submission = submitSearchField(state);
+  assert.equal(submission.query, "later");
+
+  state = reconcileSearchField(submission.state, "later");
+  assert.equal(state.appliedQuery, "later");
+  assert.equal(state.draft, "later");
+});
+
 test("empty submissions clear the applied query and repeated pending submissions do not navigate", () => {
   let state = createSearchFieldState("active");
   state = editSearchField(state, "");
@@ -126,4 +145,8 @@ test("composition Enter and a blocked submission do not navigate or queue a late
   });
   assert.equal(blocked.query, null);
   assert.deepEqual(blocked.state.pendingSubmissions, []);
+
+  assert.equal(isSearchFieldCompositionEvent({ isComposing: true }), true);
+  assert.equal(isSearchFieldCompositionEvent({ keyCode: 229 }), true);
+  assert.equal(isSearchFieldCompositionEvent({ isComposing: false, keyCode: 13 }), false);
 });
