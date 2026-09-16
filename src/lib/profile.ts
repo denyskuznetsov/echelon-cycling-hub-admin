@@ -14,6 +14,24 @@ export interface ProfileResult {
 }
 
 /**
+ * Call only after `withAuth` or an API `getUser()` check. It keeps a profile
+ * read failure distinct from the valid, roleless pending state.
+ */
+export async function getActiveProfileAccess(): Promise<
+  | { ok: true; role: UserRole }
+  | { ok: false; error: string }
+> {
+  const { role, error } = await getMyProfile();
+  if (error) {
+    return { ok: false, error: "Could not verify your profile. Please try again." };
+  }
+  if (!role) {
+    return { ok: false, error: "Your account is pending activation." };
+  }
+  return { ok: true, role };
+}
+
+/**
  * Fetches the authenticated user's role from the `profiles` table.
  *
  * Wrapped in React.cache() so that multiple Server Components in the same

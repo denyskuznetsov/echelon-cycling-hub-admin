@@ -64,6 +64,6 @@ export function isNavItemSelected(
   return !!item.href && routeMatchesHref(pathname, item.href);
 }
 
-export function getVisibleNavItems(role: UserRole | undefined): NavItem[] {
+export function getVisibleNavItems(role: UserRole | null | undefined): NavItem[] {
   return role ? NAV_ITEMS.filter((item) => item.roles.includes(role)) : [];
 }

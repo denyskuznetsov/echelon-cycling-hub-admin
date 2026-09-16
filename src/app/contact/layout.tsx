@@ -25,10 +25,12 @@ export default async function ContactLayout({
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile || !profile.role) {
+  if (profileError || !profile) {
     console.error("Contact layout: failed to load profile", profileError);
-    redirect("/pending");
+    throw new Error("Could not load your profile. Please try again.");
   }
+
+  if (!profile.role) redirect("/pending");
 
   return <DefaultPageLayout>{children}</DefaultPageLayout>;
 }

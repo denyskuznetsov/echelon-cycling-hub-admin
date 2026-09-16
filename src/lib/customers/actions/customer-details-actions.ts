@@ -6,6 +6,7 @@ import {
   type CustomerDetails,
 } from "@/src/lib/customers";
 import { withAuth } from "@/src/utils/auth/with-auth";
+import { getActiveProfileAccess } from "@/src/lib/profile";
 
 export type FetchCustomerDetailsResult = {
   customer: CustomerDetails | null;
@@ -21,5 +22,8 @@ async function fetchCustomerDetailsAction(
   _user: User,
   customerId: string,
 ): Promise<FetchCustomerDetailsResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return { customer: null, error: access.error };
+
   return loadCustomerDetails(customerId);
 }

@@ -5,6 +5,7 @@ import type { ZodError } from "zod";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
 import { withAuth } from "@/src/utils/auth/with-auth";
+import { getActiveProfileAccess } from "@/src/lib/profile";
 import {
   UpdateWikiDocPayloadSchema,
   type UpdateWikiDocPayload,
@@ -42,6 +43,9 @@ export const createWikiDocument = withAuth(
 async function createWikiDocumentAction(
   _user: User,
 ): Promise<CreateWikiDocumentResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
+
   const supabase = await createClient();
 
   const { data, error } = await supabase
@@ -79,6 +83,9 @@ async function updateWikiDocumentAction(
   id: string,
   payload: UpdateWikiDocPayload,
 ): Promise<SaveWikiDocumentResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
+
   if (!id) return { ok: false, error: "Missing document id." };
 
   const parsed = UpdateWikiDocPayloadSchema.safeParse(payload);
@@ -138,6 +145,9 @@ async function deleteWikiDocumentAction(
   _user: User,
   id: string,
 ): Promise<DeleteWikiDocumentResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
+
   if (!id) return { ok: false, error: "Missing document id." };
 
   const supabase = await createClient();

@@ -7,6 +7,7 @@ import type { User } from "@supabase/supabase-js";
 import BikeFitReportEmail from "@/emails/BikeFitReportEmail";
 import { createClient } from "@/src/utils/supabase/server";
 import { withAuth } from "@/src/utils/auth/with-auth";
+import { getActiveProfileAccess } from "@/src/lib/profile";
 import { loadBikeFitById } from "@/src/lib/bike-fit/data/bike-fits";
 import { renderBikeFitReportBuffer } from "@/src/lib/bike-fit/report/render";
 import {
@@ -21,6 +22,9 @@ async function requireBikeFitReportManagementAccess(): Promise<
   | { ok: true }
   | { ok: false; error: string }
 > {
+  const activeProfile = await getActiveProfileAccess();
+  if (!activeProfile.ok) return activeProfile;
+
   const supabase = await createClient();
   const { data: role, error } = await supabase.rpc("get_user_role");
 
@@ -145,6 +149,9 @@ async function getBikeFitReportDownloadUrlAction(
   id: string,
 ): Promise<BikeFitReportDownloadResult> {
   if (!id) return { ok: false, error: "Missing bike fit id." };
+
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
 
   const supabase = await createClient();
   const { data: row, error: fetchError } = await supabase

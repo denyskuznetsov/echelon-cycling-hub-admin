@@ -30,10 +30,12 @@ export default async function WorkshopLayout({
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile || !profile.role) {
+  if (profileError || !profile) {
     console.error("Workshop layout: failed to load profile", profileError);
-    redirect("/pending");
+    throw new Error("Could not load your profile. Please try again.");
   }
+
+  if (!profile.role) redirect("/pending");
 
   if (!ALLOWED_ROLES.includes(profile.role as AllowedRole)) {
     redirect("/unauthorized");

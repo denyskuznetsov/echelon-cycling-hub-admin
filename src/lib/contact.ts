@@ -4,6 +4,7 @@ import { createElement } from "react";
 import { Resend } from "resend";
 import type { User } from "@supabase/supabase-js";
 import { withAuth } from "@/src/utils/auth/with-auth";
+import { getActiveProfileAccess } from "@/src/lib/profile";
 import { CONTACT_EMAIL } from "@/ui/layouts/brand-assets";
 import { ContactRequestEmail } from "../../emails/ContactRequestEmail";
 import {
@@ -22,6 +23,9 @@ async function sendContactRequestAction(
   user: User,
   values: ContactFormValues,
 ): Promise<ContactResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
+
   const parsed = contactFormSchema.safeParse(values);
   if (!parsed.success) {
     return { ok: false, error: "Invalid submission. Please check your inputs." };

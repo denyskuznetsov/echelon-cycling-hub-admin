@@ -18,7 +18,7 @@ export type UserRole = "admin" | "manager" | "partner" | "mechanic";
 
 export interface Profile {
   id: string;
-  role: UserRole;
+  role: UserRole | null;
   first_name: string | null;
   last_name: string | null;
   created_at: string;
@@ -184,5 +184,5 @@ export function useUser(): UserContextValue {
 
 export function useHasRole(...roles: UserRole[]): boolean {
   const { profile } = useUser();
-  return !!profile && roles.includes(profile.role);
+  return !!profile?.role && roles.includes(profile.role);
 }

@@ -7,6 +7,7 @@ export type ResolvedMyPartner = {
   role: string | null;
   partner: PartnerRow | null;
   onboardingCompletedAt: string | null;
+  error: string | null;
 };
 
 export const resolveMyPartner = cache(async (): Promise<ResolvedMyPartner> => {
@@ -16,10 +17,10 @@ export const resolveMyPartner = cache(async (): Promise<ResolvedMyPartner> => {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return { userId: "", role: null, partner: null, onboardingCompletedAt: null };
+    return { userId: "", role: null, partner: null, onboardingCompletedAt: null, error: null };
   }
 
-  const { data: profile } = await supabase
+  const { data: profile, error } = await supabase
     .from("profiles")
     .select(
       "role, onboarding_completed_at, partners(id, name, location, promo_code, slug, commission_rate, hero_image_url)",
@@ -35,22 +36,23 @@ export const resolveMyPartner = cache(async (): Promise<ResolvedMyPartner> => {
     role: profile?.role ?? null,
     partner,
     onboardingCompletedAt: (profile as any)?.onboarding_completed_at ?? null,
+    error: error?.message ?? null,
   };
 });
 
 export const resolvePartnerBySlug = cache(
-  async (slug: string): Promise<PartnerRow | null> => {
+  async (slug: string): Promise<{ partner: PartnerRow | null; error: string | null }> => {
     const supabase = await createClient();
     // Slugs are stored in the DB with a leading slash (e.g. "/hotel-valdemossa"),
     // matching how they are concatenated into partner URLs elsewhere. URL path
     // segments never carry that slash, so we add it when querying.
     const normalizedSlug = slug.startsWith("/") ? slug : `/${slug}`;
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("partners")
       .select("id, name, location, promo_code, slug, commission_rate, hero_image_url")
       .eq("slug", normalizedSlug)
       .maybeSingle();
 
-    return (data as PartnerRow | null) ?? null;
+    return { partner: (data as PartnerRow | null) ?? null, error: error?.message ?? null };
   },
 );

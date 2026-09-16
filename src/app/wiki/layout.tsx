@@ -17,11 +17,11 @@ export default async function WikiLayout({
 
   if (profileError) {
     console.error("Wiki layout: failed to load profile", profileError);
-    redirect("/pending");
+    throw new Error("Could not load your profile. Please try again.");
   }
 
   if (!role) {
-    redirect("/login");
+    redirect("/pending");
   }
 
   if (role === "partner") {

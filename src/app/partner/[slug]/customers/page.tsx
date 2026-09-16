@@ -25,7 +25,8 @@ export default async function PartnerSlugCustomersPage({
   const page = Math.max(1, Number(pageParam) || 1);
   const query = queryParam ?? "";
 
-  const partner = await resolvePartnerBySlug(slug);
+  const { partner, error: partnerError } = await resolvePartnerBySlug(slug);
+  if (partnerError) throw new Error("Could not load this partner. Please try again.");
   if (!partner) {
     notFound();
   }
