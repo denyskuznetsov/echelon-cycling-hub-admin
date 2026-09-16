@@ -10,7 +10,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  *   - manager -> /hq
  *   - partner -> /partner
  *   - mechanic -> /workshop
- *   - DB error / missing profile / null role -> /pending
+ *   - null role -> /pending
  *
  * There is intentionally no "default zone" fallback: users without a
  * recognized role are sent to /pending so an admin can assign one.
@@ -25,10 +25,12 @@ export async function getPostLoginPath(
     .eq("id", userId)
     .single();
 
-  if (error || !profile || !profile.role) {
+  if (error || !profile) {
     console.error("getPostLoginPath: failed to load profile", error);
     return "/pending";
   }
+
+  if (!profile.role) return "/pending";
 
   switch (profile.role) {
     case "admin":

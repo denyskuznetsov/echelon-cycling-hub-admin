@@ -28,10 +28,12 @@ export default async function BikeFitsLayout({
     .eq("id", user.id)
     .single();
 
-  if (profileError || !profile || !profile.role) {
+  if (profileError || !profile) {
     console.error("Bike fits layout: failed to load profile", profileError);
-    redirect("/pending");
+    throw new Error("Could not load your profile. Please try again.");
   }
+
+  if (!profile.role) redirect("/pending");
 
   if (profile.role === "partner") {
     redirect("/partner/overview");

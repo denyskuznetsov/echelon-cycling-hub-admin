@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
 import { withAuth } from "@/src/utils/auth/with-auth";
+import { getActiveProfileAccess } from "@/src/lib/profile";
 
 export type DeleteLinkResult = { ok: true } | { ok: false; error: string };
 
@@ -16,6 +17,9 @@ async function deleteMarketingLinkAction(
   _user: User,
   id: string,
 ): Promise<DeleteLinkResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
+
   if (!id) return { ok: false, error: "Missing link id." };
 
   const supabase = await createClient();

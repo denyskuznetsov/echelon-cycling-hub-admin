@@ -5,6 +5,7 @@ import type { ZodError } from "zod";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
 import { withAuth } from "@/src/utils/auth/with-auth";
+import { getActiveProfileAccess } from "@/src/lib/profile";
 import {
   DeleteWikiCategoryModeSchema,
   UpsertWikiCategoryPayloadSchema,
@@ -46,6 +47,9 @@ async function createWikiCategoryAction(
   _user: User,
   payload: UpsertWikiCategoryPayload,
 ): Promise<SaveWikiCategoryResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
+
   const parsed = UpsertWikiCategoryPayloadSchema.safeParse(payload);
   if (!parsed.success) {
     return { ok: false, error: firstZodErrorMessage(parsed.error) };
@@ -99,6 +103,9 @@ async function updateWikiCategoryAction(
   id: string,
   payload: UpsertWikiCategoryPayload,
 ): Promise<SaveWikiCategoryResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
+
   if (!id) return { ok: false, error: "Missing category id." };
 
   const parsed = UpsertWikiCategoryPayloadSchema.safeParse(payload);
@@ -155,6 +162,9 @@ async function deleteWikiCategoryAction(
   id: string,
   mode?: DeleteWikiCategoryMode | null,
 ): Promise<DeleteWikiCategoryResult> {
+  const access = await getActiveProfileAccess();
+  if (!access.ok) return access;
+
   if (!id) return { ok: false, error: "Missing category id." };
 
   const parsedMode =
