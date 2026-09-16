@@ -4,7 +4,7 @@ story_id: '1.4'
 epic_id: '1'
 review_recommendation: DB-1
 requirements: [FR4]
-status: backlog
+status: done
 priority: urgent
 created: '2026-09-15'
 hard_dependencies: []
@@ -91,4 +91,8 @@ No hard dependency. Own necessary provisioning/schema changes and tests; do not 
 
 ## Completion record
 
-Implementation has not started in this recording task. Record the chosen provisioning/default contract, baseline, migration files, local test evidence, any read-only hosted observations, deployment handoff, and final status; update the epic index.
+Implementation began from `ce9318edb80a8ad7fc863e82240cd1798c7b89c7`. The approved provisioning contract is unchanged: a dashboard invitation creates a profile immediately with `role = NULL` and `partner_id = NULL`; a trusted dashboard operator assigns one of the existing roles (and the intended association for a partner) before or after acceptance. The forward migration is `supabase/migrations/20260916084243_trusted_role_assignment.sql`.
+
+Local evidence includes successful migration application/listing, the new 9-assertion database contract suite, the full existing database suite (449 tests across 7 files), TypeScript, pending-layout (4 tests), trusted-role-assignment boundary tests (3 tests), focused affected-file lint except for the pre-existing UserContext hook-rule finding, local security advisors, and whitespace validation. Pending denial and trusted manual assignment are covered locally by the migration/database suites; no external vendor call is made by the runtime checks.
+
+This story is **done**. After the user authorized local recovery, a configured `supabase db reset --local` rebuilt all migrations and `supabase/seed.sql`; that fresh replay applied the trusted-role migration. A seeded upgrade from `20260914120000` preserved the active-role profiles' role/name/association fingerprints (admin 1, manager 1, mechanic 1, partner 2), and direct reapplication of the new migration passed with the focused contract suite. A simulated interrupted migration after its initial nullable-role/trigger/revoke statements recovered when the complete migration was rerun. A real local pending session reached `/pending`, and direct `/workshop?next=/hq` navigation stayed pending; the temporary fixture was removed by the final reset plus seed. User manual testing also passed the mechanic-before-acceptance, pending, manager-after-acceptance, and partner data-isolation flows. No hosted Auth settings or DDL were changed. Hosted schema delivery remains merge plus the existing CI workflows. Story 1.7's broader Short.io authorization and mutation-outcome work remains outstanding.

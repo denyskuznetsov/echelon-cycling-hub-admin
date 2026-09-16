@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/src/utils/supabase/server";
+import { getActiveProfileAccess } from "@/src/lib/profile";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,11 @@ export async function POST(request: NextRequest) {
 
   if (authError || !user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const access = await getActiveProfileAccess();
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: 403 });
   }
 
   // Parse and validate body.

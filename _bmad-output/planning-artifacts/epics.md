@@ -116,7 +116,7 @@ The linked standalone files are the canonical execution handoffs. The excerpts b
 | 1.1 | FE-1 | [Consistent list interactions](stories/project-foundations/1-1-consistent-list-interactions.md) | Normal | Backlog |
 | 1.2 | FE-2 | [Reliable save lifecycle](stories/project-foundations/1-2-reliable-save-lifecycle.md) | High | Backlog |
 | 1.3 | FE-3 | [Dependable frontend quality gate](stories/project-foundations/1-3-frontend-quality-gate.md) | High | Backlog |
-| 1.4 | DB-1 | [Trusted account role assignment](stories/project-foundations/1-4-trusted-role-assignment.md) | Urgent | Backlog |
+| 1.4 | DB-1 | [Trusted account role assignment](stories/project-foundations/1-4-trusted-role-assignment.md) | Urgent | Done |
 | 1.5 | DB-2 | [Reproducible database and migration gate](stories/project-foundations/1-5-reproducible-database-and-migration-gate.md) | High | Backlog |
 | 1.6 | DB-3 | [Canonical SQL reporting and complete exports](stories/project-foundations/1-6-canonical-sql-reporting.md) | High | Backlog |
 | 1.7 | API-1 | [Authorize external side effects](stories/project-foundations/1-7-authorized-external-side-effects.md) | Urgent | Backlog |
@@ -231,7 +231,7 @@ So that reuse of existing components does not spread regressions into new featur
 ### Story 1.4: Trusted account role assignment
 
 **Standalone story:** [1-4-trusted-role-assignment.md](stories/project-foundations/1-4-trusted-role-assignment.md)  
-**Review:** DB-1 · **Priority:** Urgent · **Status:** Backlog
+**Review:** DB-1 · **Priority:** Urgent · **Status:** Done
 
 As an administrator responsible for portal access,
 I want account roles assigned only by a trusted provisioning path,

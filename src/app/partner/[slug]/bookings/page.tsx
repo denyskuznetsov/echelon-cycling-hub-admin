@@ -34,7 +34,8 @@ export default async function PartnerSlugBookingsPage({
   const timeframe = resolveTimeframe(timeframeParam);
   const dateThreshold = computeDateThreshold(timeframe);
 
-  const partner = await resolvePartnerBySlug(slug);
+  const { partner, error: partnerError } = await resolvePartnerBySlug(slug);
+  if (partnerError) throw new Error("Could not load this partner. Please try again.");
   if (!partner) {
     notFound();
   }

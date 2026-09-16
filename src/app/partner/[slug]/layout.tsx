@@ -15,7 +15,12 @@ export default async function PartnerSlugLayout({
 }) {
   const { slug } = await params;
 
-  const { role } = await resolveMyPartner();
+  const { role, error } = await resolveMyPartner();
+
+  if (error) {
+    console.error("Partner slug layout: failed to load profile", error);
+    throw new Error("Could not load your profile. Please try again.");
+  }
 
   if (!role) {
     redirect("/pending");
@@ -25,7 +30,11 @@ export default async function PartnerSlugLayout({
     redirect("/partner/overview");
   }
 
-  const partner = await resolvePartnerBySlug(slug);
+  const { partner, error: partnerError } = await resolvePartnerBySlug(slug);
+  if (partnerError) {
+    console.error("Partner slug layout: failed to load partner", partnerError);
+    throw new Error("Could not load this partner. Please try again.");
+  }
   if (!partner) {
     notFound();
   }

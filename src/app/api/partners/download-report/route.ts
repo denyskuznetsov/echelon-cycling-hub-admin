@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/src/utils/supabase/server";
+import { getActiveProfileAccess } from "@/src/lib/profile";
 import {
   computeDateThreshold,
   loadPartnerDailyStats,
@@ -56,6 +57,19 @@ export async function GET(request: NextRequest) {
   const startDate = computeDateThreshold(timeframe);
 
   const supabase = await createClient();
+
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const access = await getActiveProfileAccess();
+  if (!access.ok) {
+    return NextResponse.json({ error: access.error }, { status: 403 });
+  }
 
   const { data: partnerRow, error: partnerError } = await supabase
     .from("partners")

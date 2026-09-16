@@ -30,7 +30,8 @@ export default async function PartnerSlugOverviewPage({
 
   // Layout already guards role and existence, but re-resolve to get the id.
   // resolvePartnerBySlug is wrapped in React.cache() so this is a no-op fetch.
-  const partner = await resolvePartnerBySlug(slug);
+  const { partner, error: partnerError } = await resolvePartnerBySlug(slug);
+  if (partnerError) throw new Error("Could not load this partner. Please try again.");
   if (!partner) {
     notFound();
   }

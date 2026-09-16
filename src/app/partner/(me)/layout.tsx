@@ -9,7 +9,12 @@ export default async function PartnerMeLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { role, partner, onboardingCompletedAt } = await resolveMyPartner();
+  const { role, partner, onboardingCompletedAt, error } = await resolveMyPartner();
+
+  if (error) {
+    console.error("Partner layout: failed to load profile", error);
+    throw new Error("Could not load your profile. Please try again.");
+  }
 
   if (!role) {
     redirect("/pending");
