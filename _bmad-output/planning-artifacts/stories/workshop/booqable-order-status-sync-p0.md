@@ -2,7 +2,8 @@
 title: 'Automatically advance Workshop tasks after full Booqable pickup or return'
 story_id: workshop-booqable-order-status-sync-p0
 epic_id: null
-status: ready-for-dev
+status: done
+baseline_commit: 9c3f41fafeb7be9aacca5e9885ab2e1a8abd273c
 priority: P0
 created: '2026-09-17'
 requirements: [FR1, FR2, FR3, FR4, FR5, FR6, FR7, FR8, FR9, FR10, FR11, FR12]
@@ -14,7 +15,7 @@ validationOutcome: passed
 workflowComplete: true
 requirementsConfirmed: true
 storyApproved: true
-implementationStarted: false
+implementationStarted: true
 inputDocuments:
   - '../../requirements/booqable-workshop-pickup-return-sync.md'
   - '../../../specs/spec-automating-mechanics-daily-work/SPEC.md'
@@ -202,7 +203,7 @@ The parser currently retains simplified order status but discards `statuses`/`st
 - **UI and recovery:** Verify the task-page message persists across reload, resolves with the condition, and the manual buttons remain usable for mixed orders. Exercise a missed pickup followed by final return and a known upstream reversal. Check visible task/queue refresh after actual transitions.
 - **Existing checks:** Run relevant `npm run test:source-apply`, `npm run test:workshop-sync`, `npm run test:workshop-ui`, `npm run test:db`, TypeScript, and focused ESLint. Current scripts use Node's test runner; do not assume the older architecture document's proposed Vitest setup is installed.
 
-No tests have been run for feature implementation in this planning task, and no live subscription or payload verification has been performed. Local test success, rendered UI evidence, and live Booqable evidence must be reported separately at completion.
+The implementation completion record below supersedes this planning-only test status. Local automated evidence, rendered-browser evidence, and live Booqable evidence remain reported separately.
 
 ## Requirement coverage
 
@@ -237,7 +238,7 @@ Official references: [order fields and statuses](https://developers.booqable.com
 
 ## Review and completion record
 
-Requirements were confirmed with “continue” on 2026-09-17; the user then approved progression from story review with “C”. Final planning validation passed on 2026-09-17, and the user confirmed workflow completion with the final “C”. Planning is complete and this story is ready for development. Implementation has not started; the bounded source-contract and webhook checks remain part of implementation acceptance.
+Requirements were confirmed with “continue” on 2026-09-17; the user then approved progression from story review with “C”. Final planning validation passed on 2026-09-17, and the user confirmed workflow completion with the final “C”. Planning completed before the implementation recorded below; bounded source-contract and webhook checks remain part of implementation acceptance.
 
 | Validation area | Result |
 |---|---|
@@ -248,6 +249,60 @@ Requirements were confirmed with “continue” on 2026-09-17; the user then app
 | Epic structure and file overlap | Not applicable as an epic: the user explicitly requested one standalone story. It contains the shared adapter/database/UI work together, avoiding artificial splits across those same files. |
 | Dependencies | Pass: no dependency on a future story or individual partner-bike identity feature; required source verification is included within this story. |
 | Consistency and artifact checks | Pass: final Returned takes precedence over differing non-returnable product states; mixed operations otherwise remain manual; source guards, manual recovery, and no-backward rules agree. Local references, AC numbering, requirement mappings, whitespace, and placeholder checks pass. |
-| Evidence boundary | Planning validation only. No feature implementation, automated feature tests, browser verification, or live Booqable verification is claimed. |
+| Evidence boundary | Planning validation was planning-only; the current implementation evidence is recorded below. Browser and live Booqable verification remain separate and unclaimed. |
 
 At implementation completion, record the precise pickup predicate, source/event evidence, migration and changed files, local/DB/UI verification, residual limitations, and final story status. Keep this story independently usable without requiring the reader to reconstruct the discussion.
+
+### Implementation completion — 2026-09-17
+
+- **Precise predicate:** PostgreSQL classifies full pickup only when `order.status = started`, `statuses` is present and exactly matches the positive keys in `status_counts`, `started` is the only positive key, and its count is greater than zero. Missing, empty, contradictory, or mixed aggregate evidence is not pickup. `order.status = stopped` is the authoritative final-return signal regardless of product-level aggregate differences.
+- **Source evidence:** the sanitized adapter fixture and tests preserve `statuses` and `status_counts` for complete pickup, mixed fulfillment, missing evidence, zero-quantity options, and malformed aggregates. Existing local sanitized captures showed `started` with only a positive `started` count for complete pickup and `stopped` for final return. No tenant read, webhook delivery, subscription inspection, provider write, deployment, or live Booqable verification was performed during implementation.
+- **Migration and implementation:** `20260917124408_workshop_booqable_order_status_sync.sql` adds raw aggregate/evidence persistence, an observed-evidence gate for pre-migration rows, database-owned classification, task-lifecycle-scoped reversal evidence, guarded source transitions, source-attributed history, replay-safe retry behavior, persistent no-op explanations, and least-privilege grants. The Booqable adapter/domain snapshot, Workshop DTO/loader/task Alert, source/apply/UI tests, this story, SPEC, state machine, and architecture spine were updated. The migration was created with the Supabase CLI, applied only to the local stack, and replayed successfully to verify idempotency.
+- **Local verification:** `npm run test:source-apply` (22), `npm run test:workshop-sync` (24), `npm run test:workshop-ui` (40), `npm run test:db` (522), `npx tsc --noEmit`, focused ESLint, `git diff --check`, and local database lint all passed their failure thresholds. Database lint still reports three inherited warnings in pre-existing functions; this migration adds no new warning. Automated pgTAP coverage includes full/partial pickup, partial/final return, sibling independence, Partner Bikes, unchanged-source retry, cancellation/new-task precedence, replay history, exact pickup/return event and version semantics, lifecycle-scoped reversals, pre-evidence/not-ready/missed-pickup notices, manual pickup/return RPC recovery, explicit-null/contradictory/oversized/malformed snapshots, migration column invariants, and RPC authorization. The UI test executes the raw `sourceNotice` mapper and pure Alert-props boundary with the expected copy; no React DOM renderer is installed.
+- **Two-client AC10 evidence:** because the local pgTAP database has no `dblink` or `pg_background`, a separate manual local check used two concurrent `docker exec ... psql` clients against one uniquely named disposable task. Client A called the authenticated `workshop_mark_picked_up` RPC at version 10 inside a transaction and held the resulting row lock. While it remained open, `pg_stat_activity` showed `workshop_concurrency_manual | Timeout | PgSleep` and `workshop_concurrency_source | Lock | transactionid`. Client B applied the authoritative full-pickup snapshot and resumed after Client A committed. The asserted final result was `in_rental`, version 11, exactly one Ready for Pickup → In Rental event, one actor-attributed manual transition, and zero source pickup transitions. The exact commands, with the middle two launched as separate processes, were:
+
+  ```sh
+  docker exec -i supabase_db_echelon-cycling-hub-admin psql -U postgres -d postgres < /private/tmp/workshop_concurrency_setup.sql
+  docker exec -i supabase_db_echelon-cycling-hub-admin psql -U postgres -d postgres < /private/tmp/workshop_concurrency_manual.sql
+  docker exec -i supabase_db_echelon-cycling-hub-admin psql -U postgres -d postgres < /private/tmp/workshop_concurrency_source.sql
+  docker exec -i supabase_db_echelon-cycling-hub-admin psql -U postgres -d postgres < /private/tmp/workshop_concurrency_verify_cleanup.sql
+  ```
+
+  Verification/cleanup removed the fixture order, related task rows, customer, lease, test user, and helper schema; the final order/lease/user/schema count was `0|0|0|0`. This is recorded manual local evidence, not part of the automated suite.
+- **Residual limitations:** the real two-client manual-wins contention above verifies that a blocked source apply does not overwrite or duplicate the manual transition. The inverse source-wins scheduling order was not separately forced. Rendered-browser behavior, current tenant webhook subscriptions/deliveries, live payloads, deployment, and production data were also not verified. Manual pickup/return remains the intended recovery path for partial or ambiguous fulfillment.
+- **Final story status:** implementation and independent local review are complete; frontmatter is `done`. Any live Booqable or rendered-browser verification remains separately scoped.
+
+## Suggested Review Order
+
+**Atomic source reconciliation**
+
+- Start with the database classifier and guarded transition boundary.
+  [`20260917124408_workshop_booqable_order_status_sync.sql:157`](../../../../supabase/migrations/20260917124408_workshop_booqable_order_status_sync.sql#L157)
+
+- Inspect lifecycle evidence, forward-only transitions, and persistent no-op explanations.
+  [`20260917124408_workshop_booqable_order_status_sync.sql:335`](../../../../supabase/migrations/20260917124408_workshop_booqable_order_status_sync.sql#L335)
+
+- Verify notices distinguish ambiguity, readiness mismatch, missed pickup, and reversals.
+  [`20260917124408_workshop_booqable_order_status_sync.sql:486`](../../../../supabase/migrations/20260917124408_workshop_booqable_order_status_sync.sql#L486)
+
+**Source contract and UI**
+
+- Adapter preserves Booqable aggregate evidence without inventing defaults.
+  [`parse-source-snapshot.ts:87`](../../../../src/lib/booqable/parse-source-snapshot.ts#L87)
+
+- Pure mapping centralizes safe notice kinds and staff-facing Alert copy.
+  [`source-notice.ts:12`](../../../../src/lib/workshop/domain/source-notice.ts#L12)
+
+- Task UI reuses the existing Alert and normal refresh flow.
+  [`WorkshopTask.tsx:224`](../../../../src/app/workshop/_components/WorkshopTask.tsx#L224)
+
+**Verification and contracts**
+
+- Database matrix covers guards, history, replay, notices, authorization, and manual recovery.
+  [`workshop_source_apply.test.sql:1550`](../../../../supabase/tests/database/workshop_source_apply.test.sql#L1550)
+
+- Adapter fixtures lock full, mixed, missing, zero, and malformed evidence behavior.
+  [`booqable-source-apply.test.mts:1`](../../../../src/booqable-source-apply.test.mts#L1)
+
+- Canonical Workshop contract now documents the two source-driven forward edges.
+  [`SPEC.md:44`](../../../specs/spec-automating-mechanics-daily-work/SPEC.md#L44)

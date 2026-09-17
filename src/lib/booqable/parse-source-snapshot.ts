@@ -84,6 +84,38 @@ function parseRelevant(value: unknown): boolean {
   throw new InvalidSourceSnapshotError("INVALID_SNAPSHOT");
 }
 
+function parseStatuses(value: unknown): string[] | null {
+  if (value === undefined || value === null) return null;
+  if (
+    !Array.isArray(value) ||
+    value.some((entry) => typeof entry !== "string" || entry.trim() === "") ||
+    new Set(value).size !== value.length
+  ) {
+    throw new InvalidSourceSnapshotError("INVALID_SNAPSHOT");
+  }
+  return value;
+}
+
+function parseStatusCounts(value: unknown): Record<string, number> | null {
+  if (value === undefined || value === null) return null;
+  if (!isRecord(value)) {
+    throw new InvalidSourceSnapshotError("INVALID_SNAPSHOT");
+  }
+  const entries = Object.entries(value);
+  if (
+    entries.some(
+      ([key, count]) =>
+        key.trim() === "" ||
+        typeof count !== "number" ||
+        !Number.isInteger(count) ||
+        count < 0,
+    )
+  ) {
+    throw new InvalidSourceSnapshotError("INVALID_SNAPSHOT");
+  }
+  return Object.fromEntries(entries) as Record<string, number>;
+}
+
 function hasRelationship(resource: JsonApiResource, name: string): boolean {
   return (
     resource.relationships != null &&
@@ -338,6 +370,8 @@ export function parseSourceOrderSnapshot(
       booqableOrderId: order.id,
       orderNumber: toIntOrNull(attrs.number),
       status: toStringOrNull(attrs.status),
+      statuses: parseStatuses(attrs.statuses),
+      statusCounts: parseStatusCounts(attrs.status_counts),
       startsAt: toStringOrNull(attrs.starts_at),
       stopsAt: toStringOrNull(attrs.stops_at),
       createdAt: toStringOrNull(attrs.created_at),

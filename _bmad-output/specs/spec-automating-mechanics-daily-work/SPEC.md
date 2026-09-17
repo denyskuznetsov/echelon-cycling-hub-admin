@@ -40,8 +40,8 @@ Mechanics currently rely on one paper checklist per physical bike, leaving stage
   - **intent:** Mechanics can view current order add-ons and confirm that preparation matches them before readiness.
   - **success:** Current add-ons remain visible throughout the task, and `Ready for Pickup` cannot be reached without the confirmation.
 - **CAP-7**
-  - **intent:** Eligible authenticated staff can manually record bike pickup and return.
-  - **success:** Any non-partner staff member can move `Ready for Pickup` to `In Rental` and `In Rental` to `Returned`; partner-role users cannot.
+  - **intent:** Eligible authenticated staff can manually record bike pickup and return, while authoritative whole-order Booqable refreshes can apply those same two forward edges.
+  - **success:** Any non-partner staff member can manually move `Ready for Pickup` to `In Rental` and `In Rental` to `Returned`; a complete whole-order pickup or final returned order applies only the matching guarded edge to eligible tasks, while mixed operations remain manual and partner-role users cannot invoke staff commands.
 - **CAP-8**
   - **intent:** A mechanic can perform and attest one shared post-rental storage checklist.
   - **success:** `Returned` moves through `Prepare for Storage` to terminal `Completed` only after all six required storage items have a valid completion or allowed N/A outcome, with one authenticated signer and no M2 stage.
@@ -62,7 +62,7 @@ Mechanics currently rely on one paper checklist per physical bike, leaving stage
 - Launch workshop tags are `workshop-road-bike`, `workshop-e-city-bike`, `workshop-e-mtb-bike`, `workshop-gravel-bike`, and `workshop-e-road-bike`.
 - A recognized workshop tag is not required to create a task for an identified bike; its absence is a Booqable product-configuration error that blocks preparation until corrected and synchronized.
 - Dashboard date groups use the Booqable order start date in `Europe/Madrid`.
-- Booqable supplies bike identity, rental timing, add-ons, and invalidation; staff explicitly confirm physical preparation, pickup, return, and storage completion.
+- Booqable supplies bike identity, rental timing, add-ons, invalidation, and authoritative whole-order pickup/return evidence; staff explicitly confirm physical preparation and storage completion, and retain guarded manual pickup/return for mixed or mismatched cases.
 - `order.updated` is a signal to fetch authoritative state, not a payload to interpret; webhook and manual sync use the same idempotent reconciler, with no periodic polling.
 - Reconciliation is serialized per order and enforces uniqueness equivalent to Booqable order ID, stock item ID, and task kind.
 - Reconciliation changes no existing task or assignment state unless the complete Booqable order snapshot loads successfully.
@@ -80,7 +80,7 @@ Mechanics currently rely on one paper checklist per physical bike, leaving stage
 - Staff-profile dropdown signatures or manager approval for same-mechanic M1/M2 completion.
 - Checklist-template administration, runtime checklist inheritance, generalized form building, arbitrary value types, or free-text values.
 - QR codes, scanning, or another physical/digital handoff mechanism.
-- Automatic pickup or return transitions based on Booqable status or dates.
+- Individual partial-operation automation, automatic backward transitions, or pickup/return inferred from dates, webhook names, or simplified `started` status alone.
 - Periodic assignment polling or automatic reopening after late add-on changes.
 - Hard deletion of invalidated task history.
 - Bike-type-specific post-rental storage checklists.

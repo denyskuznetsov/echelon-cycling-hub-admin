@@ -5,6 +5,14 @@
     "attributes": {
       "number": 344,
       "status": "reserved",
+      "statuses": ["reserved"],
+      "status_counts": {
+        "draft": 0,
+        "new": 0,
+        "reserved": 3,
+        "started": 0,
+        "stopped": 0
+      },
       "starts_at": "2026-12-10T10:00:00Z",
       "stops_at": "2026-12-12T17:00:00Z",
       "created_at": "2026-08-01T09:00:00Z",
@@ -19,7 +27,7 @@
       "tax_in_cents": 0,
       "grand_total_with_tax_in_cents": 45000,
       "to_be_paid_in_cents": 0,
-      "item_count": 4,
+      "item_count": 3,
       "properties": {
         "delivery_address": null,
         "billing_address": null,
