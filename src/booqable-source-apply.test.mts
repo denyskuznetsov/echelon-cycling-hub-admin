@@ -65,6 +65,14 @@ test("fixture parses to SourceOrderSnapshotV1 with identified road assignment", 
   assert.equal(snapshot.sourceStatus, "reserved");
   assert.equal(snapshot.order.booqableOrderId, "order-fixture-v1");
   assert.equal(snapshot.order.orderNumber, 344);
+  assert.deepEqual(snapshot.order.statuses, ["reserved"]);
+  assert.deepEqual(snapshot.order.statusCounts, {
+    draft: 0,
+    new: 0,
+    reserved: 3,
+    started: 0,
+    stopped: 0,
+  });
   assert.equal(snapshot.order.mapsLinkOrder, "https://maps.example.test/order-fixture-v1");
   assert.equal(snapshot.order.partnerPromo, null);
   assert.equal(snapshot.customer?.booqableCustomerId, "customer-fixture-v1");
@@ -91,6 +99,96 @@ test("fixture parses to SourceOrderSnapshotV1 with identified road assignment", 
   );
   assert.equal("id" in assignment, false);
   assert.equal(SourceOrderSnapshotV1Schema.safeParse(snapshot).success, true);
+});
+
+test("aggregate order fulfillment fields preserve full, mixed, and missing evidence", () => {
+  const full = cloneFixture();
+  assert.ok(full.data.attributes);
+  full.data.attributes.status = "started";
+  full.data.attributes.statuses = ["started"];
+  full.data.attributes.status_counts = {
+    draft: 0,
+    new: 0,
+    reserved: 0,
+    started: 3,
+    stopped: 0,
+  };
+  const fullSnapshot = parseSourceOrderSnapshot(
+    full,
+    "2026-08-21T14:00:00.000Z",
+  );
+  assert.deepEqual(fullSnapshot.order.statuses, ["started"]);
+  assert.deepEqual(fullSnapshot.order.statusCounts, {
+    draft: 0,
+    new: 0,
+    reserved: 0,
+    started: 3,
+    stopped: 0,
+  });
+
+  const mixed = cloneFixture();
+  assert.ok(mixed.data.attributes);
+  mixed.data.attributes.status = "started";
+  mixed.data.attributes.statuses = ["reserved", "started"];
+  mixed.data.attributes.status_counts = {
+    draft: 0,
+    new: 0,
+    reserved: 1,
+    started: 2,
+    stopped: 0,
+  };
+  const mixedSnapshot = parseSourceOrderSnapshot(
+    mixed,
+    "2026-08-21T14:00:00.000Z",
+  );
+  assert.deepEqual(mixedSnapshot.order.statuses, ["reserved", "started"]);
+  assert.equal(mixedSnapshot.order.statusCounts?.reserved, 1);
+  assert.equal(mixedSnapshot.order.statusCounts?.started, 2);
+
+  const missing = cloneFixture();
+  assert.ok(missing.data.attributes);
+  delete missing.data.attributes.statuses;
+  delete missing.data.attributes.status_counts;
+  const missingSnapshot = parseSourceOrderSnapshot(
+    missing,
+    "2026-08-21T14:00:00.000Z",
+  );
+  assert.equal(missingSnapshot.order.statuses, null);
+  assert.equal(missingSnapshot.order.statusCounts, null);
+});
+
+test("malformed aggregate fulfillment evidence is INVALID_SNAPSHOT", () => {
+  const cases: unknown[] = [
+    "started",
+    ["started", 1],
+    [""],
+    ["started", "started"],
+  ];
+  for (const statuses of cases) {
+    const payload = cloneFixture();
+    assert.ok(payload.data.attributes);
+    payload.data.attributes.statuses = statuses;
+    assert.throws(
+      () => parseSourceOrderSnapshot(payload, "2026-08-21T14:00:00.000Z"),
+      InvalidSourceSnapshotError,
+    );
+  }
+
+  const countCases: unknown[] = [
+    [],
+    { started: -1 },
+    { started: 1.5 },
+    { started: "1" },
+  ];
+  for (const statusCounts of countCases) {
+    const payload = cloneFixture();
+    assert.ok(payload.data.attributes);
+    payload.data.attributes.status_counts = statusCounts;
+    assert.throws(
+      () => parseSourceOrderSnapshot(payload, "2026-08-21T14:00:00.000Z"),
+      InvalidSourceSnapshotError,
+    );
+  }
 });
 
 function addEmptySipLine(

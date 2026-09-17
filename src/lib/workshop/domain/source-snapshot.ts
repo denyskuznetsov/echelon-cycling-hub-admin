@@ -50,6 +50,10 @@ export const SourceOrderV1Schema = z.object({
   booqableOrderId: z.string().min(1),
   orderNumber: nullableInt,
   status: nullableString,
+  statuses: z.array(z.string().min(1)).nullable(),
+  statusCounts: z
+    .record(z.string().min(1), z.number().int().nonnegative())
+    .nullable(),
   startsAt: nullableString,
   stopsAt: nullableString,
   createdAt: nullableString,

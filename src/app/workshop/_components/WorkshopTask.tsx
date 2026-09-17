@@ -31,6 +31,7 @@ import type {
   WorkshopTaskItem,
   WorkshopTaskListRow,
 } from "@/src/lib/workshop/domain";
+import { workshopSourceNoticeAlertProps } from "@/src/lib/workshop/domain";
 import {
   formatMadridDateTime,
   formatWorkshopFromUntil,
@@ -220,6 +221,7 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
 
   const { task, items: serverItems, addons, addonFingerprint, attestations } =
     detail;
+  const sourceNoticeAlert = workshopSourceNoticeAlertProps(detail.sourceNotice);
   const items = applyItemOverrides(serverItems, itemOverrides);
   const isTombstone = task.status === "cancelled";
   const itemSavesPending = itemSavesInFlight > 0;
@@ -544,6 +546,15 @@ export function WorkshopTask({ detail, printerConfig }: WorkshopTaskProps) {
               ? "This bike has a missing or unrecognized workshop tag. Start preparation is blocked until the Booqable product tag is corrected."
               : "This bike has a missing or unrecognized workshop tag. Correct the Booqable product tag."
           }
+        />
+      ) : null}
+
+      {sourceNoticeAlert ? (
+        <Alert
+          variant={sourceNoticeAlert.variant}
+          icon={<FeatherAlertTriangle />}
+          title={sourceNoticeAlert.title}
+          description={sourceNoticeAlert.description}
         />
       ) : null}
 

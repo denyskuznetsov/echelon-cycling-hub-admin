@@ -254,6 +254,37 @@ AS $$
   );
 $$;
 
+CREATE OR REPLACE FUNCTION pg_temp.fulfillment_snap(
+  p_order_id text,
+  p_status text,
+  p_statuses jsonb,
+  p_status_counts jsonb,
+  p_stock text DEFAULT 'stock-a',
+  p_sip text DEFAULT 'sip-a'
+)
+RETURNS jsonb
+LANGUAGE sql
+AS $$
+  SELECT jsonb_set(
+    jsonb_set(
+      pg_temp.road_snap(
+        p_order_id,
+        p_stock,
+        p_sip,
+        '2026-12-10T10:00:00Z',
+        1,
+        p_status
+      ),
+      '{order,statuses}',
+      p_statuses,
+      true
+    ),
+    '{order,statusCounts}',
+    p_status_counts,
+    true
+  );
+$$;
+
 -- Identified road
 SELECT is(
   (pg_temp.apply_snap('bq-road', pg_temp.road_snap('bq-road'))->>'ok')::boolean,
@@ -281,6 +312,53 @@ SELECT is(
   ),
   'to_prepare',
   'identified road task is to_prepare'
+);
+
+UPDATE public.orders
+SET workshop_fulfillment_state = 'unknown',
+    workshop_fulfillment_evidence_observed = false
+WHERE booqable_order_id = 'bq-road';
+
+SELECT is(
+  private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-road')
+  ),
+  NULL,
+  'pre-migration task with no observed aggregate evidence has no unknown notice'
+);
+
+SELECT ok(
+  (pg_temp.apply_snap('bq-road', pg_temp.road_snap('bq-road'))->>'ok')::boolean,
+  'first post-migration source apply records evidence observation'
+);
+
+SELECT ok(
+  (SELECT workshop_fulfillment_evidence_observed FROM public.orders
+   WHERE booqable_order_id = 'bq-road'),
+  'successful source apply marks fulfillment evidence observed'
+);
+
+SELECT is(
+  (pg_temp.apply_snap(
+    'bq-null-evidence',
+    jsonb_set(
+      jsonb_set(
+        pg_temp.road_snap('bq-null-evidence'),
+        '{order,statuses}', 'null'::jsonb, true
+      ),
+      '{order,statusCounts}', 'null'::jsonb, true
+    )
+  )->>'fulfillmentState'),
+  'reserved',
+  'explicit null aggregates preserve a non-contradictory reserved state'
+);
+
+SELECT is(
+  (SELECT booqable_statuses FROM public.orders
+   WHERE booqable_order_id = 'bq-null-evidence'),
+  NULL,
+  'explicit JSON null aggregate evidence persists as SQL null'
 );
 
 SELECT is(
@@ -1423,6 +1501,829 @@ SELECT is(
   ),
   0,
   'quantity 0 extras stay as rows'
+);
+
+-- Automatic full-order pickup advances only eligible retained siblings.
+SELECT ok(
+  (
+    pg_temp.apply_snap(
+      'bq-auto-pickup',
+      pg_temp.snap(
+        'bq-auto-pickup',
+        'reserved',
+        '2026-12-10T10:00:00Z',
+        jsonb_build_array(
+          pg_temp.assignment('stock-ready', 'sip-ready', '["workshop-road-bike"]'::jsonb),
+          pg_temp.assignment('stock-blocked', 'sip-blocked', '["workshop-road-bike"]'::jsonb)
+        ),
+        jsonb_build_array(
+          pg_temp.line('auto-bike-1', 'Ready bike', 1, NULL, 1),
+          pg_temp.line('auto-bike-2', 'Blocked bike', 1, NULL, 2)
+        )
+      )
+    )->>'ok'
+  )::boolean,
+  'automatic pickup setup succeeds'
+);
+
+UPDATE public.bike_tasks t
+SET status = CASE
+      WHEN t.booqable_stock_item_id = 'stock-ready'
+        THEN 'ready_for_pickup'::public.bike_task_status
+      ELSE 'needs_recheck'::public.bike_task_status
+    END,
+    version = 10
+FROM public.orders o
+WHERE o.id = t.order_id
+  AND o.booqable_order_id = 'bq-auto-pickup';
+
+UPDATE public.bike_task_items i
+SET m1_outcome = 'completed'::public.checklist_item_outcome
+FROM public.bike_tasks t
+JOIN public.orders o ON o.id = t.order_id
+WHERE i.task_id = t.id
+  AND o.booqable_order_id = 'bq-auto-pickup'
+  AND t.booqable_stock_item_id = 'stock-blocked'
+  AND i.item_key = 'ROAD-01';
+
+INSERT INTO public.bike_task_attestations (
+  task_id, stage, user_id, first_name, last_name
+)
+SELECT
+  t.id, 'm1', '00000000-0000-4000-8000-000000000211', 'Source', 'Fixture'
+FROM public.bike_tasks t
+JOIN public.orders o ON o.id = t.order_id
+WHERE o.booqable_order_id = 'bq-auto-pickup'
+  AND t.booqable_stock_item_id = 'stock-blocked';
+
+SELECT ok(
+  (
+    pg_temp.apply_snap(
+      'bq-auto-pickup',
+      jsonb_set(
+        jsonb_set(
+          pg_temp.snap(
+            'bq-auto-pickup',
+            'started',
+            '2026-12-10T10:00:00Z',
+            jsonb_build_array(
+              pg_temp.assignment('stock-ready', 'sip-ready', '["workshop-road-bike"]'::jsonb),
+              pg_temp.assignment('stock-blocked', 'sip-blocked', '["workshop-road-bike"]'::jsonb)
+            ),
+            jsonb_build_array(
+              pg_temp.line('auto-bike-1', 'Ready bike', 1, NULL, 1),
+              pg_temp.line('auto-bike-2', 'Blocked bike', 1, NULL, 2)
+            )
+          ),
+          '{order,statuses}', '["started"]'::jsonb, true
+        ),
+        '{order,statusCounts}',
+        '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb,
+        true
+      )
+    )->>'ok'
+  )::boolean,
+  'complete pickup apply succeeds'
+);
+
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup' AND t.booqable_stock_item_id = 'stock-ready'),
+  'in_rental',
+  'complete pickup advances the ready sibling'
+);
+
+SELECT is(
+  (SELECT t.version FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup' AND t.booqable_stock_item_id = 'stock-ready'),
+  11,
+  'automatic pickup increments version once'
+);
+
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup' AND t.booqable_stock_item_id = 'stock-blocked'),
+  'needs_recheck',
+  'complete pickup does not advance an unfinished sibling'
+);
+
+SELECT is(
+  (SELECT t.version FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup' AND t.booqable_stock_item_id = 'stock-blocked'),
+  10,
+  'blocked pickup does not bump the unfinished task version'
+);
+
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-auto-pickup'
+       AND t.booqable_stock_item_id = 'stock-blocked')
+  )->>'kind'),
+  'not_ready',
+  'full pickup ahead of unfinished preparation exposes not-ready notice'
+);
+
+SELECT is(
+  (SELECT i.m1_outcome::text FROM public.bike_task_items i
+   JOIN public.bike_tasks t ON t.id = i.task_id JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup'
+     AND t.booqable_stock_item_id = 'stock-blocked' AND i.item_key = 'ROAD-01'),
+  'completed',
+  'blocked pickup preserves checklist values'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.bike_task_attestations a
+   JOIN public.bike_tasks t ON t.id = a.task_id JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup'
+     AND t.booqable_stock_item_id = 'stock-blocked'),
+  1,
+  'blocked pickup preserves attestations'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.bike_task_events e
+   JOIN public.bike_tasks t ON t.id = e.task_id JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup'
+     AND t.booqable_stock_item_id = 'stock-ready'
+     AND e.from_status = 'ready_for_pickup' AND e.to_status = 'in_rental'
+     AND e.source = 'source_apply' AND e.actor_id IS NULL),
+  1,
+  'automatic pickup appends one source-attributed event'
+);
+
+-- A same-source replay is a no-op, but later readiness is reconsidered.
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-auto-pickup',
+    jsonb_set(
+      jsonb_set(
+        pg_temp.snap(
+          'bq-auto-pickup', 'started', '2026-12-10T10:00:00Z',
+          jsonb_build_array(
+            pg_temp.assignment('stock-ready', 'sip-ready', '["workshop-road-bike"]'::jsonb),
+            pg_temp.assignment('stock-blocked', 'sip-blocked', '["workshop-road-bike"]'::jsonb)
+          ),
+          jsonb_build_array(
+            pg_temp.line('auto-bike-1', 'Ready bike', 1, NULL, 1),
+            pg_temp.line('auto-bike-2', 'Blocked bike', 1, NULL, 2)
+          )
+        ),
+        '{order,statuses}', '["started"]'::jsonb, true
+      ),
+      '{order,statusCounts}',
+      '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb,
+      true
+    )
+  )->>'ok')::boolean,
+  'complete pickup replay succeeds'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.bike_task_events e
+   JOIN public.bike_tasks t ON t.id = e.task_id JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup'
+     AND t.booqable_stock_item_id = 'stock-ready'
+     AND e.from_status = 'ready_for_pickup' AND e.to_status = 'in_rental'),
+  1,
+  'complete pickup replay adds no transition event'
+);
+
+UPDATE public.bike_tasks t
+SET status = 'ready_for_pickup', version = version + 1
+FROM public.orders o
+WHERE o.id = t.order_id
+  AND o.booqable_order_id = 'bq-auto-pickup'
+  AND t.booqable_stock_item_id = 'stock-blocked';
+
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-auto-pickup',
+    jsonb_set(
+      jsonb_set(
+        pg_temp.snap(
+          'bq-auto-pickup', 'started', '2026-12-10T10:00:00Z',
+          jsonb_build_array(
+            pg_temp.assignment('stock-ready', 'sip-ready', '["workshop-road-bike"]'::jsonb),
+            pg_temp.assignment('stock-blocked', 'sip-blocked', '["workshop-road-bike"]'::jsonb)
+          ),
+          jsonb_build_array(
+            pg_temp.line('auto-bike-1', 'Ready bike', 1, NULL, 1),
+            pg_temp.line('auto-bike-2', 'Blocked bike', 1, NULL, 2)
+          )
+        ),
+        '{order,statuses}', '["started"]'::jsonb, true
+      ),
+      '{order,statusCounts}',
+      '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb,
+      true
+    )
+  )->>'ok')::boolean,
+  'unchanged complete pickup retries after local readiness'
+);
+
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-auto-pickup' AND t.booqable_stock_item_id = 'stock-blocked'),
+  'in_rental',
+  'later refresh advances a newly ready sibling'
+);
+
+-- Mixed/unknown fulfillment stays manual and exposes a persistent explanation.
+SELECT ok(
+  (pg_temp.apply_snap('bq-partial', pg_temp.road_snap('bq-partial'))->>'ok')::boolean,
+  'partial setup succeeds'
+);
+UPDATE public.bike_tasks t SET status = 'ready_for_pickup', version = 7
+FROM public.orders o WHERE o.id = t.order_id AND o.booqable_order_id = 'bq-partial';
+
+SELECT is(
+  (pg_temp.apply_snap(
+    'bq-partial',
+    pg_temp.fulfillment_snap(
+      'bq-partial', 'started', '["reserved","started"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":1,"started":1,"stopped":0}'::jsonb
+    )
+  )->>'fulfillmentState'),
+  'mixed',
+  'partial pickup classifies as mixed'
+);
+
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-partial'),
+  'ready_for_pickup',
+  'partial pickup does not advance the task'
+);
+
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-partial')
+  )->>'kind'),
+  'mixed',
+  'mixed state persists a manual-handling notice'
+);
+
+SELECT is(
+  (pg_temp.apply_snap(
+    'bq-partial',
+    pg_temp.road_snap(
+      'bq-partial', 'stock-a', 'sip-a', '2026-12-10T10:00:00Z', 1, 'started'
+    )
+  )->>'fulfillmentState'),
+  'unknown',
+  'missing aggregate pickup evidence classifies as unknown'
+);
+
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-partial')
+  )->>'kind'),
+  'unknown',
+  'unknown pickup evidence persists an explanatory notice'
+);
+
+SELECT pg_temp.become('11111111-1111-4111-8111-111111111111');
+SET ROLE authenticated;
+SELECT is(
+  (public.workshop_task_detail(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-partial')
+  )->'sourceNotice'->>'kind'),
+  'unknown',
+  'authorized task detail exposes the persisted source notice'
+);
+RESET ROLE;
+
+SELECT pg_temp.become('11111111-1111-4111-8111-111111111111');
+SET ROLE authenticated;
+SELECT is(
+  (public.workshop_mark_picked_up(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-partial'),
+    (SELECT t.version FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-partial')
+  )->>'status'),
+  'in_rental',
+  'existing manual pickup RPC remains usable after a mixed/unknown no-op'
+);
+RESET ROLE;
+
+SELECT is(
+  (pg_temp.apply_snap(
+    'bq-partial',
+    pg_temp.fulfillment_snap(
+      'bq-partial', 'started', '["started","stopped"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":1,"stopped":1}'::jsonb
+    )
+  )->>'fulfillmentState'),
+  'mixed',
+  'partial return classifies as mixed'
+);
+
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-partial'),
+  'in_rental',
+  'partial return does not advance the task'
+);
+
+-- Partner tasks use the same uniform whole-order rule.
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-partner-auto',
+    pg_temp.snap(
+      'bq-partner-auto', 'reserved', '2026-12-10T10:00:00Z',
+      jsonb_build_array(pg_temp.partner_assignment('partner-line', 1)),
+      jsonb_build_array(pg_temp.line('partner-line', 'Partner Bike', 1, NULL, 1))
+    )
+  )->>'ok')::boolean,
+  'partner automatic pickup setup succeeds'
+);
+UPDATE public.bike_tasks t SET status = 'ready_for_pickup', version = 3
+FROM public.orders o WHERE o.id = t.order_id AND o.booqable_order_id = 'bq-partner-auto';
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-partner-auto',
+    jsonb_set(
+      jsonb_set(
+        pg_temp.snap(
+          'bq-partner-auto', 'started', '2026-12-10T10:00:00Z',
+          jsonb_build_array(pg_temp.partner_assignment('partner-line', 1)),
+          jsonb_build_array(pg_temp.line('partner-line', 'Partner Bike', 1, NULL, 1))
+        ),
+        '{order,statuses}', '["started"]'::jsonb, true
+      ),
+      '{order,statusCounts}',
+      '{"draft":0,"new":0,"reserved":0,"started":1,"stopped":0}'::jsonb,
+      true
+    )
+  )->>'ok')::boolean,
+  'partner complete pickup apply succeeds'
+);
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-partner-auto'),
+  'in_rental',
+  'partner task advances under the same pickup guard'
+);
+
+-- Final stopped is authoritative, including differing non-returnable counts;
+-- a sibling that missed pickup is not caught up through two transitions.
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-final-return',
+    pg_temp.snap(
+      'bq-final-return', 'reserved', '2026-12-10T10:00:00Z',
+      jsonb_build_array(
+        pg_temp.assignment('stock-rented', 'sip-rented', '["workshop-road-bike"]'::jsonb),
+        pg_temp.assignment('stock-missed', 'sip-missed', '["workshop-road-bike"]'::jsonb)
+      ),
+      jsonb_build_array(
+        pg_temp.line('return-bike-1', 'Rented bike', 1, NULL, 1),
+        pg_temp.line('return-bike-2', 'Missed bike', 1, NULL, 2),
+        pg_temp.line('return-sale', 'Bottle', 1, NULL, 3)
+      )
+    )
+  )->>'ok')::boolean,
+  'final return setup succeeds'
+);
+UPDATE public.bike_tasks t
+SET status = CASE WHEN t.booqable_stock_item_id = 'stock-rented'
+                  THEN 'in_rental'::public.bike_task_status
+                  ELSE 'ready_for_pickup'::public.bike_task_status END,
+    version = 8
+FROM public.orders o
+WHERE o.id = t.order_id AND o.booqable_order_id = 'bq-final-return';
+
+SELECT is(
+  (pg_temp.apply_snap(
+    'bq-final-return',
+    jsonb_set(
+      jsonb_set(
+        pg_temp.snap(
+          'bq-final-return', 'stopped', '2026-12-10T10:00:00Z',
+          jsonb_build_array(
+            pg_temp.assignment('stock-rented', 'sip-rented', '["workshop-road-bike"]'::jsonb),
+            pg_temp.assignment('stock-missed', 'sip-missed', '["workshop-road-bike"]'::jsonb)
+          ),
+          jsonb_build_array(
+            pg_temp.line('return-bike-1', 'Rented bike', 1, NULL, 1),
+            pg_temp.line('return-bike-2', 'Missed bike', 1, NULL, 2),
+            pg_temp.line('return-sale', 'Bottle', 1, NULL, 3)
+          )
+        ),
+        '{order,statuses}', '["started","stopped"]'::jsonb, true
+      ),
+      '{order,statusCounts}',
+      '{"draft":0,"new":0,"reserved":0,"started":1,"stopped":2}'::jsonb,
+      true
+    )
+  )->>'fulfillmentState'),
+  'final_return',
+  'stopped remains authoritative despite a non-returnable started count'
+);
+
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-final-return' AND t.booqable_stock_item_id = 'stock-rented'),
+  'returned',
+  'final return advances only the in-rental task'
+);
+
+SELECT is(
+  (SELECT t.version FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-final-return' AND t.booqable_stock_item_id = 'stock-rented'),
+  9,
+  'automatic final return increments version exactly once'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.bike_task_events e
+   JOIN public.bike_tasks t ON t.id = e.task_id
+   JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-final-return'
+     AND t.booqable_stock_item_id = 'stock-rented'
+     AND e.from_status = 'in_rental' AND e.to_status = 'returned'
+     AND e.source = 'source_apply' AND e.actor_id IS NULL
+     AND e.source_fingerprint = o.source_fingerprint),
+  1,
+  'automatic final return writes one actorless source event with fingerprint'
+);
+
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-final-return',
+    jsonb_set(
+      jsonb_set(
+        pg_temp.snap(
+          'bq-final-return', 'stopped', '2026-12-10T10:00:00Z',
+          jsonb_build_array(
+            pg_temp.assignment('stock-rented', 'sip-rented', '["workshop-road-bike"]'::jsonb),
+            pg_temp.assignment('stock-missed', 'sip-missed', '["workshop-road-bike"]'::jsonb)
+          ),
+          jsonb_build_array(
+            pg_temp.line('return-bike-1', 'Rented bike', 1, NULL, 1),
+            pg_temp.line('return-bike-2', 'Missed bike', 1, NULL, 2),
+            pg_temp.line('return-sale', 'Bottle', 1, NULL, 3)
+          )
+        ),
+        '{order,statuses}', '["started","stopped"]'::jsonb, true
+      ),
+      '{order,statusCounts}',
+      '{"draft":0,"new":0,"reserved":0,"started":1,"stopped":2}'::jsonb,
+      true
+    )
+  )->>'ok')::boolean,
+  'final return replay succeeds'
+);
+
+SELECT is(
+  (SELECT count(*)::integer FROM public.bike_task_events e
+   JOIN public.bike_tasks t ON t.id = e.task_id
+   JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-final-return'
+     AND t.booqable_stock_item_id = 'stock-rented'
+     AND e.from_status = 'in_rental' AND e.to_status = 'returned'
+     AND e.source = 'source_apply'),
+  1,
+  'final return replay adds no duplicate transition event'
+);
+
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-final-return' AND t.booqable_stock_item_id = 'stock-missed'),
+  'ready_for_pickup',
+  'final return does not synthesize a missed pickup transition'
+);
+
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-final-return'
+       AND t.booqable_stock_item_id = 'stock-missed')
+  )->>'kind'),
+  'missed_pickup',
+  'missed pickup persists a manual-recovery notice'
+);
+
+-- New discoveries never inherit an already-started order's progress.
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-new-started',
+    pg_temp.fulfillment_snap(
+      'bq-new-started', 'started', '["started"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb,
+      'stock-new', 'sip-new'
+    )
+  )->>'ok')::boolean,
+  'new task on a started order applies'
+);
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-new-started'),
+  'to_prepare',
+  'newly discovered task does not skip preparation'
+);
+
+-- Replacement task lifecycles do not inherit the replaced task's reversal history.
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-lifecycle-replace',
+    pg_temp.road_snap('bq-lifecycle-replace', 'stock-old', 'sip-old')
+  )->>'ok')::boolean,
+  'lifecycle replacement setup succeeds'
+);
+UPDATE public.bike_tasks t SET status = 'ready_for_pickup', version = 6
+FROM public.orders o
+WHERE o.id = t.order_id AND o.booqable_order_id = 'bq-lifecycle-replace';
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-lifecycle-replace',
+    pg_temp.fulfillment_snap(
+      'bq-lifecycle-replace', 'started', '["started"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb,
+      'stock-old', 'sip-old'
+    )
+  )->>'ok')::boolean,
+  'old lifecycle observes source pickup'
+);
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-lifecycle-replace',
+    pg_temp.fulfillment_snap(
+      'bq-lifecycle-replace', 'started', '["started"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb,
+      'stock-new', 'sip-new'
+    )
+  )->>'ok')::boolean,
+  'replacement source apply creates a fresh lifecycle'
+);
+SELECT is(
+  (SELECT t.workshop_source_pickup_observed FROM public.bike_tasks t
+   JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-lifecycle-replace' AND t.status <> 'cancelled'),
+  false,
+  'replacement task does not inherit prior lifecycle pickup evidence'
+);
+UPDATE public.bike_tasks t SET status = 'in_rental', version = version + 1
+FROM public.orders o
+WHERE o.id = t.order_id
+  AND o.booqable_order_id = 'bq-lifecycle-replace'
+  AND t.status <> 'cancelled';
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-lifecycle-replace',
+    pg_temp.road_snap('bq-lifecycle-replace', 'stock-new', 'sip-new')
+  )->>'ok')::boolean,
+  'replacement lifecycle reserved refresh succeeds'
+);
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-lifecycle-replace' AND t.status <> 'cancelled')
+  )->>'kind'),
+  'local_ahead',
+  'replacement lifecycle is ordinary local progress rather than reversal'
+);
+
+-- A proven upstream reversal preserves progress and is distinguished from a
+-- normal manual transition that happened before Booqable caught up.
+SELECT ok(
+  (pg_temp.apply_snap('bq-reversal', pg_temp.road_snap('bq-reversal'))->>'ok')::boolean,
+  'reversal setup succeeds'
+);
+UPDATE public.bike_tasks t SET status = 'ready_for_pickup', version = 4
+FROM public.orders o WHERE o.id = t.order_id AND o.booqable_order_id = 'bq-reversal';
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-reversal',
+    pg_temp.fulfillment_snap(
+      'bq-reversal', 'started', '["started"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb
+    )
+  )->>'ok')::boolean,
+  'reversal setup records a confirmed pickup'
+);
+
+SELECT pg_temp.become('11111111-1111-4111-8111-111111111111');
+SET ROLE authenticated;
+SELECT is(
+  (public.workshop_mark_returned(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-reversal'),
+    (SELECT t.version FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-reversal')
+  )->>'status'),
+  'returned',
+  'manual return RPC remains available after source-driven pickup'
+);
+RESET ROLE;
+
+SELECT ok(
+  (pg_temp.apply_snap('bq-reversal', pg_temp.road_snap('bq-reversal'))->>'ok')::boolean,
+  'reserved reversal apply succeeds'
+);
+SELECT is(
+  (SELECT t.status::text FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-reversal'),
+  'returned',
+  'upstream reversal never moves a manually returned task backward'
+);
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-reversal')
+  )->>'kind'),
+  'reversal',
+  'proven upstream reversal has the reversal notice'
+);
+
+SELECT ok(
+  (pg_temp.apply_snap('bq-return-reversal', pg_temp.road_snap('bq-return-reversal'))->>'ok')::boolean,
+  'return-reversal setup succeeds'
+);
+UPDATE public.bike_tasks t SET status = 'in_rental', version = 5
+FROM public.orders o
+WHERE o.id = t.order_id AND o.booqable_order_id = 'bq-return-reversal';
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-return-reversal',
+    pg_temp.fulfillment_snap(
+      'bq-return-reversal', 'stopped', '["stopped"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":0,"stopped":2}'::jsonb
+    )
+  )->>'ok')::boolean,
+  'source-driven final return records lifecycle return history'
+);
+SELECT ok(
+  (pg_temp.apply_snap(
+    'bq-return-reversal',
+    pg_temp.fulfillment_snap(
+      'bq-return-reversal', 'started', '["started"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb
+    )
+  )->>'ok')::boolean,
+  'return reversal to full pickup applies without moving Workshop backward'
+);
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-return-reversal')
+  )->>'kind'),
+  'reversal',
+  'task lifecycle with an observed source return exposes return-history reversal'
+);
+
+SELECT ok(
+  (pg_temp.apply_snap('bq-manual-ahead', pg_temp.road_snap('bq-manual-ahead'))->>'ok')::boolean,
+  'manual-ahead setup succeeds'
+);
+UPDATE public.bike_tasks t SET status = 'in_rental', version = 4
+FROM public.orders o WHERE o.id = t.order_id AND o.booqable_order_id = 'bq-manual-ahead';
+SELECT ok(
+  (pg_temp.apply_snap('bq-manual-ahead', pg_temp.road_snap('bq-manual-ahead'))->>'ok')::boolean,
+  'manual-ahead reserved refresh succeeds'
+);
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-manual-ahead')
+  )->>'kind'),
+  'local_ahead',
+  'ordinary manual progress is not falsely labeled a reversal'
+);
+
+-- Contradictory aggregate evidence is valid-but-unknown; malformed evidence is
+-- structurally invalid and preserves the previous source/task state.
+SELECT is(
+  private.booqable_source_fingerprint(
+    pg_temp.fulfillment_snap(
+      'fingerprint-order', 'started', '["started","reserved"]'::jsonb,
+      '{"reserved":1,"started":1}'::jsonb
+    )
+  ),
+  private.booqable_source_fingerprint(
+    pg_temp.fulfillment_snap(
+      'fingerprint-order', 'started', '["reserved","started"]'::jsonb,
+      '{"started":1,"reserved":1}'::jsonb
+    )
+  ),
+  'source fingerprint canonicalizes equivalent status sets'
+);
+
+SELECT is(
+  (pg_temp.apply_snap(
+    'bq-partial',
+    pg_temp.fulfillment_snap(
+      'bq-partial', 'started', '[]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":0,"stopped":0}'::jsonb
+    )
+  )->>'fulfillmentState'),
+  'unknown',
+  'empty status evidence never invents pickup'
+);
+
+SELECT is(
+  (pg_temp.apply_snap(
+    'bq-partial',
+    pg_temp.fulfillment_snap(
+      'bq-partial', 'started', '["started"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":1,"started":1,"stopped":0}'::jsonb
+    )
+  )->>'fulfillmentState'),
+  'unknown',
+  'contradictory aggregate evidence never invents pickup'
+);
+
+SELECT is(
+  (pg_temp.apply_snap(
+    'bq-partial',
+    pg_temp.fulfillment_snap(
+      'bq-partial', 'reserved', '["started"]'::jsonb,
+      '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb
+    )
+  )->>'fulfillmentState'),
+  'unknown',
+  'contradictory reserved aggregates classify as unknown'
+);
+
+SELECT is(
+  (private.workshop_task_source_notice(
+    (SELECT t.id FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+     WHERE o.booqable_order_id = 'bq-partial')
+  )->>'kind'),
+  'unknown',
+  'contradictory reserved aggregates expose the AC12 explanation'
+);
+
+CREATE TEMP TABLE malformed_before AS
+SELECT t.status, t.version
+FROM public.bike_tasks t
+JOIN public.orders o ON o.id = t.order_id
+WHERE o.booqable_order_id = 'bq-partial';
+
+SELECT is(
+  pg_temp.apply_snap(
+    'bq-partial',
+    jsonb_set(
+      pg_temp.fulfillment_snap(
+        'bq-partial', 'started', '["started"]'::jsonb,
+        '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb
+      ),
+      '{order,statusCounts,started}', '"two"'::jsonb, true
+    )
+  )->>'code',
+  'INVALID_SNAPSHOT',
+  'malformed aggregate counts reject the entire snapshot'
+);
+
+SELECT is(
+  (SELECT t.version FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-partial'),
+  (SELECT version FROM malformed_before),
+  'malformed aggregate snapshot writes no task change'
+);
+
+SELECT is(
+  pg_temp.apply_snap(
+    'bq-partial',
+    jsonb_set(
+      pg_temp.fulfillment_snap(
+        'bq-partial', 'started', '["started"]'::jsonb,
+        '{"draft":0,"new":0,"reserved":0,"started":2,"stopped":0}'::jsonb
+      ),
+      '{order,statusCounts,started}', '9223372036854775808'::jsonb, true
+    )
+  )->>'code',
+  'INVALID_SNAPSHOT',
+  'count beyond bigint range follows the invalid-snapshot contract'
+);
+
+SELECT is(
+  (SELECT t.version FROM public.bike_tasks t JOIN public.orders o ON o.id = t.order_id
+   WHERE o.booqable_order_id = 'bq-partial'),
+  (SELECT version FROM malformed_before),
+  'oversized count writes no task change'
+);
+
+SELECT is(
+  (SELECT is_nullable FROM information_schema.columns
+   WHERE table_schema = 'public' AND table_name = 'orders'
+     AND column_name = 'workshop_fulfillment_evidence_observed'),
+  'NO',
+  'evidence-observed column converges to not-null on migration replay'
+);
+
+SELECT is(
+  (SELECT column_default FROM information_schema.columns
+   WHERE table_schema = 'public' AND table_name = 'bike_tasks'
+     AND column_name = 'workshop_source_pickup_observed'),
+  'false',
+  'task lifecycle evidence column converges to a false default on replay'
 );
 
 -- Bad envelope: missing assignments
