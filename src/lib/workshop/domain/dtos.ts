@@ -76,12 +76,25 @@ export type WorkshopTaskEvent = {
   occurredAt: string;
 };
 
+export type WorkshopSourceNotice = {
+  kind:
+    | "mixed"
+    | "unknown"
+    | "not_ready"
+    | "missed_pickup"
+    | "reversal"
+    | "local_ahead";
+  title: string;
+  description: string;
+};
+
 export type WorkshopTaskDetail = {
   task: WorkshopTaskListRow;
   items: WorkshopTaskItem[];
   addons: WorkshopAddon[];
   addonFingerprint: string | null;
   sourceFingerprint: string | null;
+  sourceNotice: WorkshopSourceNotice | null;
   attestations: WorkshopAttestation[];
   events: WorkshopTaskEvent[];
 };

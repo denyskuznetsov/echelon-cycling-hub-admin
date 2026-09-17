@@ -1,6 +1,7 @@
 import { createClient } from "@/src/utils/supabase/server";
 import {
   isBikeTaskStatus,
+  mapWorkshopSourceNotice,
   resolveWorkshopQueueFilter,
   resolveWorkshopQueueStatus,
   WORKSHOP_QUEUE_STATUSES,
@@ -404,6 +405,7 @@ function mapDetailPayload(data: unknown): WorkshopTaskDetail | null {
     addons,
     addonFingerprint: asString(root.addonFingerprint),
     sourceFingerprint: asString(root.sourceFingerprint),
+    sourceNotice: mapWorkshopSourceNotice(root.sourceNotice),
     attestations,
     events,
   };

@@ -56,12 +56,18 @@ export type {
   WorkshopAddon,
   WorkshopAttestation,
   WorkshopQueueStatusCounts,
+  WorkshopSourceNotice,
   WorkshopTaskDetail,
   WorkshopTaskEvent,
   WorkshopTaskItem,
   WorkshopTaskListQuery,
   WorkshopTaskListRow,
 } from "./dtos";
+
+export {
+  mapWorkshopSourceNotice,
+  workshopSourceNoticeAlertProps,
+} from "./source-notice";
 
 export {
   SOURCE_ORDER_SNAPSHOT_SCHEMA_VERSION,

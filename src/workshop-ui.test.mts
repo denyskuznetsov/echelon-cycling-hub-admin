@@ -41,6 +41,10 @@ import {
   resolveWorkshopQueueFilter,
   resolveWorkshopQueueStatus,
 } from "./lib/workshop/domain/statuses.ts";
+import {
+  mapWorkshopSourceNotice,
+  workshopSourceNoticeAlertProps,
+} from "./lib/workshop/domain/source-notice.ts";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -925,6 +929,41 @@ test("task page reuses all-orders drawer via ?order=", () => {
   assert.match(task, /useOpenOrderDetails/);
   assert.match(task, /openOrderDetails\(orderId\)/);
   assert.match(task, /OrderDetailsButtonFallback/);
+});
+
+test("task page renders the persistent source reconciliation notice", () => {
+  const task = readFileSync(
+    join(root, "src/app/workshop/_components/WorkshopTask.tsx"),
+    "utf8",
+  );
+  const loader = readFileSync(
+    join(root, "src/lib/workshop/data/tasks.ts"),
+    "utf8",
+  );
+  const dto = readFileSync(
+    join(root, "src/lib/workshop/domain/dtos.ts"),
+    "utf8",
+  );
+
+  assert.match(dto, /WorkshopSourceNotice/);
+  assert.match(dto, /sourceNotice: WorkshopSourceNotice \| null/);
+  assert.match(loader, /sourceNotice: mapWorkshopSourceNotice\(root\.sourceNotice\)/);
+  assert.match(task, /workshopSourceNoticeAlertProps\(detail\.sourceNotice\)/);
+  assert.match(task, /title=\{sourceNoticeAlert\.title\}/);
+  assert.match(task, /description=\{sourceNoticeAlert\.description\}/);
+
+  const mapped = mapWorkshopSourceNotice({
+    kind: "mixed",
+    title: "Partial Booqable pickup or return",
+    description:
+      "This Booqable order has partial pickups or returns. Update this task manually.",
+  });
+  assert.deepEqual(workshopSourceNoticeAlertProps(mapped), {
+    variant: "warning",
+    title: "Partial Booqable pickup or return",
+    description:
+      "This Booqable order has partial pickups or returns. Update this task manually.",
+  });
 });
 
 test("AddonsList renders extraInformation and keeps declined split", () => {
