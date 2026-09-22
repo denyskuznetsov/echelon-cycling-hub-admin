@@ -2,20 +2,36 @@
 
 ## Source preservation and authority
 
-Both source documents are adopted companions, remain unmodified and must be read in full. Product sections 1–25 retain their product principles, field catalogues, edge cases, non-functional requirements, acceptance scenarios and later-only exclusions. Handoff discovery, guardrails, technical-design requirements, test matrix and definition of done remain constraints. Its mission to implement, recommended Story 0–8 sequence and suggested prompt to propose stories are process instructions superseded by the current user’s spec-only request; they do not authorize code, migrations, investigative code spikes or story output.
+Both source documents are adopted companions, remain unmodified and must be read in full. Product sections 1–25 retain unchanged principles, field catalogues, edge cases, non-functional requirements, acceptance scenarios and later-only exclusions, subject to the explicit replacements below. ARCHITECTURE-SPINE.md AD-1 through AD-12 is an adopted companion, owned by the architecture workflow; this spec run does not edit it. Handoff discovery, guardrails, technical-design requirements, test matrix and definition of done remain constraints. Its mission to implement, recommended Story 0–8 sequence and suggested prompt to propose stories are process instructions superseded by the current user’s spec-only request; they do not authorize code, migrations, investigative code spikes or story output.
+
+| Original claim / decision | Reconciled authority |
+|---|---|
+| Product §§11/13/18/19, FR-07, scenario 7; handoff classifier/mismatch requirements | AD-1/5 and CAP-3/4 replace expected booked units with current Workshop task scope. No independent completeness audit; 7/7 may be correct despite eight booked units. Zero tasks stays visible without escalation; history is excluded and current partner units retained. |
+| Product §§7.3/14, FR-08, scenario 3; handoff existing fallback assumption | AD-8 defines nonblank delivery_address then maps_link_order, never billing/customer fallback. The fields exist but shared fallback integration is required; supplied-unresolvable is distinct from missing. |
+| Product §§14/18/25 and handoff routing cache/provider requirements | AD-9 selects Google v2 DRIVE/TRAFFIC_UNAWARE with within-load deduplication, no persistent/cross-request result cache, tested destinations, separate loading and matching-input estimates. Provider setup and real-world validation remain rollout work. |
+| Product §§7.2/11 preparation-window ambiguity | AD-5 counts outstanding current preparation-stage tasks for selected-period outgoing orders, not a rolling 24 hours. Preparation practice is context, not permission for early-preparation automation. |
+| Product §§8/9/15.1/25, FR-02/11; handoff provisional dates/urgency | AD-4/6 settle calendar presets, inclusive custom dates, shared reference instant and exact 6h/2h boundaries. Urgency follows today's outgoing rows in every selected range; future rows remain planning-only. |
+| Product §§12/15/18/25 optional tight-turnaround | AD-6 defers cross-order prediction beyond V1; AD-5 still exposes in-rental, returned and storage-in-progress separately. |
+| Product §19 existing eligibility assumption | AD-2 includes reserved/started/stopped only; missing customer/number and zero tasks do not exclude eligible orders. Missing timestamps cannot qualify their direction. |
+| Product §16, FR-13; handoff existing reverse-link assumption | AD-7 requires extending the shared drawer with selected-order, staff-authorized current task links; no historical browser or duplicate detail UI. |
+| Product §§4/10/17, FR-14; handoff upcoming-sync reuse scope | AD-10/11 extend the existing worker to fixed selected-period outgoing OR incoming coverage plus local candidates from the same interval. Preserve old reserved-only evidence, resume and guarded reconciliation effects. |
+| Product §18 optional server aggregation; handoff view/function/server choice | AD-3 requires one staff-authorized PostgreSQL SECURITY INVOKER read function, coherent aggregates and no N+1 detail loading. |
+| Product §20, FR-16, scenario 11; original A1 | AD-7/12 settle Dashboard naming/first nav item/default Today, retain Workshop and explicit valid internal next destinations, and preserve partner/pending handling. |
+| AGENTS.md webhook/seeder-only service role; original Q12 | Recorded owner exception in AD-12 permits service role only inside existing backend reconciliation after staff authorization, including resume. It never permits privileged Dashboard/drawer reads. |
+| Product §22 performance and handoff numerical targets | Q14 remains a baseline-driven pre-rollout acceptance decision; scanability targets do not establish query/render latency. |
 
 | Product requirements | Canonical destination |
 |---|---|
-| FR-01, FR-02 | CAP-1/2; period contract; Q2/Q9. |
-| FR-03, FR-04, FR-05 | CAP-3; order/day contract; Q5/Q8. |
-| FR-06, FR-07 | CAP-4; status/count mapping; adopted Q4/Q6. |
-| FR-08, FR-09, FR-10 | CAP-5; delivery boundary; Q3/Q10. |
-| FR-11, FR-15 | CAP-6; deterministic warning catalogue; Q1/Q7/Q9. |
-| FR-12, FR-13 | CAP-7; drawer reuse; C1/Q13. |
-| FR-14 | CAP-8; scoped sync evidence; Q11/Q12. |
-| FR-16 | CAP-1; role/landing evidence; A1. |
+| FR-01, FR-02 | CAP-1/2; AD-4/7. |
+| FR-03, FR-04, FR-05 | CAP-3; AD-1/2/3/5/8; data-contract.md page/field catalogues. |
+| FR-06, FR-07 | CAP-4; AD-1/5; FR-07 replaced as above. |
+| FR-08, FR-09, FR-10 | CAP-5; AD-8/9. |
+| FR-11, FR-15 | CAP-6; AD-4/5/6. |
+| FR-12, FR-13 | CAP-7; AD-1/7/12. |
+| FR-14 | CAP-8; AD-10/11/12. |
+| FR-16 | CAP-1; AD-7/12. |
 
-Handoff technical outputs 1–2 and 10 are covered by brownfield.md; 3–9 by data-contract.md; 11–13 below; 14 by SPEC questions and the contradiction table. Provider, current-task bike scope, order inclusion and selected-period refresh are adopted in the coaching decisions/spine. Measurable latency values remain a baseline-driven rollout check (Q14).
+Handoff technical outputs 1–2 and 10 are covered by brownfield.md and AD-7/12; 3–9 by data-contract.md and AD-1 through AD-11; 11–13 below; 14 by the override table and Q14. Its proposed story sequence is not a current dispatch contract; no stories.yaml exists.
 
 ## Acceptance verification map
 
@@ -31,7 +47,7 @@ Handoff technical outputs 1–2 and 10 are covered by brownfield.md; 3–9 by da
 | 8: incoming only | Stop-based membership with no outgoing inflation. |
 | 9: same-day | One row in each section; each direction’s totals agree; any unique-order metric explicitly named. |
 | 10: sync problem | Failure, partial cursor, stale worker, skipped result, repeated-page protection and successful retry recovery; no falsely complete empty list. |
-| 11: roles | Root/password login/callback defaults for staff/partner, preserved explicit-next behavior as approved in A1, pending/anonymous direct-route and direct-call denial. |
+| 11: roles | Root/password login/callback defaults for staff/partner, preserved explicit-next behavior under AD-7, pending/anonymous direct-route and direct-call denial. |
 
 Additional matrix: all six periods and inclusive custom dates; preparation workload equals current to_prepare/being_prepared/needs_recheck tasks for selected-period outgoing orders across row/day/summary, excluding incoming-only and later lifecycle work; today-row readiness urgency persists in Next 7 Days/custom ranges while future rows remain non-urgent; Madrid midnight, month/year rollover and both spring/fall DST transitions; reassignment and closed-instance history; partner synthetic quantity; no checklist/add-on row inflation; new/draft/canceled/archived exclusion from rows and totals even with retained tasks and in-range dates; reserved/started/stopped inclusion by independent scheduled start/return membership; missing Booqable order number remains included with explicit missing-number text and working local-ID drawer navigation; no customer/reference; mixed fulfillment; current lifecycle beyond ready; current configuration/add-on/source notices; scoped health timestamp versus unrelated latest run; no unsupported webhook/global coverage; range preservation on drawer open/close/back/forward; shared drawer current-task links reach existing Workshop screens, omit history and preserve staff-only task access; keyboard/focus and non-color status; partner isolation and zero denied provider calls; aggregate totals equal day/order rows without join fan-out. No cross-order tight-turnaround detection ships in V1. Verify the per-order breakdown still exposes returned/awaiting storage preparation separately from prepare_for_storage/in-progress storage work, alongside preparation and in-rental counts.
 
@@ -51,18 +67,31 @@ Core workload query count must not scale one request per displayed order. Fetch 
 
 ## Migration and rollout boundary
 
-No migration is authored or applied by this specification. Current task scope supplies bike counts; no source-line classifier or independent expected-unit data is required. Using the approved Q5 eligibility matrix, decide the smallest read-model change and verify it against actual local schema. If SQL becomes necessary, use idempotent migration conventions, authenticated/RLS-safe reads, explicit staff authorization, generated types or equivalent validated contract work, and local upgrade/replay/permission tests. Do not repair source data or redefine reconciliation as an incidental dashboard change.
+No migration is authored or applied by this specification. Current task scope supplies bike counts; no source-line classifier or independent expected-unit data is required. Implement the AD-3 read function under AD-1/2 scope rules and verify against actual local schema; selected-period run metadata/validation must support AD-10/11 without changing legacy evidence meanings. If SQL becomes necessary, use idempotent migration conventions, authenticated/RLS-safe reads, explicit staff authorization, generated types or equivalent validated contract work, and local upgrade/replay/permission tests. Do not repair source data or redefine reconciliation as an incidental dashboard change.
 
 `.github/workflows/deploy-staging.yml` and `deploy-production.yml` run Supabase CLI 2.115.0 migrations from staging/main pushes. Hosted migrations follow merge/CI; no manual remote DDL. Preview/staging Booqable sync is intentionally gated off; fixture-based verification must not bypass this. No general feature-flag infrastructure was found. Rollback design should restore prior staff landing/navigation and disable new route-provider calls while preserving Orders, Workshop and assignment history; any later schema change needs its own compatibility/rollback assessment. Do not invent destructive rollback SQL.
 
+## Architecture acceptance map
+
+| Rules | Required proof beyond the product scenarios |
+|---|---|
+| AD-1/5 | Count each current rental_turnaround task once on an open assignment; exclude cancelled/closed history; include completed while open. Dashboard and selected-order links use the same predicate, including partner units. Preserve separate returned/storage counts and zero-task non-escalation. |
+| AD-2/3 | Independent start/return membership, missing timestamps/names/numbers, eligible zero-task rows, no join fan-out, one coherent rows/day/period dataset and explicit failed-read state. No silent partial delivery or unapproved range cap. |
+| AD-4/6 | Default Today, malformed/reversed date errors, next Monday even when today is Monday, next calendar month, inclusive custom endpoints, both DST transitions and one reference instant for membership/labels/urgency. Preserve chronology, distinct conditions and highest existing severity without duplicate alert cards. |
+| AD-7/12 | Direct RPC/task-link/ETA/start/resume role denial, not just navigation; user RLS reads and narrow backend-worker exception. Default staff landing, explicit next, partner/pending behavior, retained Workshop, drawer history/focus/period state and on-demand links. Do not overwrite workload snapshot counts with later detail data. |
+| AD-8/9 | Whitespace/primary/maps/missing parity between SQL and shared display; supplied-unresolvable is not missing. ETA authorization/server input reread, minimal provider payload, no secrets/arbitrary proxy, tested destination forms and bounded safe redirects if supported. Timeout/quota/ambiguity leaves workload usable. A late estimate for A never displays beside B; no persistent/cross-request cache, polling or drawer-only refetch. |
+| AD-10 | Selected-period outgoing/incoming source discovery plus local in-window candidates; deduplicate IDs. An out-of-window local order must not enter; captured candidates still reconcile after source cancellation/date movement. Persist exact scope/window/policy/run, discovery and outcomes across pause/resume, midnight and URL changes; client cursor cannot widen scope. Preserve bounded awaited work, leases, complete snapshots, task creation and guarded whole-order effects. |
+| AD-11 | Success requires complete enumeration and all required reconciliations; retries replace outcomes and skipped/deleted/unavailable candidates cannot become successes. Keep scope/date/completion/counts from one run, distinguish stale/unknown/failed/partial/empty, show recorded dates after navigation and preserve legacy labels. No global or atomic-source-snapshot claim. |
+| AD-12 | Preserve environment sync gates, old scopes/cursors readable or explicitly restartable, idempotent local migration verification and hosted CI path. Rollback restores prior staff landing/navigation and disables new routing/selected-period entry points while retaining Orders/Workshop/source/task history. |
+
+## Remaining rollout checks
+
+- **Q14:** Measure database plan/time, server response, first usable workload and selected-period sync throughput using representative Today/month/custom volumes and actual staff devices; agree numerical acceptance targets before rollout.
+- **Routing:** Verify precise shop origin, real supported Maps-link fixtures, ambiguity handling, applicable billing-account terms/privacy notices, restricted credentials, attribution and quotas before enabling estimates. Recorded provider research is dated evidence, not a new live check.
+- **Execution:** Select and test bounded query/provider/concurrency/sync budgets during implementation. An incomplete custom range must fail/resume explicitly; a new user-visible range cap requires product approval. The separate optimization research does not approve batching/concurrency changes here.
+
 ## Validation verdict
 
-Coherence: five kernel fields, eight unique stable capabilities with intent/success, explicit non-goals, testable success signals and lean companions. Conditional behaviors remain blocked by named questions; this is a completed discovery spec, not unconditional implementation readiness.
+Coherence: eight stable CAP IDs have intent and success; the lean kernel retains five required fields, explicit non-goals and testable outcomes. A1 is resolved behavior, historical repository evidence is qualified in brownfield.md, no new assumptions were introduced, and only Q14 remains an open acceptance decision. The contract is reconciled with the final architecture; runtime and rollout verification remain future work.
 
-Preservation: all 16 functional requirements, all 11 acceptance scenarios, with scenario 7 explicitly superseded by the owner-approved task-ownership decision, product sections 1–25 and handoff guardrails/test requirements are retained through mandatory adopted companions and the mapping above. Wrapper-only content: upstream implementation commands/story sequencing are retained for provenance but not executed or converted into a new story artifact. The owner explicitly revised the independent expected-unit/missing-task requirement during architecture coaching; SPEC.md records its precedence over the unchanged source documents.
-
-## Architecture acceptance additions
-
-Selected-period refresh requires fixed stored run dates, outgoing/incoming discovery, local candidates whose source status/dates moved, order-ID deduplication, bounded resumable progress, truthful skipped/failed/success counts and legacy-scope labels. Existing reserved-only fixtures must remain valid for their original scope. Broader discovery must preserve existing guarded source-apply/task-creation behavior. No runtime evidence is claimed by this documentation update.
-
-Reviewer regression cases: a locally eligible order outside the saved sync window must not enter the run; a locally captured in-window order must still refresh after source cancellation/date movement. A late route estimate for address A must not display beside address B after source changes; bind estimates to their origin/destination inputs.
+Preservation: all 16 functional requirements, all 11 acceptance scenarios, product sections 1–25 and handoff guardrails are retained through required companions with the explicit replacements above. All twelve architecture decisions are adopted unchanged and mapped to verification. Wrapper-only content: original implementation missions, story sequencing, suggested prompts and coaching/review process records do not become build requirements or authorize execution. No application, migration, story, browser, provider or deployment test is claimed by this documentation reconciliation.
