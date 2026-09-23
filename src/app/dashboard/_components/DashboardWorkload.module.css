@@ -88,6 +88,12 @@
   background: theme('colors.neutral-50');
 }
 
+.driveTime {
+  color: theme('colors.subtext-color');
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
 .missingAddress {
   border: 1px solid theme('colors.error-100');
   background: theme('colors.error-50');
