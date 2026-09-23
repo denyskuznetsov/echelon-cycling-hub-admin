@@ -137,12 +137,3 @@
     grid-template-columns: 4rem minmax(0, 1fr) max-content;
   }
 }
-
-.attention { border: 1px solid theme('colors.warning-200'); border-radius: 8px; background: theme('colors.warning-50'); padding: 16px; }
-.conditions { margin-top: 12px; padding-left: 18px; list-style: disc; color: theme('colors.default-font'); font-size: 14px; }
-.conditions li + li { margin-top: 4px; }
-
-.attentionItem, .conditionItem { border-left: 3px solid; padding: 4px 8px; border-radius: 3px; }
-.critical { border-color: theme('colors.error-700'); background: theme('colors.error-50'); color: theme('colors.error-800'); }
-.warning { border-color: theme('colors.warning-600'); background: theme('colors.warning-50'); color: theme('colors.default-font'); }
-.low { border-color: theme('colors.neutral-500'); background: theme('colors.neutral-50'); color: theme('colors.default-font'); }

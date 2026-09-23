@@ -35,16 +35,21 @@ test("rendered Dashboard notices use exact singular count, text severity and pri
       { kind: "missing_delivery_address", severity: "low", affected_bikes: 0 },
     ],
   }));
-  assert.match(row, /Critical:<\/strong> 1 bike still to prepare/);
-  assert.match(row, /Warning:<\/strong> Booqable status moved backward/);
-  assert.match(row, /Notice:<\/strong> Delivery address missing/);
-  assert.ok(row.indexOf("Critical:") < row.indexOf("Warning:"));
-  assert.ok(row.indexOf("Warning:") < row.indexOf("Notice:"));
-  assert.match(row, /class="conditionItem critical"/);
+  assert.match(row, /Critical<\/span><span[^>]*>1 bike still to prepare/);
+  assert.match(row, /Warning<\/span><span[^>]*>Booqable status moved backward/);
+  assert.match(row, /Notice<\/span><span[^>]*>Delivery address missing/);
+  assert.ok(row.indexOf("Critical") < row.indexOf("Warning"));
+  assert.ok(row.indexOf("Warning") < row.indexOf("Notice"));
+  assert.match(row, /border-error-600 bg-error-50/);
+  assert.match(row, /border-warning-600 bg-warning-50/);
+  assert.match(row, /list-none/);
   const attention = renderToStaticMarkup(React.createElement(Attention as React.ComponentType<{ items: unknown[] }>, {
     items: [{ kind: "preparation", severity: "critical", affected_bikes: 2, orders: 1 }],
   }));
-  assert.match(attention, /2 bikes still to prepare · 1 order/);
+  assert.match(attention, /Priority summary/);
+  assert.match(attention, /1 priority in this period/);
+  assert.match(attention, /2 bikes still to prepare/);
+  assert.match(attention, /1 order/);
 });
 
 test("rendered Workshop task list separates loading, error, empty and stable links", () => {
