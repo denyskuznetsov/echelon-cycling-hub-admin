@@ -84,7 +84,7 @@ IDs preserve the original product FR mapping while applying the canonical replac
 
 - **UX-DR1 — Shell and hierarchy:** Inherit Echelon Subframe colors, Geist typography, spacing, radii and overlays without new tokens. Order header/shared period/sync → workload summary → concise attention → directional lists. Keep lists dominant; no new chart/financial dashboard.
 - **UX-DR2 — Shared period control:** One labeled Select/Calendar/Button composition updates both directions and summary, displaying resolved dates. Default Today; support all presets and inclusive custom range; show correctable inline date validation and preserve URL/history state.
-- **UX-DR3 — Sync presentation:** Reuse Button/Progress/Alert patterns for explicit refresh, scope, progress/outcome and resume/restart. Keep lists usable; show saved run dates after view changes and explain environment unavailability. Unknown confidence reads “Sync confidence unavailable.”
+- **UX-DR3 — Sync presentation:** Reuse Workshop Button/Progress/Alert patterns and plain-language in-progress, success and error messages for explicit refresh, scope and resume/restart. Keep lists usable; show the saved run date range when relevant and explain environment unavailability. Do not introduce a separate “confidence” status or success vocabulary; expose run evidence only through consistent progress, result and error details.
 - **UX-DR4 — Summary and attention:** Show both directional order/bike totals, outgoing deliveries, outstanding preparation and missing-address counts from the coherent result. Summarize actual deduplicated row issues without repeated large alert cards or reordering chronological lists.
 - **UX-DR5 — Responsive direction control:** Side-by-side Going out/Coming back on tablet/laptop. Phones show two visible direction labels above one active list, with accessible tablist, selected state, keyboard movement and labeled panel. Switching direction preserves period and does not start sync.
 - **UX-DR6 — Day headings and rows:** Align times, separate multi-day groups with Madrid dates and day counts, and wrap rather than shrink essential content. Outgoing rows show identity, fulfillment, readiness/lifecycle, delivery details, warnings and useful relative start time today; incoming rows show return time, identity, bikes/lifecycle and reliable collection context.
@@ -113,7 +113,7 @@ IDs preserve the original product FR mapping while applying the canonical replac
 | FR-11 | Dashboard Epic 1 | Appropriate urgency for today's departures. |
 | FR-12 | Dashboard Epic 1 | One-action shared order detail. |
 | FR-13 | Dashboard Epic 1 | Current bike tasks reachable through the drawer. |
-| FR-14 | Dashboard Epic 1 | Scoped synchronization confidence and recovery. |
+| FR-14 | Dashboard Epic 1 | Selected-period synchronization and recovery. |
 | FR-15 | Dashboard Epic 1 | Deterministic evidence-based attention. |
 | FR-16 | Dashboard Epic 1 | Staff navigation with preserved role boundaries. |
 
@@ -127,7 +127,7 @@ Admin, manager and mechanic can start their day with a trustworthy selected-peri
 
 **FRs covered:** FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-07, FR-08, FR-09, FR-10, FR-11, FR-12, FR-13, FR-14, FR-15, FR-16. **Capabilities:** CAP-1–8.
 
-**User outcome:** Staff can plan and execute routine rental work from Echelon without manually comparing Booqable and Workshop for each order. The dashboard supports the approved tablet/laptop and phone journeys, preserves existing task workflows and shows the limits of its data confidence.
+**User outcome:** Staff can plan and execute routine rental work from Echelon without manually comparing Booqable and Workshop for each order. The dashboard supports the approved tablet/laptop and phone journeys, preserves existing task workflows and reports sync progress and errors consistently with Workshop.
 
 **Boundary and dependencies:** One complete dashboard epic, using existing Orders, Workshop, authentication and reconciliation infrastructure. It does not depend on completing the separate Project Foundations backlog or sync-optimization research. Revalidate existing extension seams during implementation. Routing configuration and Q14 measured performance acceptance gate rollout; they do not require extra epics.
 
@@ -137,7 +137,7 @@ Admin, manager and mechanic can start their day with a trustworthy selected-peri
 
 ## Epic 1: Plan and run daily rental operations from one dashboard
 
-Staff can understand the selected rental workload, act through existing order/task screens, organize deliveries and recover source confidence from a single operational starting point.
+Staff can understand the selected rental workload, act through existing order/task screens, organize deliveries and refresh the selected period from a single operational starting point.
 
 ### Delivery sequence and scope
 
@@ -146,11 +146,11 @@ Staff can understand the selected rental workload, act through existing order/ta
 | 1.1 Workload dashboard | Staff browse real local workload, readiness and delivery destinations for any approved period and open orders. | Existing application only |
 | 1.2 Preparation priorities and Workshop navigation | Staff identify today's preparation risks and reach the relevant bike task through an order. | 1.1 |
 | 1.3 Delivery drive estimates | Staff see approximate drive duration without disrupting workload. | 1.1 |
-| 1.4 Selected-period sync and confidence | Staff refresh outgoing/incoming source data for the chosen dates and recover incomplete runs. | 1.1 |
+| 1.4 Selected-period sync and recovery | Staff refresh outgoing/incoming source data for the chosen dates and resume or recover incomplete runs. | 1.1 |
 
 Implement sequentially in the listed order. Stories 1.3 and 1.4 do not require one another's provider integration. Each includes its own necessary SQL/server/UI work and tests; no separate setup, discovery or testing story. Story 1.1 is the largest but stays within the local read-and-display boundary. Story 1.4 is the other substantial increment, confined to extending existing sync infrastructure and its dashboard controls. Only create database objects when the owning story needs them.
 
-Before 1.4, show existing sync evidence only with its proven legacy scope, or “Sync confidence unavailable”; do not offer a nonfunctional selected-period refresh. Before 1.3, display destinations without an estimate or fake loading state. Story 1.1's readiness is factual; urgency and task links arrive in 1.2. These intermediate increments are useful for local verification and review; full V1 rollout requires all four stories and the rollout checklist below.
+Before 1.4, show existing sync evidence only with its proven legacy scope using Workshop-consistent progress/result/error language; do not offer a nonfunctional selected-period refresh. Before 1.3, display destinations without an estimate or fake loading state. Story 1.1's readiness is factual; urgency and task links arrive in 1.2. These intermediate increments are useful for local verification and review; full V1 rollout requires all four stories and the rollout checklist below.
 
 ### Story 1.1: Browse the rental workload and readiness dashboard
 
@@ -225,7 +225,7 @@ So that I can understand the workload and inspect an order without comparing mul
 **Given** cold load, period changes, failed reads or empty directions,
 **When** the page renders,
 **Then** skeletons do not claim zero workload, new dates never label old rows, and resolved rows/totals/dates/reference update coherently,
-**And** failed reads produce explicit Alert errors with safe fallbacks and contextual logs, while successful empty directions have separate empty text. Sync confidence is separate and limited to proven evidence or “Sync confidence unavailable,” with no promise of selected-period coverage before 1.4.
+**And** failed reads produce explicit Alert errors with safe fallbacks and contextual logs, while successful empty directions have separate empty text. Any sync status uses Workshop-consistent progress/result/error language and makes no claim of selected-period coverage before 1.4.
 
 **Verification owned by this story:** Local SQL fixtures for aggregation, role denial, eligibility/current-task scope, partner/history cases, missing identity, same-day/incoming-only and delivery precedence parity; date tests for all presets/DST; browser checks for role landing, drawer/history, phone tabs, keyboard/focus, loading/error/empty and tablet/phone layout. Verify no silent API row-limit truncation using a sufficiently large fixture, or explicitly deliver partial rows with whole-period totals. Check migration upgrade and replay locally and validate the returned contract. Record initial query plan/time, response and usable-view baseline for representative Today/month/custom datasets; Q14 numerical acceptance remains a pre-rollout decision.
 
@@ -327,15 +327,15 @@ So that I can judge delivery logistics while keeping the rental workload visible
 
 **Verification owned by this story:** Mocked provider success/timeout/quota/invalid response, direct role denials with zero requests, input-reread and minimal-payload assertions, URL/redirect safety fixtures if supported, duplicate suppression and late-response A→B tests. Browser checks prove workload availability while routing stalls, destination preservation, attribution, zoom/reflow and no drawer-only refetch. Record actual routing-readiness evidence separately from fixture success; missing rollout evidence remains an explicit gate.
 
-### Story 1.4: Refresh the selected period and understand sync confidence
+### Story 1.4: Refresh the selected period and recover interrupted syncs
 
 As a staff member relying on the dashboard,
 I want to refresh departures and returns for the selected dates and resume interrupted work,
-So that I can assess what was checked and recover incomplete source data without losing my workload view.
+So that I can refresh source data for those dates and recover interrupted work without losing my workload view.
 
 **Dependency:** Story 1.1. **Requirements:** FR-14; CAP-8. AD-4, AD-10–12. NFR-1–4, NFR-6–10. UX-DR3, UX-DR11–12.
 
-**Scope:** Extend existing manual sync discovery/run metadata/checkpoints and dashboard progress/confidence/recovery UI. Reuse the worker, reconciliation, leases and environment gates. Add only required run metadata/validation migrations. No replacement engine, scheduler, detached background work or optimization-research redesign.
+**Scope:** Extend existing manual sync discovery/run metadata/checkpoints and dashboard progress/result/error/recovery UI. Reuse the worker, reconciliation, leases and environment gates. Use the same user-facing progress, result and error language as Workshop; saved run scope supports accurate dates, counters and recovery without creating a separate “confidence” status. Add only required run metadata/validation migrations. No replacement engine, scheduler, detached background work or optimization-research redesign.
 
 **Acceptance Criteria:**
 
@@ -360,18 +360,18 @@ So that I can assess what was checked and recover incomplete source data without
 **Then** existing per-order leases/fences, complete-snapshot validation and atomic apply remain authoritative, including task creation and guarded whole-order pickup/return,
 **And** there are no partial writes, per-bike fulfillment changes, backward transitions, missed-stage replay or live Booqable write-back. Existing failure/retry recovery remains usable.
 
-**AC4 — Evidence-based outcome and counters**
+**AC4 — Accurate outcomes and counters with familiar sync messages**
 
 **Given** a run with completed or unfinished enumeration and successful, failed, skipped, deleted/unavailable or retried candidates,
-**When** confidence and progress are displayed,
+**When** sync progress and results are displayed,
 **Then** success requires completed enumeration plus every required reconciliation; retries replace each order's outcome rather than inflating counters and skipped/deleted/unavailable candidates cannot be declared successfully refreshed,
-**And** failed, incomplete, stale-in-progress, unknown and locally empty remain distinct with actual errors and applicable resume/restart. Unresolved candidates remain explicit failures until existing recovery resolves them.
+**And** in-progress, failed, incomplete, stale and locally empty states remain distinguishable through Workshop-consistent progress/result/error patterns, with actual errors and applicable resume/restart. Unresolved candidates remain explicit failures until existing recovery resolves them.
 
-**AC5 — Labels prove their own scope**
+**AC5 — Run details describe their own scope**
 
 **Given** new selected-period history alongside legacy next_7_days/all_reserved history and an unrelated last_success_at,
-**When** the dashboard reports confidence or staff browse different dates,
-**Then** each label takes interval, completion, counters and outcome from the same run; a proven new result can say “Orders starting or returning [dates] checked at [time],” and its recorded dates stay visible when the view changes,
+**When** the dashboard reports a sync result or staff browse different dates,
+**Then** each result's interval, completion, counters and outcome come from the same run; when useful, show the saved range and check time in familiar result/detail text, and keep the recorded dates available when the view changes,
 **And** legacy runs retain reserved-only meanings, unrelated timestamps/scopes are never combined, and no label claims global completeness, an atomic source snapshot, future webhook delivery or coverage of a different/wider interval.
 
 **AC6 — Authorization and environment restrictions**
@@ -397,7 +397,7 @@ So that I can assess what was checked and recover incomplete source data without
 | FR-01, FR-02, FR-03, FR-04, FR-05, FR-06, FR-07, FR-08, FR-09, FR-12, FR-16 | 1.1 workload, current tasks, destinations, navigation and direct permissions |
 | FR-11, FR-13, FR-15 | 1.2 urgency, evidence-based attention and current-task journey |
 | FR-10 | 1.3 independent safe estimates; preserves FR-08–09 semantics |
-| FR-14 | 1.4 selected-period recovery and honest confidence |
+| FR-14 | 1.4 selected-period refresh and recovery |
 | NFR-1, NFR-4, NFR-8, NFR-9; AR-5–8 | All stories at their changed boundaries; direct denial, explicit errors, preserved workflows, local migrations and scope limits |
 | NFR-2–3; AR-1 | 1.1 coherent SQL/calendar proof; 1.2 consistent urgency; 1.4 persisted calendar scope |
 | NFR-5; AR-3 | 1.1 destination parity; 1.3 provider safety, privacy and bounded execution |
@@ -406,7 +406,7 @@ So that I can assess what was checked and recover incomplete source data without
 | AR-2 | 1.1 shared order opening; 1.2 shared drawer task extension |
 | AR-4 | 1.4 existing worker extension and durable recovery |
 | UX-DR1, UX-DR2, UX-DR5, UX-DR13 | 1.1 shell, shared dates, phone tabs and device fit; 1.3 verifies estimate wrapping |
-| UX-DR3 | 1.4 sync controls/states; 1.1 honest interim confidence |
+| UX-DR3 | 1.4 sync controls/states; 1.1 truthful interim sync messages |
 | UX-DR4, UX-DR6, UX-DR7 | 1.1 summary/rows/readiness; 1.2 attention/urgency |
 | UX-DR8 | 1.1 supplied/missing destination; 1.3 estimate lifecycle and attribution |
 | UX-DR9, UX-DR10 | 1.1 drawer opening/focus; 1.2 current-task navigation |
@@ -427,4 +427,3 @@ The eleven reconciled product scenarios map to 1.1 (1, 3 destination precedence,
 One epic and four stories cover the reconciled functional, architecture and UX requirements. All story dependencies point to earlier work; 1.1 renders useful local workload without future routing/sync/task-link capabilities, and later stories extend that working result. No new infrastructure/starter or unrelated foundations work is required. Tables/functions are introduced only by the story using them. Scope and evidence are attached to each story rather than deferred to an unbounded final testing story.
 
 This is a documentation coverage review, not proof that application behavior, migrations, devices, providers or performance have been tested. Implementation and rollout evidence remain to be produced.
-
