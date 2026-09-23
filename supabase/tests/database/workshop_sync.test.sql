@@ -166,6 +166,10 @@ SELECT pg_temp.create_staff(
   'Partner',
   'partner'
 );
+SELECT pg_temp.create_staff(
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  'pending-sync@example.test', 'Pen', 'Pending', NULL::public.user_role
+);
 
 -- Order lease renew / release / overlap
 SELECT is(
@@ -745,6 +749,225 @@ SELECT is(
   1,
   'reserved mint_tasks true wrapper mints a bike_tasks row'
 );
+
+-- A captured local candidate may be canceled at source before reconciliation.
+CREATE TEMP TABLE stale_source_lease AS
+SELECT public.booqable_acquire_order_lease(
+  'sync-stale-local', now() + interval '2 minutes', 'test') AS payload;
+SELECT is(public.booqable_apply_source_snapshot_v1(
+  'sync-stale-local',
+  ((SELECT payload FROM stale_source_lease)->>'token')::uuid,
+  ((SELECT payload FROM stale_source_lease)->>'fence')::bigint,
+  pg_temp.snap('sync-stale-local', 'reserved'), false)->>'ok',
+  'true', 'local candidate initially applies as reserved');
+SELECT public.booqable_release_order_lease(
+  'sync-stale-local',
+  ((SELECT payload FROM stale_source_lease)->>'token')::uuid,
+  ((SELECT payload FROM stale_source_lease)->>'fence')::bigint);
+UPDATE stale_source_lease SET payload = public.booqable_acquire_order_lease(
+  'sync-stale-local', now() + interval '2 minutes', 'test');
+SELECT is(public.booqable_apply_source_snapshot_v1(
+  'sync-stale-local',
+  ((SELECT payload FROM stale_source_lease)->>'token')::uuid,
+  ((SELECT payload FROM stale_source_lease)->>'fence')::bigint,
+  pg_temp.snap('sync-stale-local', 'canceled'), false)->>'ok',
+  'true', 'authoritative canceled snapshot reconciles stale local candidate');
+SELECT is((SELECT status::text FROM public.orders
+  WHERE booqable_order_id = 'sync-stale-local'),
+  'canceled', 'canceled candidate leaves Dashboard status scope');
+
+-- Dashboard selected-period policy: server-owned bounds, phases, candidates and retry.
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+SELECT is(
+  public.dashboard_start_selected_sync('2026-10-25', '2026-10-25')->>'ok',
+  'true', 'staff starts selected-period refresh'
+);
+RESET ROLE;
+
+CREATE TEMP TABLE selected_run AS
+SELECT id, from_instant, to_instant_exclusive, policy_version
+FROM public.booqable_sync_runs WHERE scope = 'selected_period'
+ORDER BY created_at DESC LIMIT 1;
+GRANT SELECT ON selected_run TO authenticated;
+
+SELECT is((SELECT from_instant::text FROM selected_run),
+  '2026-10-24 22:00:00+00', 'Madrid DST start bound is saved');
+SELECT is((SELECT to_instant_exclusive::text FROM selected_run),
+  '2026-10-25 23:00:00+00', 'Madrid DST end bound is saved');
+SELECT is((SELECT policy_version FROM selected_run), 1, 'selected policy is versioned');
+SELECT ok((SELECT count(*) FROM private.dashboard_sync_candidates
+  WHERE run_id = (SELECT id FROM selected_run)) >= 1,
+  'local in-window candidate is captured at start');
+-- Isolate the source-list retry fixture from the captured local fixture.
+DELETE FROM private.dashboard_sync_candidates
+WHERE run_id = (SELECT id FROM selected_run);
+
+SELECT pg_temp.become('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+SET ROLE authenticated;
+SELECT is(public.dashboard_resume_selected_sync((SELECT id FROM selected_run))->>'code',
+  'FORBIDDEN', 'partner cannot resume selected run');
+SELECT is(public.dashboard_start_selected_sync('2026-10-25', '2026-10-25')->>'code',
+  'FORBIDDEN', 'partner cannot start selected run');
+RESET ROLE;
+SELECT pg_temp.become('cccccccc-cccc-4ccc-8ccc-cccccccccccc');
+SET ROLE authenticated;
+SELECT is(public.dashboard_resume_selected_sync((SELECT id FROM selected_run))->>'code',
+  'FORBIDDEN', 'pending profile cannot resume selected run');
+SELECT is(public.dashboard_start_selected_sync('2026-10-25', '2026-10-25')->>'code',
+  'FORBIDDEN', 'pending profile cannot start selected run');
+RESET ROLE;
+SELECT is(has_function_privilege('anon', 'public.dashboard_start_selected_sync(date,date)', 'EXECUTE'),
+  false, 'anonymous role cannot call selected start');
+SELECT is(has_function_privilege('anon', 'public.dashboard_resume_selected_sync(uuid)', 'EXECUTE'),
+  false, 'anonymous role cannot call selected resume');
+
+SELECT is(public.dashboard_checkpoint_selected_sync(
+  (SELECT id FROM selected_run), l.token, l.fence,
+  'starts_at', 1, ARRAY['source-both', 'source-both'], false)->>'phase',
+  'stops_at', 'first listing checkpoint advances to returns'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_checkpoint_selected_sync(
+  (SELECT id FROM selected_run), l.token, l.fence,
+  'starts_at', 1, ARRAY[]::text[], false)->>'code',
+  'SOURCE_UNAVAILABLE', 'stale phase checkpoint is rejected'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_checkpoint_selected_sync(
+  (SELECT id FROM selected_run), l.token, l.fence,
+  'stops_at', 1, ARRAY['source-both', 'source-return'], false)->>'phase',
+  'reconcile', 'return checkpoint completes discovery'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is((SELECT count(*)::integer FROM private.dashboard_sync_candidates
+  WHERE run_id = (SELECT id FROM selected_run)
+    AND booqable_order_id LIKE 'source-%'), 2,
+  'source start and return candidates deduplicate by ID');
+SELECT is(public.dashboard_finish_selected_sync(
+  (SELECT id FROM selected_run), l.token, l.fence, NULL)->>'state',
+  'in_progress', 'complete discovery without reconciliation is incomplete'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_record_selected_result(
+  (SELECT id FROM selected_run), l.token, l.fence,
+  'source-both', true, NULL, NULL)->>'ok',
+  'true', 'first required candidate succeeds'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_record_selected_result(
+  (SELECT id FROM selected_run), l.token, l.fence,
+  'source-return', false, 'SOURCE_UNAVAILABLE', 'deleted at source')->>'ok',
+  'true', 'unavailable candidate stays explicit'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_finish_selected_sync(
+  (SELECT id FROM selected_run), l.token, l.fence, NULL)->>'state',
+  'failed', 'a failed candidate prevents coverage success'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT private.booqable_release_run_lease('manual_sync', l.token, l.fence)
+FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+SELECT is(public.dashboard_resume_selected_sync((SELECT id FROM selected_run))->>'ok',
+  'true', 'staff resumes the saved interval after failure');
+RESET ROLE;
+SELECT is((SELECT attempt FROM public.booqable_sync_runs
+  WHERE id = (SELECT id FROM selected_run)), 2, 'failed retry increments attempt');
+SELECT is(public.dashboard_selected_sync_work(
+  (SELECT id FROM selected_run), l.token, l.fence, 10)->'ids',
+  '["source-return"]'::jsonb, 'retry returns only failed candidate'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_record_selected_result(
+  (SELECT id FROM selected_run), l.token, l.fence,
+  'source-return', true, NULL, NULL)->>'ok',
+  'true', 'retry replaces failed candidate outcome'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_finish_selected_sync(
+  (SELECT id FROM selected_run), l.token, l.fence, NULL)->>'state',
+  'succeeded', 'complete discovery and recovered outcomes can succeed'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is((SELECT failed FROM public.booqable_sync_runs
+  WHERE id = (SELECT id FROM selected_run)), 0, 'final counters reflect replacement');
+SELECT is((SELECT scope FROM public.booqable_sync_runs WHERE id = (SELECT id FROM started_run)),
+  'next_7_days', 'legacy run scope remains readable');
+SELECT is(public.dashboard_checkpoint_selected_sync(
+  (SELECT id FROM selected_run), l.token, l.fence,
+  'stops_at', 1, ARRAY[]::text[], false)->>'code',
+  'SOURCE_UNAVAILABLE', 'completed run rejects stale checkpoint'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT private.booqable_release_run_lease('manual_sync', l.token, l.fence)
+FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+SELECT is(public.dashboard_start_selected_sync('2030-10-27', '2030-10-27')->>'ok',
+  'true', 'staff can start an empty selected period');
+RESET ROLE;
+CREATE TEMP TABLE empty_selected_run AS
+SELECT id FROM public.booqable_sync_runs WHERE scope = 'selected_period'
+  AND id <> (SELECT id FROM selected_run) LIMIT 1;
+GRANT SELECT ON empty_selected_run TO authenticated;
+SELECT is(public.dashboard_checkpoint_selected_sync(
+  (SELECT id FROM empty_selected_run), l.token, l.fence,
+  'starts_at', 1, ARRAY[]::text[], false)->>'phase',
+  'stops_at', 'empty start listing is complete'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_checkpoint_selected_sync(
+  (SELECT id FROM empty_selected_run), l.token, l.fence,
+  'stops_at', 1, ARRAY[]::text[], false)->>'phase',
+  'reconcile', 'empty return listing is complete'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_finish_selected_sync(
+  (SELECT id FROM empty_selected_run), l.token, l.fence, NULL)->>'state',
+  'succeeded', 'fully enumerated empty period can succeed'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT private.booqable_release_run_lease('manual_sync', l.token, l.fence)
+FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+
+UPDATE public.booqable_sync_runs SET policy_version = NULL, state = 'failed'
+WHERE id = (SELECT id FROM empty_selected_run);
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+SELECT is(public.dashboard_resume_selected_sync((SELECT id FROM empty_selected_run))->>'code',
+  'SOURCE_UNAVAILABLE', 'missing policy version cannot resume or acquire a lease');
+RESET ROLE;
+SELECT is((SELECT count(*)::integer FROM private.booqable_run_leases
+  WHERE lock_key = 'manual_sync' AND expires_at > now()), 0, 'invalid metadata did not acquire a lease');
+UPDATE public.booqable_sync_runs SET policy_version = 1,
+  from_instant = NULL WHERE id = (SELECT id FROM empty_selected_run);
+SET ROLE authenticated;
+SELECT is(public.dashboard_resume_selected_sync((SELECT id FROM empty_selected_run))->>'code',
+  'SOURCE_UNAVAILABLE', 'missing saved bound cannot resume');
+RESET ROLE;
+
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+SELECT is(public.dashboard_start_selected_sync('2030-10-28', '2030-10-28')->>'ok',
+  'true', 'staff starts another selected refresh for abort test');
+RESET ROLE;
+CREATE TEMP TABLE abort_selected_lease AS
+SELECT run_id, token, fence FROM private.booqable_run_leases
+WHERE lock_key = 'manual_sync';
+GRANT SELECT ON abort_selected_lease TO authenticated;
+SELECT pg_temp.become('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb');
+SET ROLE authenticated;
+SELECT is(public.dashboard_abort_selected_sync(l.run_id, l.token, l.fence, 'worker failed')->>'code',
+  'FORBIDDEN', 'nonstaff user cannot abort an acquired run')
+FROM abort_selected_lease l;
+RESET ROLE;
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+SELECT is(public.dashboard_abort_selected_sync(NULL::uuid, l.token, l.fence, 'worker failed')->>'ok',
+  'true', 'lease owner can save failure and release lease when response omitted run ID')
+FROM abort_selected_lease l;
+RESET ROLE;
+SELECT is((SELECT state FROM public.booqable_sync_runs
+  WHERE id = (SELECT run_id FROM abort_selected_lease)), 'failed',
+  'worker abort is visible as failed saved run');
+SELECT is((SELECT last_error FROM public.booqable_sync_runs
+  WHERE id = (SELECT run_id FROM abort_selected_lease)), 'worker failed',
+  'worker abort saves its reason');
+SELECT is((SELECT count(*)::integer FROM private.booqable_run_leases
+  WHERE lock_key = 'manual_sync' AND expires_at > now()), 0, 'worker abort releases the lease');
+SELECT ok((SELECT scope IN ('next_7_days', 'all_reserved')
+  FROM public.workshop_sync_health),
+  'Workshop health continues to report a legacy reserved-list run');
 
 SELECT finish();
 

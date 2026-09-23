@@ -190,6 +190,7 @@ export type ReservedListOrder = {
   status: string | null;
   number: number | null;
   startsAt: string | null;
+  stopsAt: string | null;
 };
 
 export type ReservedListPage = {
@@ -214,6 +215,7 @@ function mapListOrder(entry: unknown): ReservedListOrder | null {
     status: typeof attrs.status === "string" ? attrs.status : null,
     number: toIntOrNull(attrs.number),
     startsAt: typeof attrs.starts_at === "string" ? attrs.starts_at : null,
+    stopsAt: typeof attrs.stops_at === "string" ? attrs.stops_at : null,
   };
 }
 
@@ -252,7 +254,7 @@ async function fetchOrderListPage(
   const params = new URLSearchParams({
     "page[size]": String(LIST_PAGE_SIZE),
     "page[number]": String(page),
-    "fields[orders]": "id,status,number,starts_at",
+    "fields[orders]": "id,status,number,starts_at,stops_at",
     ...extraParams,
   });
   const url = `https://${slug}.booqable.com/api/4/orders?${params.toString()}`;
@@ -271,6 +273,21 @@ export async function fetchAllOrdersListPage(
   env: EnvMap = process.env,
 ): Promise<ReservedListPage> {
   return fetchOrderListPage(page, {}, env);
+}
+
+/** Booqable v4 supports gte/lt date filters on both order date fields. */
+export async function fetchSelectedPeriodOrderListPage(
+  direction: "starts_at" | "stops_at",
+  page: number,
+  fromInclusive: string,
+  toExclusive: string,
+  env: EnvMap = process.env,
+): Promise<ReservedListPage> {
+  return fetchOrderListPage(page, {
+    [`filter[${direction}][gte]`]: fromInclusive,
+    [`filter[${direction}][lt]`]: toExclusive,
+    sort: "id",
+  }, env);
 }
 
 /** GET one customer. `include=properties` is required for structured address. */
