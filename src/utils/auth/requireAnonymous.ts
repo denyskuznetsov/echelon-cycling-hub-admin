@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/src/utils/supabase/server";
 import { getPostLoginPath } from "./postLogin";
+import { resolveSafeInternalNext } from "./safe-internal-next";
 
 /**
  * Use in server components for pages that should only be shown to
@@ -24,9 +25,10 @@ export async function requireAnonymous(
 
   if (!user) return;
 
-  const target =
-    (fallbackNext && fallbackNext.trim()) ||
-    (await getPostLoginPath(supabase, user.id));
+  const target = resolveSafeInternalNext(
+    fallbackNext,
+    await getPostLoginPath(supabase, user.id),
+  );
 
   redirect(target);
 }

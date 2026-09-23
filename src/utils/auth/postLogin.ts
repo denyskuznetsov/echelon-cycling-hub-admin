@@ -6,10 +6,10 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  * client, since both expose the same query surface.
  *
  * Routing schema:
- *   - admin   -> /hq
- *   - manager -> /hq
+ *   - admin   -> /dashboard
+ *   - manager -> /dashboard
  *   - partner -> /partner
- *   - mechanic -> /workshop
+ *   - mechanic -> /dashboard
  *   - null role -> /pending
  *
  * There is intentionally no "default zone" fallback: users without a
@@ -35,11 +35,10 @@ export async function getPostLoginPath(
   switch (profile.role) {
     case "admin":
     case "manager":
-      return "/all-partners";
+    case "mechanic":
+      return "/dashboard";
     case "partner":
       return "/partner";
-    case "mechanic":
-      return "/workshop";
     default:
       return "/pending";
   }

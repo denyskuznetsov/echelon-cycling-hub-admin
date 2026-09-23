@@ -11,7 +11,7 @@ const readSource = (path: string) => readFileSync(join(root, path), "utf8");
 test("pending accounts have no navigation while active roles retain their routes", () => {
   assert.deepEqual(getVisibleNavItems(undefined), []);
   assert.deepEqual(getVisibleNavItems("mechanic").map((item) => item.href), [
-    "/orders", "/bike-fits/all-bike-fits", "/customers", "/workshop", "/contact",
+    "/dashboard", "/orders", "/bike-fits/all-bike-fits", "/customers", "/workshop", "/contact",
   ]);
 });
 
