@@ -2,18 +2,24 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { test } from "node:test";
+import { createRequire } from "node:module";
+import ts from "typescript";
+import { resolveDashboardPeriod } from "./lib/dashboard/period.ts";
 import { fileURLToPath } from "node:url";
 import {
   paginationNextUrl,
   parseOrderListDocument,
+  fetchSelectedPeriodOrderListPage,
   SOURCE_ORDER_INCLUDE,
 } from "./lib/booqable/fetch-source-snapshot.ts";
 import {
   decodeSyncCursor,
   encodeSyncCursor,
   isEligibleManualSyncOrder,
+  selectedPeriodEligible,
   skipReason,
 } from "./lib/workshop/domain/commands.ts";
+
 import {
   classifyBooqableWebhookEvent,
   customerWebhookDestWritesAllowed,
@@ -23,6 +29,204 @@ import {
   webhookDeliveryStatus,
   workshopSyncAllowed,
 } from "./lib/workshop/application/sync-env.ts";
+
+test("selected period considers both dates, all workload statuses, and saved instants", () => {
+  const windowStart = "2026-10-25T00:00:00Z";
+  const windowEnd = "2026-10-25T23:00:00Z";
+  const order = {
+    status: "started", startsAt: "2026-10-25T02:30:00Z",
+    stopsAt: "2026-10-25T20:00:00Z",
+  };
+  assert.equal(selectedPeriodEligible(order, "starts_at", windowStart, windowEnd), true);
+  assert.equal(selectedPeriodEligible(order, "stops_at", windowStart, windowEnd), true);
+  assert.equal(selectedPeriodEligible({ ...order, status: "canceled" }, "stops_at", windowStart, windowEnd), false);
+  assert.equal(selectedPeriodEligible({ ...order, stopsAt: windowEnd }, "stops_at", windowStart, windowEnd), false);
+  assert.throws(() => selectedPeriodEligible({ ...order, status: null }, "starts_at", windowStart, windowEnd));
+  assert.throws(() => selectedPeriodEligible({ ...order, stopsAt: "bad" }, "stops_at", windowStart, windowEnd));
+});
+
+test("selected-period listing requests the saved start or return interval and parses both dates", async () => {
+  const originalFetch = globalThis.fetch;
+  const urls: URL[] = [];
+  globalThis.fetch = async (input) => {
+    urls.push(new URL(String(input)));
+    return new Response(JSON.stringify({ data: [{
+      id: "source-both", attributes: {
+        status: "stopped", number: 42,
+        starts_at: "2026-10-25T08:00:00Z", stops_at: "2026-10-25T19:00:00Z",
+      },
+    }] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  try {
+    const bounds = ["2026-10-24T22:00:00Z", "2026-10-25T23:00:00Z"] as const;
+    const page = await fetchSelectedPeriodOrderListPage("stops_at", 2, ...bounds, {
+      BOOQABLE_COMPANY_SLUG: "fixture", BOOQABLE_API_KEY: "fixture-key",
+    });
+    assert.equal(page.orders[0]?.stopsAt, "2026-10-25T19:00:00Z");
+    assert.equal(urls[0]?.searchParams.get("filter[stops_at][gte]"), bounds[0]);
+    assert.equal(urls[0]?.searchParams.get("filter[stops_at][lt]"), bounds[1]);
+    assert.equal(urls[0]?.searchParams.get("page[number]"), "2");
+    assert.match(urls[0]?.searchParams.get("fields[orders]") ?? "", /stops_at/);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+const testRequire = createRequire(import.meta.url);
+const selectedRunId = "11111111-1111-4111-8111-111111111111";
+type SelectedFixture = {
+  allowed?: boolean;
+  serviceError?: boolean;
+  finishError?: boolean;
+  malformedStart?: boolean;
+  missingRunId?: boolean;
+  pages?: Record<string, { orders: Record<string, unknown>[]; hasMore: boolean }>;
+  reconcile?: (id: string) => { ok: boolean; code?: string; error?: string };
+};
+
+function selectedWorker(fixture: SelectedFixture = {}) {
+  const calls: { name: string; args: Record<string, unknown> }[] = [];
+  const fetched: { direction: string; page: number; from: string; to: string }[] = [];
+  const candidates = new Map<string, "pending" | "failed" | "succeeded">();
+  const saved = {
+    phase: "starts_at", page: 1, state: "in_progress", error: "" as string,
+    from: "2026-10-24T22:00:00Z", to: "2026-10-25T23:00:00Z",
+  };
+  const payload = () => ({
+    ok: true, runId: selectedRunId, state: saved.state, cursor: null,
+    counts: { listed: candidates.size, succeeded: [...candidates.values()].filter((v) => v === "succeeded").length,
+      failed: [...candidates.values()].filter((v) => v === "failed").length, skipped: 0 },
+    token: "lease", fence: 1, phase: saved.phase, page: saved.page,
+    fromInstant: saved.from, toInstantExclusive: saved.to, policyVersion: 1,
+  });
+  const user = { rpc: async (name: string, args: Record<string, unknown>) => {
+    calls.push({ name, args });
+    if (name === "dashboard_abort_selected_sync") {
+      saved.state = "failed"; saved.error = String(args.reason); return { data: { ok: true }, error: null };
+    }
+    if (name === "dashboard_resume_selected_sync") {
+      assert.equal(args.run_id, selectedRunId);
+      return { data: payload(), error: null };
+    }
+    assert.equal(name, "dashboard_start_selected_sync");
+    return { data: fixture.malformedStart ? { ...payload(), page: null } :
+      fixture.missingRunId ? { ...payload(), runId: null } : payload(), error: null };
+  } };
+  const service = { rpc: async (name: string, args: Record<string, unknown>) => {
+    calls.push({ name, args });
+    if (name === "dashboard_checkpoint_selected_sync") {
+      assert.equal(args.phase, saved.phase);
+      assert.equal(args.page, saved.page);
+      for (const id of args.candidate_ids as string[]) candidates.set(id, candidates.get(id) ?? "pending");
+      if (args.has_more) saved.page += 1;
+      else { saved.phase = saved.phase === "starts_at" ? "stops_at" : "reconcile"; saved.page = 1; }
+      return { data: { ok: true }, error: null };
+    }
+    if (name === "dashboard_selected_sync_work") {
+      return { data: { ok: true, ids: [...candidates].filter(([, status]) => status !== "succeeded").slice(0, 10).map(([id]) => id) }, error: null };
+    }
+    if (name === "dashboard_record_selected_result") {
+      candidates.set(String(args.booqable_order_id), args.ok ? "succeeded" : "failed");
+      return { data: { ok: true }, error: null };
+    }
+    if (name === "dashboard_finish_selected_sync") {
+      if (fixture.finishError) return { data: null, error: new Error("finish unavailable") };
+      if (args.listing_error || [...candidates.values()].includes("failed")) saved.state = "failed";
+      else if (saved.phase === "reconcile" && [...candidates.values()].every((v) => v === "succeeded")) saved.state = "succeeded";
+      return { data: payload(), error: null };
+    }
+    return { data: { ok: true }, error: null };
+  } };
+  const code = ts.transpileModule(readFileSync(join(process.cwd(), "src/lib/workshop/application/manual-sync.ts"), "utf8"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const module = { exports: {} as Record<string, unknown> };
+  new Function("require", "module", "exports", code)((id: string) => {
+    if (id === "@/src/lib/booqable/fetch-source-snapshot") return {
+      fetchSelectedPeriodOrderListPage: async (direction: string, page: number, from: string, to: string) => {
+        fetched.push({ direction, page, from, to });
+        return fixture.pages?.[`${direction}:${page}`] ?? { orders: [], hasMore: false };
+      },
+    };
+    if (id === "@/src/lib/dashboard/period") return { resolveDashboardPeriod };
+    if (id === "@/src/lib/workshop/domain/commands") return { selectedPeriodEligible };
+    if (id === "@/src/lib/workshop/domain") return { parseWorkshopSyncResult: (value: Record<string, unknown>) =>
+      value.ok === true && typeof value.runId !== "string"
+        ? { ok: false, code: "SOURCE_UNAVAILABLE", error: "Invalid saved refresh state." } : value };
+    if (id === "./reconcile-order") return {
+      createServiceRoleClient: () => { if (fixture.serviceError) throw new Error("service unavailable"); return service; },
+      coerceLeaseFence: (value: unknown) => typeof value === "number" ? value : null,
+      MANUAL_LOCK_KEY: "manual_sync", ORDER_LEASE_TTL_MS: 120000,
+      startLeaseRenewLoop: () => () => {},
+      reconcileBooqableOrder: async (id: string) => fixture.reconcile?.(id) ?? { ok: true },
+    };
+    if (id === "./sync-env") return { workshopSyncAllowed: () => fixture.allowed !== false };
+    return testRequire(id);
+  }, module, module.exports);
+  return {
+    start: module.exports.runSelectedPeriodStart as (client: unknown, from: string, to: string) => Promise<Record<string, unknown>>,
+    resume: module.exports.runSelectedPeriodResume as (client: unknown, id: string) => Promise<Record<string, unknown>>,
+    user, calls, fetched, candidates, saved,
+  };
+}
+
+function selectedOrder(id: string, field: "startsAt" | "stopsAt" = "startsAt") {
+  return { id, status: "reserved", startsAt: field === "startsAt" ? "2026-10-25T08:00:00Z" : null,
+    stopsAt: field === "stopsAt" ? "2026-10-25T08:00:00Z" : null };
+}
+
+test("selected worker discovers return pages, resumes saved bounds, and continues ten at a time", async () => {
+  const orders = Array.from({ length: 12 }, (_, i) => selectedOrder(`return-${i}`, "stopsAt"));
+  const worker = selectedWorker({ pages: {
+    "starts_at:1": { orders: [], hasMore: false },
+    "stops_at:1": { orders: orders.slice(0, 6), hasMore: true },
+    "stops_at:2": { orders: orders.slice(6), hasMore: false },
+  } });
+  let result = await worker.start(worker.user, "2026-10-25", "2026-10-25");
+  for (let i = 0; i < 3; i += 1) result = await worker.resume(worker.user, selectedRunId);
+  assert.equal(result.state, "in_progress");
+  result = await worker.resume(worker.user, selectedRunId);
+  assert.equal(result.state, "succeeded");
+  assert.equal(worker.candidates.size, 12);
+  assert.deepEqual(worker.fetched.map((v) => `${v.direction}:${v.page}`), ["starts_at:1", "stops_at:1", "stops_at:2"]);
+  assert.ok(worker.fetched.every((v) => v.from === worker.saved.from && v.to === worker.saved.to));
+  assert.equal(worker.calls.filter((v) => v.name === "dashboard_record_selected_result").length, 12);
+});
+
+test("selected worker fails closed on mixed malformed list before checkpointing valid candidate", async () => {
+  const worker = selectedWorker({ pages: { "starts_at:1": {
+    orders: [selectedOrder("valid"), { ...selectedOrder("malformed"), status: null }], hasMore: false,
+  } } });
+  const result = await worker.start(worker.user, "2026-10-25", "2026-10-25");
+  assert.equal(result.state, "failed");
+  assert.equal(worker.candidates.size, 0);
+  assert.equal(worker.calls.filter((v) => v.name === "dashboard_checkpoint_selected_sync").length, 0);
+});
+
+test("selected worker retries failed result and saves setup/finalization failures", async () => {
+  let fail = true;
+  const worker = selectedWorker({ pages: { "starts_at:1": { orders: [selectedOrder("retry")], hasMore: false } },
+    reconcile: () => fail ? { ok: false, code: "SOURCE_UNAVAILABLE", error: "source down" } : { ok: true } });
+  await worker.start(worker.user, "2026-10-25", "2026-10-25");
+  await worker.resume(worker.user, selectedRunId);
+  await worker.resume(worker.user, selectedRunId);
+  assert.equal((await worker.resume(worker.user, selectedRunId)).state, "failed");
+  fail = false;
+  assert.equal((await worker.resume(worker.user, selectedRunId)).state, "succeeded");
+  for (const fixture of [{ serviceError: true }, { malformedStart: true }, { missingRunId: true }, { finishError: true }]) {
+    const broken = selectedWorker(fixture);
+    assert.equal((await broken.start(broken.user, "2026-10-25", "2026-10-25")).ok, false);
+    assert.equal(broken.saved.state, "failed");
+    assert.ok(broken.calls.some((v) => v.name === "dashboard_abort_selected_sync"));
+  }
+});
+
+test("disabled selected sync never starts or resumes a lease", async () => {
+  const worker = selectedWorker({ allowed: false });
+  assert.equal((await worker.start(worker.user, "2026-10-25", "2026-10-25")).ok, false);
+  assert.equal((await worker.resume(worker.user, selectedRunId)).ok, false);
+  assert.equal(worker.calls.length, 0);
+});
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const srcRoot = join(root, "src");

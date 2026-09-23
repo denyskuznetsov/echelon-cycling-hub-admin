@@ -11,6 +11,8 @@ import {
 import {
   runManualSyncResume,
   runManualSyncStart,
+  runSelectedPeriodResume,
+  runSelectedPeriodStart,
   syncTaskOrderFromBooqable,
 } from "@/src/lib/workshop/application/manual-sync";
 
@@ -42,5 +44,21 @@ export const syncOrderFromBooqable = withAuth(
   async (_user: User, taskId: string): Promise<WorkshopSyncResult> => {
     const supabase = await createClient();
     return syncTaskOrderFromBooqable(supabase, taskId);
+  },
+);
+
+export const startSelectedPeriodSync = withAuth(
+  "dashboard:startSelectedPeriodSync",
+  async (_user: User, from: string, to: string): Promise<WorkshopSyncResult> => {
+    const supabase = await createClient();
+    return runSelectedPeriodStart(supabase, from, to);
+  },
+);
+
+export const resumeSelectedPeriodSync = withAuth(
+  "dashboard:resumeSelectedPeriodSync",
+  async (_user: User, runId: string): Promise<WorkshopSyncResult> => {
+    const supabase = await createClient();
+    return runSelectedPeriodResume(supabase, runId);
   },
 );

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { FeatherArrowDownLeft, FeatherArrowUpRight, FeatherCloudOff, FeatherMapPin } from "@subframe/core";
+import { FeatherArrowDownLeft, FeatherArrowUpRight, FeatherMapPin } from "@subframe/core";
 import { Badge } from "@/ui/components/Badge";
 import { Button } from "@/ui/components/Button";
 import { buildDashboardPeriodHref, type DashboardPeriod, type DashboardPreset } from "@/src/lib/dashboard/period";
@@ -13,6 +13,8 @@ import { fetchDeliveryEstimates, type DeliveryEstimate } from "@/src/lib/dashboa
 import { estimateSignature, immediateUnavailable, inputRouteKey, matchingEstimate, rememberSuccessfulEstimate } from "@/src/lib/dashboard/estimate-state";
 import styles from "./DashboardWorkload.module.css";
 import { Attention, OrderNotices } from "./DashboardNotices";
+import { DashboardSync } from "./DashboardSync";
+import type { SelectedPeriodSyncHealth } from "@/src/lib/workshop/data/sync-health";
 
 type Direction = "outgoing" | "incoming";
 const ESTIMATE_BATCH_SIZE = 10;
@@ -164,7 +166,7 @@ function Summary({ direction, totals }: { direction: Direction; totals: Dashboar
   </div>;
 }
 
-export function DashboardWorkload({ period, workload, showWorkload = true }: { period: DashboardPeriod; workload: Workload; showWorkload?: boolean }) {
+export function DashboardWorkload({ period, workload, showWorkload = true, selectedSync, recoverableRuns, syncHealthError, syncAllowed }: { period: DashboardPeriod; workload: Workload; showWorkload?: boolean; selectedSync: SelectedPeriodSyncHealth | null; recoverableRuns: SelectedPeriodSyncHealth[]; syncHealthError: string | null; syncAllowed: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeDirection, setActiveDirection] = useState<Direction>("outgoing");
@@ -237,6 +239,7 @@ export function DashboardWorkload({ period, workload, showWorkload = true }: { p
           <Button type="submit" variant="neutral-primary" className={styles.applyButton}>Apply dates</Button>
         </form>
       </section>
+      <DashboardSync key={`${period.from}-${period.to}`} period={period} health={selectedSync} recoverableRuns={recoverableRuns} healthError={syncHealthError} allowed={syncAllowed} />
       {showWorkload ? <>
       <section aria-label="Workload summary" className="grid gap-4 md:grid-cols-2">
         <Summary direction="outgoing" totals={workload.outgoing.totals} />
@@ -265,8 +268,4 @@ export function DashboardWorkload({ period, workload, showWorkload = true }: { p
       </> : null}
     </div>
   );
-}
-
-export function SyncConfidenceUnavailable() {
-  return <p className="flex items-center gap-2 text-caption font-caption text-subtext-color"><FeatherCloudOff aria-hidden /> Sync confidence unavailable</p>;
 }

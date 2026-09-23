@@ -25,6 +25,86 @@ function loadDeliveryComponents(): Record<string, unknown> {
   return module.exports;
 }
 
+function loadSyncComponent(mocks?: {
+  buttons?: { label: string; onClick?: () => Promise<void>; disabled?: boolean }[];
+  start?: (from: string, to: string) => Promise<unknown>;
+  resume?: (id: string) => Promise<unknown>;
+  refresh?: () => void;
+}): React.ComponentType<{ period: unknown; health: unknown; allowed: boolean; recoverableRuns: unknown[]; healthError: string | null }> {
+  const code = ts.transpileModule(read("src/app/dashboard/_components/DashboardSync.tsx"), {
+    compilerOptions: { module: ts.ModuleKind.CommonJS, jsx: ts.JsxEmit.ReactJSX, target: ts.ScriptTarget.ES2022 },
+  }).outputText;
+  const module = { exports: {} as Record<string, unknown> };
+  new Function("require", "module", "exports", code)((id: string) => {
+    if (id === "react" || id === "react/jsx-runtime") return nodeRequire(id);
+    if (id === "next/navigation") return { useRouter: () => ({ refresh: mocks?.refresh ?? (() => {}) }) };
+    if (id === "@/src/lib/workshop/actions/sync-actions") return {
+      startSelectedPeriodSync: mocks?.start ?? (async () => ({ ok: true, runId: "new", state: "succeeded" })),
+      resumeSelectedPeriodSync: mocks?.resume ?? (async () => ({ ok: true, runId: "new", state: "succeeded" })),
+    };
+    if (id === "@/ui/components/Button") return { Button: ({ children, ...props }: React.PropsWithChildren<Record<string, unknown>>) => {
+      mocks?.buttons?.push({ label: String(children), onClick: props.onClick as () => Promise<void>, disabled: props.disabled as boolean });
+      return React.createElement("button", { disabled: props.disabled as boolean }, children);
+    } };
+    return {};
+  }, module, module.exports);
+  return module.exports.DashboardSync as React.ComponentType<{ period: unknown; health: unknown; allowed: boolean; recoverableRuns: unknown[]; healthError: string | null }>;
+}
+
+test("selected refresh renders empty, incomplete, failed, and saved-range states without hiding workload", () => {
+  const DashboardSync = loadSyncComponent();
+  const period = { from: "2026-10-25", to: "2026-10-25", error: null };
+  const render = (health: unknown, allowed = true, healthError: string | null = null) => renderToStaticMarkup(React.createElement(DashboardSync, { period, health, recoverableRuns: [], healthError, allowed }));
+  assert.match(render(null), /Not refreshed/);
+  assert.match(render(null), /Refresh selected dates/);
+  const base = {
+    runId: "a", fromDate: "2026-10-20", toDate: "2026-10-22",
+    phase: "stops_at", page: 3, counts: { listed: 4, succeeded: 2, failed: 1, skipped: 0 },
+    lastError: "Source unavailable", lastAttemptAt: "2026-10-20T12:00:00Z", finishedAt: null,
+  };
+  assert.match(render({ ...base, state: "in_progress" }), /Refresh incomplete/);
+  const failed = render({ ...base, state: "failed" });
+  assert.match(failed, /Partial sync failed/);
+  assert.match(failed, /Latest saved refresh: 2026-10-20 to 2026-10-22/);
+  assert.match(failed, /viewing 2026-10-25 to 2026-10-25/);
+  assert.match(failed, /Checked 20 Oct 2026/);
+  assert.match(failed, /Source unavailable/);
+  assert.match(failed, /Resume refresh/);
+  assert.match(render({ ...base, state: "succeeded", lastError: null }), /Sync complete/);
+  assert.match(render(null, false), /unavailable in this environment/);
+  assert.match(render(null, true, "read failed"), /Refresh progress unavailable/);
+  const workload = read("src/app/dashboard/_components/DashboardWorkload.tsx");
+  assert.ok(workload.indexOf("<DashboardSync") < workload.indexOf("<Attention"));
+  assert.doesNotMatch(workload, /inert=\{working/);
+});
+
+test("selected refresh buttons await each continuation and can resume an older run", async () => {
+  const buttons: { label: string; onClick?: () => Promise<void>; disabled?: boolean }[] = [];
+  const calls: string[] = [];
+  let refreshed = 0;
+  const DashboardSync = loadSyncComponent({ buttons,
+    start: async (from, to) => { calls.push(`start:${from}:${to}`); return { ok: true, runId: "new", state: "in_progress" }; },
+    resume: async (id) => { calls.push(`resume:${id}`); return { ok: true, runId: id, state: calls.length < 3 ? "in_progress" : "succeeded" }; },
+    refresh: () => { refreshed += 1; },
+  });
+  const period = { from: "2026-10-25", to: "2026-10-25", error: null };
+  const older = { runId: "old", state: "failed", fromDate: "2026-10-20", toDate: "2026-10-21",
+    phase: "reconcile", page: 1, counts: { listed: 1, succeeded: 0, failed: 1, skipped: 0 },
+    lastError: "source down", lastAttemptAt: "2026-10-21T12:00:00Z", finishedAt: null };
+  renderToStaticMarkup(React.createElement(DashboardSync, {
+    period, health: { ...older, runId: "latest", state: "succeeded" }, recoverableRuns: [older], healthError: null, allowed: true,
+  }));
+  await buttons.find((button) => button.label === "Resume refresh")?.onClick?.();
+  assert.deepEqual(calls, ["resume:old", "resume:old", "resume:old"]);
+  assert.equal(refreshed, 3);
+  calls.length = 0;
+  buttons.length = 0;
+  renderToStaticMarkup(React.createElement(DashboardSync, { period, health: null, recoverableRuns: [], healthError: null, allowed: true }));
+  await buttons.find((button) => button.label === "Refresh selected dates")?.onClick?.();
+  assert.deepEqual(calls, ["start:2026-10-25:2026-10-25", "resume:new", "resume:new"]);
+  assert.equal(refreshed, 6);
+});
+
 test("dashboard keeps invalid dates and workload failures separate", () => {
   const page = read("src/app/dashboard/page.tsx");
   assert.match(page, /Check the selected dates/);

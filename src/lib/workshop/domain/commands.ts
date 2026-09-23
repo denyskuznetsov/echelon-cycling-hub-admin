@@ -124,6 +124,26 @@ export function skipReason(
   return "outside next 7 days";
 }
 
+/** Version 1 Dashboard policy: source date in the saved half-open interval. */
+export function selectedPeriodEligible(
+  order: { status: string | null; startsAt: string | null; stopsAt: string | null },
+  direction: "starts_at" | "stops_at",
+  fromInclusive: string,
+  toExclusive: string,
+): boolean {
+  if (order.status === null) throw new Error("Booqable list omitted order status.");
+  const scheduled = direction === "starts_at" ? order.startsAt : order.stopsAt;
+  if (scheduled === null) throw new Error(`Booqable list omitted ${direction}.`);
+  const instant = Date.parse(scheduled);
+  const from = Date.parse(fromInclusive);
+  const to = Date.parse(toExclusive);
+  if (!Number.isFinite(instant) || !Number.isFinite(from) || !Number.isFinite(to)) {
+    throw new Error("Booqable list contained an invalid date.");
+  }
+  return ["reserved", "started", "stopped"].includes(order.status)
+    && instant >= from && instant < to;
+}
+
 export type WorkshopStaffCommand = (typeof WORKSHOP_STAFF_COMMANDS)[number];
 
 export const WORKSHOP_ERROR_CODES = [
