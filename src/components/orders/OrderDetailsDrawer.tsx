@@ -14,6 +14,10 @@ import {
   formatRentalPeriod,
 } from "@/src/utils/formatters";
 import type { OrderDetails, OrderItemRow } from "@/src/lib/orders";
+import {
+  isSafeExternalLink,
+  resolveDeliveryDestination,
+} from "@/src/lib/delivery";
 import { OrderDetailsDrawerSkeleton } from "./OrderDetailsDrawerSkeleton";
 
 interface OrderDetailsDrawerProps {
@@ -316,16 +320,30 @@ export function OrderDetailsDrawer({
                 {formatLabel(order.fulfillment_type)}
               </DetailRow>
             ) : null}
-            {order.delivery_address || order.billing_address ? (
+            {(() => {
+              if (order.fulfillment_type !== "delivery" && !order.billing_address) {
+                return null;
+              }
+              const destination = resolveDeliveryDestination(
+                order.delivery_address,
+                order.maps_link_order,
+              );
+              return (
               <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-2">
-                {order.delivery_address ? (
+                {order.fulfillment_type === "delivery" ? (
                   <div className="rounded-md border border-slate-100 bg-slate-50 p-3">
                     <span className="mb-1 block text-caption font-caption text-slate-500">
-                      Delivery address
+                      Delivery destination
                     </span>
-                    <span className="whitespace-pre-line break-words text-body font-medium text-slate-900">
-                      {order.delivery_address}
-                    </span>
+                    {destination.kind === "missing" ? (
+                      <span className="text-body font-medium text-slate-900">Delivery address missing</span>
+                    ) : destination.kind === "maps" && isSafeExternalLink(destination.value) ? (
+                      <a href={destination.value} target="_blank" rel="noreferrer" className="break-words text-body font-medium text-brand-700 hover:underline">
+                        {destination.value}
+                      </a>
+                    ) : (
+                      <span className="whitespace-pre-line break-words text-body font-medium text-slate-900">{destination.value}</span>
+                    )}
                   </div>
                 ) : null}
                 {order.billing_address ? (
@@ -339,7 +357,8 @@ export function OrderDetailsDrawer({
                   </div>
                 ) : null}
               </div>
-            ) : null}
+              );
+            })()}
           </Section>
 
           <Section

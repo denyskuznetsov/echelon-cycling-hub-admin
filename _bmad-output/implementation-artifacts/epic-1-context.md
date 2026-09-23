@@ -1,50 +1,47 @@
-# Epic 1 Context: Reliable Project Foundations for Continued Growth
+# Epic 1 Context: Plan and run daily rental operations from one dashboard
 
-<!-- Compiled from planning artifacts. Edit freely. Regenerate with compile-epic-context if planning docs change. -->
+<!-- Generated from planning artifacts. Regenerate with compile-epic-context if planning docs change. -->
 
 ## Goal
 
-Make the foundations reused by the growing portal dependable: staff and partners receive consistent navigation, clear save outcomes, accurate complete reporting, and enforced permissions; developers can safely reproduce the local database, rely on typed and validated boundaries, and catch regressions before release. Preserve current working workflows and role boundaries except where this epic explicitly corrects unsafe behavior.
+Give authorized staff one trustworthy, selected-period starting point for daily rental work: departures, returns, preparation status, delivery information, existing order and Workshop journeys, and explicit source-refresh confidence. This removes routine cross-checking between Booqable and Workshop while preserving existing workflows, permissions, and the limits of available evidence.
 
 ## Stories
 
-- Story 1.1: Consistent list interactions
-- Story 1.2: Reliable save lifecycle
-- Story 1.3: Dependable frontend quality gate
-- Story 1.4: Trusted account role assignment
-- Story 1.5: Reproducible database and migration gate
-- Story 1.6: Canonical SQL reporting and complete exports
-- Story 1.7: Authorize external side effects
-- Story 1.8: Typed and validated data boundaries
-- Story 1.9: Bounded external requests and independent sync outcomes
+- Story 1.1: Browse the rental workload and readiness dashboard
+- Story 1.2: Identify preparation priorities and open the relevant Workshop task
+- Story 1.3: See approximate driving time for deliveries
+- Story 1.4: Refresh the selected period and understand sync confidence
 
 ## Requirements & Constraints
 
-- Lists must share URL-driven submitted search, filters, pagination, history, and table-local pending behavior. Preserve draft text, focus, relevant URL parameters, explicit-submit search, accessibility, and existing Workshop sync/tablet behavior.
-- Editors need serialized saves, visible pending/saved/failed/conflict states, stale-write protection, and a recovery path that retains the latest draft. Completion or publishing must coordinate with in-flight writes.
-- Lint, type, and real browser behavior checks must be reproducible in local/CI environments with synthetic data and no production credentials or outbound vendor effects.
-- Account roles must come only from a trusted provisioning operation. Caller-editable signup metadata, missing metadata, malformed values, and later non-security metadata updates must not grant or change privileges; legitimate existing roles and associations remain intact.
-- Fresh and upgrade-path local databases must recreate required schema, RLS, storage configuration, and fixtures without exported business data. New migrations must be forward-only, safe to reapply, and verified before hosted deployment through merge/CI.
-- PostgreSQL must own shared reporting totals, commissions, inclusion, rounding, and access rules. Dashboard and export must reconcile; exports must obtain every authorized row beyond a one-request cap without representing partial data as complete.
-- External mutations require operation-specific authorization before vendor effects, must check database mutation outcomes, and must report partial/ambiguous failures honestly.
-- Supabase schema types must be generated from the locally migrated schema; callable inputs require runtime validation before mutations. Preserve valid response shapes, nullable values, RLS, and established error handling.
-- External requests require documented bounded deadlines and safe retries. Persist each customer-sync destination result independently, while retaining Booqable complete-snapshot, lease/fence, environment, and manual-sync safeguards.
+- Staff roles are admin, manager, and mechanic. Dashboard Today is their default destination when no valid internal destination was supplied; Dashboard is first in staff navigation. Partner, pending, and anonymous callers must be denied at direct data boundaries as well as in navigation.
+- A single shared period controls both directions and summary data. Support Today, Tomorrow, Next 7 Days, following Monday–Sunday, next complete calendar month, and inclusive custom dates in Europe/Madrid. URL state survives refresh, history, and drawer navigation. Invalid or reversed dates must be correctable rather than silently broadened.
+- Show coherent chronological Going out and Coming back workloads, with Madrid date groups for multi-day ranges and shared totals for outgoing/incoming orders and bikes, deliveries, outstanding preparation, and missing-address deliveries. An eligible order may appear in both directions; missing schedule excludes only that direction.
+- Include reserved, started, and stopped orders by their independently scheduled start and return dates; exclude new, draft, cancelled, and archived orders. Preserve selectable rows with missing customer or order number, including the explicit missing Booqable-number message.
+- Readiness uses current non-cancelled rental-turnaround tasks on open assignments, including completed tasks while still current. History, checklists, add-ons, and retained records do not affect task denominators. Preparation is only to_prepare, being_prepared, and needs_recheck for outgoing work. Zero tasks consistently reads “No Workshop tasks” without inferred missing bikes or urgency.
+- Delivery destination is a nonblank delivery address, otherwise a nonblank maps link. Whitespace is absent; billing and customer addresses are never fallbacks. An absent destination reads “Delivery address missing”; supplied but unroutable input remains supplied and is not counted as missing.
+- Failed reads, invalid ranges, empty directions, absent detail, and optional ETA failure must remain distinct. Core loading uses skeletons, not placeholder zeroes. Dashboard reads and notices never mutate orders, tasks, or provider data.
+- Preserve the existing Orders, Workshop, role, source-apply, and whole-order pickup/return behaviors. The epic excludes booked-unit completeness auditing, cross-order predictions, task editing or historical-task browsing, delivery dispatch/routing workflows, Booqable write-back, customer messaging, and analytics.
 
 ## Technical Decisions
 
-- Preserve the existing Next.js App Router, React, TypeScript, Supabase/PostgreSQL, and Subframe stack. Search the codebase before creating shared clients, components, helpers, or test infrastructure.
-- Use server-side URL search parameters for global list state. PostgreSQL, not UI or Node, owns cross-table calculations, reporting, and atomic/versioned workflow decisions; the UI owns presentation and unsent drafts.
-- User-facing reads remain authenticated/RLS-respecting. User-facing actions use the existing `withAuth` boundary and return discriminated recoverable results; loaders return safe fallback data plus an error. Expired sessions redirect to login, recoverable failures are logged with context and surfaced clearly.
-- Authorization is separate from authentication. Trust role state from the established database role lookup, not client claims, caller metadata, or service-role bypasses. Direct routes, actions, views, RPCs, storage, and RLS must preserve partner isolation and mechanic boundaries.
-- Write idempotent local-only migration files: use drop-then-create for policies and triggers, explicit grants/revokes, safe function search paths, and forward migrations rather than rewritten history. Never apply DDL directly to hosted environments; CI deploys after merge.
-- Verify behavior at its owning boundary: browser tests for interaction and auth paths; database/Auth integration or equivalent trigger tests for role provisioning, RLS, migrations, reporting, and concurrency; provider fixtures/mocks for integration behavior. Revalidate the finding and baseline on the current branch rather than treating historic audit counts as acceptance evidence.
+- PostgreSQL owns workload selection, aggregation, day grouping, task denominators, and period totals through one staff-authorized SECURITY INVOKER read under RLS. Pre-aggregate inputs to avoid join fan-out; do not calculate business workload data in Node or the client, make per-row detail calls, or silently truncate a result set.
+- Capture one server reference instant and use DST-safe Madrid bounds consistently for membership, labels, and later urgency. Revalidation replaces rows, totals, dates, reference time, and derived status together.
+- Use authenticated/RLS-respecting clients for workload and drawer data. Apply authorization at workload, selected-task, ETA, and sync start/resume boundaries. Server actions use the established `withAuth` behavior and discriminated expected errors; loaders provide safe fallback data with a visible, contextual error.
+- Reuse the existing navigation configuration, post-login handling, shared order drawer/opening mechanism with `?order=<local UUID>`, and Workshop task routes. Selected order data must not overwrite the workload snapshot.
+- Add migrations only with their owning story, make them idempotent, verify locally, and preserve legacy sync data or provide an explicit restart path. Remote database changes and deployments remain outside implementation scope and follow existing branch CI.
+- Delivery estimates belong to a separate, server-authorized Google Routes adapter. It rereads the local order and sends only a verified origin and supported destination. Bound timeouts, concurrency, response size, and within-load deduplication; do not add retry loops, polling, persistent caching, credential exposure, Maps HTML scraping, or arbitrary routing proxy behavior.
+- Selected-period refresh extends the existing manual reconciliation worker, leases/fences, complete-snapshot validation, and environment gate. Persist the requested bounds, policy version, discovery progress, and outcomes; resume saved server scope without trusting a later client cursor. Do not introduce a scheduler, detached work, or a second worker system.
 
 ## UX & Interaction Patterns
 
-- Navigation feedback belongs in the results area while list controls, draft input, keyboard focus, and layout remain usable. Navigation pending is distinct from Workshop synchronization pending.
-- Save states must communicate unsaved, saving, saved, failed, and conflicting edits accurately and accessibly; retry must use the latest intended draft.
-- Search, pagination, save feedback, and role navigation must continue to work with keyboard input and existing desktop, mobile, and tablet layouts. Denial must be enforced beyond hidden navigation controls.
+- Keep the existing Echelon Subframe shell, typography, semantic colors, spacing, overlays, and components. The page order is shared period/sync controls, workload summary, concise attention, then directional chronological lists; no charts, financial dashboard, or new design system.
+- On tablet/laptop, show Going out and Coming back side by side. On phones, show one active list beneath a visible two-label accessible tablist. Switching direction preserves the period and does not start a sync. Rows prioritize time, identity, fulfillment, readiness/lifecycle, destination, and plain-text warnings; essential details wrap under zoom and never depend on hover or color alone.
+- One explicit, focusable order action opens the existing drawer, preserving URL parameters, history, Escape/Back behavior, and focus return. Story 1.2 adds staff-authorized current bike-task links inside that drawer, not direct task-edit controls on the dashboard.
+- Use concise factual status copy: exact lifecycle counts for mixed work, “No Workshop tasks,” “Delivery address missing,” “Drive time unavailable,” and “Sync confidence unavailable” when evidence is not sufficient. Keep attention prioritized without reordering timelines or duplicating every issue in a large alert.
+- Maintain semantic headings, labeled controls, date groups, visible focus, keyboard and touch access, controlled announcements, reduced-motion feedback, 44px primary controls, contrast, and reflow support. Verify the rendered tablet, phone, and zoom behavior during implementation.
 
 ## Cross-Story Dependencies
 
-No story has a hard delivery dependency on another. Story 1.3 owns application CI/browser-test infrastructure and Story 1.5 owns database CI/fixtures; each story still supplies its necessary tests if those shared gates are absent. Story 1.8 introduces generated types, and later schema-changing work regenerates them when present. Role-provisioning repair (1.4) and external-side-effect authorization (1.7) are independently deliverable security corrections; security-first ordering is advisory.
+Story 1.1 establishes the staff landing, shared calendar, coherent workload read, delivery precedence, responsive lists, and shared order opening. Story 1.2 extends its task predicates with urgency, attention, and selected-order Workshop links. Stories 1.3 and 1.4 each depend on 1.1 but not on each other: 1.3 adds independent delivery estimates, while 1.4 extends existing sync infrastructure and confidence controls. Before those stories arrive, show destinations without simulated estimates and limit sync status to proven legacy evidence or “Sync confidence unavailable.” Full rollout additionally requires measured performance targets and routing operational verification; those are release gates, not separate product stories.
