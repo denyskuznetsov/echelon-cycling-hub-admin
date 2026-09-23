@@ -80,7 +80,7 @@ export function DeliveryDetail({ row, estimate, showEstimate }: { row: Dashboard
     return <div className={styles.deliveryAddress}>
       <span className="flex items-center gap-1 text-caption font-caption text-subtext-color"><FeatherMapPin aria-hidden /> Delivery location</span>
       {isSafeExternalLink(row.delivery_value ?? "")
-        ? <a className="break-all text-body font-body text-brand-700 underline" href={row.delivery_value!} target="_blank" rel="noopener noreferrer" aria-label={`Open delivery location in Google Maps: ${row.delivery_value}`}>{row.delivery_value}</a>
+        ? <a className="break-all text-body font-body text-brand-700 underline" href={row.delivery_value!} target="_blank" rel="noopener noreferrer" aria-label={`Open delivery location in a new tab: ${row.delivery_value}`}>{row.delivery_value}</a>
         : <span className="text-body font-body text-default-font">{row.delivery_value}</span>}
       {showEstimate ? <DriveTime estimate={estimate} /> : null}
     </div>;

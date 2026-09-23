@@ -34,7 +34,7 @@ async function DashboardContent({ period }: { period: DashboardPeriod }) {
       <header className="flex flex-wrap items-end justify-between gap-4 border-b border-neutral-border pb-6">
         <div className="flex flex-col gap-1">
           <p className="text-caption-bold font-caption-bold uppercase tracking-widest text-brand-700">Echelon Cycling Hub · Operations</p>
-          <h1 className="text-heading-1 font-heading-1 text-default-font sm:text-[44px] sm:leading-[48px]">Daily briefing</h1>
+          <h1 tabIndex={-1} className="text-heading-1 font-heading-1 text-default-font sm:text-[44px] sm:leading-[48px]">Daily briefing</h1>
           <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span className="text-heading-3 font-heading-3 text-default-font">{period.label}</span>
             <span className="text-body font-body text-subtext-color">Europe/Madrid</span>

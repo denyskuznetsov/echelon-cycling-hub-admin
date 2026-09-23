@@ -4,7 +4,7 @@ type: bugfix
 created: '2026-09-23'
 status: done
 baseline_revision: 'f15a10caf2309136c8436069913d041916f7fd90'
-review_loop_iteration: 0
+review_loop_iteration: 1
 followup_review_recommended: false
 context:
   - '{project-root}/AGENTS.md'
@@ -75,6 +75,14 @@ deferred: []
 - Given a nonblank displayed address, when its keyboard or pointer link is activated, then a new tab opens Google Maps for the exact original text with safe attributes and descriptive accessible name; an existing safe selected Maps link is retained and blank destinations never become links.
 - Given all-ready, mixed or zero-task rows, when rendered, then each readiness fact appears once with accurate denominator, all distinct positive lifecycle conditions and fulfillment preserved, and zero tasks explicitly identified.
 
+### Review Findings
+
+- [x] [Review][Patch] Name the blocking sync dialog for assistive technology [src/app/dashboard/_components/DashboardSync.tsx:80]
+- [x] [Review][Patch] Clear stale failed-run feedback after a successful retry while refreshed history loads [src/app/dashboard/_components/DashboardSync.tsx:69]
+- [x] [Review][Patch] Avoid calling every saved in-progress run interrupted when another staff member may be syncing it [src/app/dashboard/_components/DashboardSync.tsx:79]
+- [x] [Review][Patch] Move keyboard focus to visible loading feedback when date navigation hides the selected control [src/app/dashboard/_components/DashboardNavigation.tsx:15]
+- [x] [Review][Patch] Give direct saved destination links a truthful accessible name for any safe HTTP(S) URL [src/app/dashboard/_components/DashboardWorkload.tsx:83]
+
 ## Spec Change Log
 
 ## Review Triage Log
@@ -87,6 +95,13 @@ deferred: []
 - reject: 0
 - addressed_findings:
   - none
+
+### 2026-09-23 — Follow-up code review
+- decision_needed: 0
+- patch: 5 applied
+- defer: 0
+- dismiss: 8
+- verification: Dashboard tests 34/34, TypeScript, focused ESLint, git diff --check, and the refreshed fixture browser check passed after patches. The fixture covers sync interaction and date loading; it does not establish deployed or live-provider behavior.
 
 ## Design Notes
 

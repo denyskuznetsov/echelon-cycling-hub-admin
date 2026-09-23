@@ -25,6 +25,7 @@ export function DashboardSync({ period, health, lastSuccessAt, healthError, allo
   const router = useRouter();
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [completedRunId, setCompletedRunId] = useState<string | null>(null);
   const busy = useRef(false);
   const mounted = useRef(true);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -33,6 +34,7 @@ export function DashboardSync({ period, health, lastSuccessAt, healthError, allo
     mounted.current = true;
     return () => { mounted.current = false; };
   }, []);
+  const completed = completedRunId !== null && !(health?.runId === completedRunId && health.state === "succeeded");
 
   const run = async () => {
     // Ref closes the same-tick gap before React disables the button.
@@ -40,6 +42,7 @@ export function DashboardSync({ period, health, lastSuccessAt, healthError, allo
     busy.current = true;
     setWorking(true);
     setActionError(null);
+    setCompletedRunId(null);
     try {
       let result = await startSelectedPeriodSync(period.from, period.to);
       while (mounted.current) {
@@ -51,7 +54,10 @@ export function DashboardSync({ period, health, lastSuccessAt, healthError, allo
           setActionError("Sync could not refresh all required orders. Click Sync to try again.");
           break;
         }
-        if (result.state === "succeeded") break;
+        if (result.state === "succeeded") {
+          setCompletedRunId(result.runId);
+          break;
+        }
         result = await resumeSelectedPeriodSync(result.runId);
       }
     } catch (error) {
@@ -66,7 +72,7 @@ export function DashboardSync({ period, health, lastSuccessAt, healthError, allo
     }
   };
 
-  const failure = actionError || (health?.state === "failed" ? health.lastError || "Sync could not refresh all required orders. Click Sync to try again." : null);
+  const failure = actionError || (!completed && health?.state === "failed" ? health.lastError || "Sync could not refresh all required orders. Click Sync to try again." : null);
   return <section aria-label="Dashboard sync" className={styles.syncSection}>
     <Button ref={trigger} variant="neutral-primary" disabled={working || !allowed || !!period.error} onClick={run}>Sync</Button>
     <p className="text-caption font-caption text-subtext-color" aria-live="polite">
@@ -76,15 +82,16 @@ export function DashboardSync({ period, health, lastSuccessAt, healthError, allo
     {!allowed ? <p className="text-caption font-caption text-subtext-color">Booqable sync is unavailable in this environment.</p> : null}
     {healthError ? <DataLoadError title="Couldn’t load sync history" message={healthError} /> : null}
     {!working && failure ? <p role="alert" className="text-body font-body text-error-700">{failure}</p> : null}
-    {!working && !failure && health?.state === "in_progress" ? <p className="text-caption font-caption text-subtext-color">Sync was interrupted. Click Sync to continue.</p> : null}
+    {!working && completed ? <p role="status" className="text-caption font-caption text-subtext-color">Sync completed. Updating history…</p> : null}
+    {!working && !completed && !failure && health?.state === "in_progress" ? <p className="text-caption font-caption text-subtext-color">A sync for these dates may still be running. {allowed ? "Click Sync to check or continue it." : "Sync is unavailable in this environment."}</p> : null}
     <Dialog open={working} modal title="Syncing Booqable orders…" className="z-[100] p-4">
       <Dialog.Content ref={panel} initialFocusRef={panel} tabIndex={-1}
-        aria-describedby="dashboard-sync-description" className="w-full min-w-0 max-w-md items-center gap-4 p-6 text-center"
+        aria-labelledby="dashboard-sync-title" aria-describedby="dashboard-sync-description" className="w-full min-w-0 max-w-md items-center gap-4 p-6 text-center"
         onEscapeKeyDown={(event) => event.preventDefault()}
         onInteractOutside={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => { event.preventDefault(); trigger.current?.focus(); }}>
         <Loader size="large" aria-hidden className={styles.syncLoader} />
-        <h2 className="text-heading-3 font-heading-3 text-default-font">Syncing Booqable orders…</h2>
+        <h2 id="dashboard-sync-title" className="text-heading-3 font-heading-3 text-default-font">Syncing Booqable orders…</h2>
         <p id="dashboard-sync-description" role="status" className="text-body font-body text-subtext-color">Please wait while the selected dates are refreshed.</p>
       </Dialog.Content>
     </Dialog>

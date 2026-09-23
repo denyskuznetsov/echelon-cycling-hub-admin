@@ -74,7 +74,7 @@ test("one Sync action renders independent historical success, useful failures an
   assert.match(failed, /Last successful Dashboard sync:.*20 Oct 2026, 14:00/);
   assert.match(failed, /Source unavailable/);
   assert.doesNotMatch(failed, /Resume|saved refresh|private-run|candidates|Discovery|matches viewed/);
-  assert.match(render({ state: "in_progress" }), /Sync was interrupted/);
+  assert.match(render({ state: "in_progress" }), /may still be running/);
   assert.match(render(null, null, false), /unavailable in this environment/);
   assert.match(render(null, null, true, "read failed"), /read failed/);
   assert.doesNotMatch(render(null, null, true, "read failed"), /No successful Dashboard sync yet/);
