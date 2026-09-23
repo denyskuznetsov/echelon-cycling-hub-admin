@@ -12,6 +12,9 @@ test("delivery destination prefers a nonblank address, then a maps link", () => 
     { kind: "maps", value: "https://maps.example.test/fallback" },
   );
   assert.deepEqual(resolveDeliveryDestination(" ", null), { kind: "missing", value: null });
+  assert.deepEqual(resolveDeliveryDestination("\t\n\r\f\v", "\tMap link\v"), { kind: "maps", value: "Map link" });
+  assert.deepEqual(resolveDeliveryDestination("\u00a0", "Fallback"), { kind: "address", value: "\u00a0" });
+  assert.deepEqual(resolveDeliveryDestination(" \u00a0 ", "Fallback"), { kind: "address", value: "\u00a0" });
 });
 
 test("only HTTP(S) map destinations become external drawer links", () => {

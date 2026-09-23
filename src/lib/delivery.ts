@@ -4,7 +4,8 @@ export type DeliveryDestination =
   | { kind: "missing"; value: null };
 
 function nonBlank(value: string | null | undefined): string | null {
-  const trimmed = value?.trim();
+  // PostgreSQL btrim(..., E' \t\n\r\f\v') removes exactly these ASCII edge characters.
+  const trimmed = value?.replace(/^[ \t\n\r\f\v]+|[ \t\n\r\f\v]+$/g, "");
   return trimmed ? trimmed : null;
 }
 

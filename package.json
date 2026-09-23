@@ -20,7 +20,7 @@
     "test:customers-landing-status": "node --test src/customers-landing-status.test.mts",
     "test:pending-layout": "node --test src/pending-layout.test.mts",
     "test:trusted-role-assignment": "node --test src/trusted-role-assignment.test.mts",
-    "test:dashboard": "node --test src/dashboard-period.test.mts src/dashboard-ui.test.mts src/delivery.test.mts",
+    "test:dashboard": "node --test src/dashboard-period.test.mts src/dashboard-ui.test.mts src/dashboard-task-links.test.mts src/dashboard-routing.test.mts src/delivery.test.mts",
     "test:db": "supabase test db --local"
   },
   "dependencies": {

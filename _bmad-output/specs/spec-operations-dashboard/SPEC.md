@@ -17,7 +17,7 @@ sources: []
 
 ## Why
 
-Staff need Booqable for rental workload and separate Workshop views for readiness. Dashboard gives admin, manager and mechanic one time-based first screen for outgoing/returning orders, preparation, delivery logistics and honest sync confidence, so daily execution and future planning do not require routine manual comparison across systems.
+Staff need Booqable for rental workload and separate Workshop views for readiness. Dashboard gives admin, manager and mechanic one time-based first screen for outgoing/returning orders, preparation and delivery logistics, with selected-period refresh and sync messages consistent with Workshop, so daily execution and future planning do not require routine manual comparison across systems.
 
 ## Capabilities
 
@@ -50,8 +50,8 @@ Staff need Booqable for rental workload and separate Workshop views for readines
   - **success:** One action opens the shared Order drawer without losing the selected period or history/focus behavior. On selection, authorized current-task links reach existing /workshop/[taskId] screens. Historical tasks stay outside this list; partners do not receive staff task data.
 
 - **CAP-8**
-  - **intent:** Staff can judge synchronization confidence and refresh outgoing/incoming orders for the selected Dashboard period.
-  - **success:** Start/resume uses a fixed recorded period, includes in-window local candidates whose source status/dates later moved, and shows bounded progress while local workload stays visible. Success proves completed enumeration and every required reconciliation for that run. Failed, incomplete, stale, unknown and locally empty states differ; legacy reserved-only evidence never claims expanded or global coverage. AD-10/11 govern recovery and truthful labels.
+  - **intent:** Staff can refresh outgoing/incoming orders for the selected Dashboard period and recover interrupted sync work using familiar Workshop status and error messages.
+  - **success:** Start/resume uses a fixed recorded period, includes in-window local candidates whose source status/dates later moved, and shows bounded progress while local workload stays visible. Success requires completed enumeration and every required reconciliation for that run. Failed, incomplete, stale and locally empty states remain distinguishable using Workshop-consistent progress/result/error patterns; legacy reserved-only evidence never claims expanded or global coverage. AD-10/11 govern recovery and truthful result details.
 
 ## Constraints
 

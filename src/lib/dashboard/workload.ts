@@ -1,6 +1,9 @@
 import { createClient } from "@/src/utils/supabase/server";
 import type { DashboardPeriod } from "./period";
 
+export type DashboardCondition = { kind: "preparation" | "missing_delivery_address" | "configuration_warning" | "source_mixed" | "source_unknown" | "source_pickup_ahead" | "source_missed_pickup" | "source_reversal" | "source_local_ahead"; severity: "critical" | "warning" | "low"; affected_bikes: number };
+export type DashboardAttention = DashboardCondition & { orders: number };
+
 export type DashboardRow = {
   order_id: string;
   scheduled_at: string;
@@ -15,6 +18,7 @@ export type DashboardRow = {
   ready_task_count: number;
   preparation_task_count: number;
   lifecycle_counts: Record<string, number>;
+  conditions: DashboardCondition[];
 };
 export type DashboardDayGroup = { date: string; rows: DashboardRow[] };
 export type DashboardDirection = {
@@ -27,6 +31,7 @@ export type DashboardWorkload = {
   to_date: string;
   outgoing: DashboardDirection;
   incoming: DashboardDirection;
+  attention: DashboardAttention[];
 };
 
 const EMPTY_DIRECTION: DashboardDirection = {
@@ -39,6 +44,7 @@ export const EMPTY_DASHBOARD_WORKLOAD: DashboardWorkload = {
   to_date: "",
   outgoing: EMPTY_DIRECTION,
   incoming: EMPTY_DIRECTION,
+  attention: [],
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -54,6 +60,18 @@ function isTotals(value: unknown): value is DashboardDirection["totals"] {
     "missing_delivery_addresses",
     "outstanding_preparation",
   ].every((key) => typeof value[key] === "number");
+}
+
+const CONDITION_KINDS = ["preparation", "missing_delivery_address", "configuration_warning", "source_mixed", "source_unknown", "source_pickup_ahead", "source_missed_pickup", "source_reversal", "source_local_ahead"];
+const SEVERITIES = ["critical", "warning", "low"];
+function isCondition(value: unknown): value is DashboardCondition {
+  return isRecord(value) && typeof value.kind === "string" && CONDITION_KINDS.includes(value.kind) &&
+    typeof value.severity === "string" && SEVERITIES.includes(value.severity) &&
+    Number.isInteger(value.affected_bikes) && (value.affected_bikes as number) >= 0;
+}
+function isAttention(value: unknown): value is DashboardAttention {
+  return isCondition(value) && Number.isInteger((value as Record<string, unknown>).orders) &&
+    ((value as Record<string, unknown>).orders as number) > 0;
 }
 
 function isRow(value: unknown): value is DashboardRow {
@@ -73,6 +91,7 @@ function isRow(value: unknown): value is DashboardRow {
     typeof value.task_count === "number" &&
     typeof value.ready_task_count === "number" &&
     typeof value.preparation_task_count === "number" &&
+    Array.isArray(value.conditions) && value.conditions.every(isCondition) &&
     isRecord(value.lifecycle_counts) &&
     Object.values(value.lifecycle_counts).every((count) => typeof count === "number")
   );
@@ -88,7 +107,7 @@ function isDirection(value: unknown): value is DashboardDirection {
 function isWorkload(value: unknown): value is DashboardWorkload {
   if (!isRecord(value)) return false;
   const candidate = value as Partial<DashboardWorkload>;
-  return typeof candidate.reference_at === "string" && typeof candidate.from_date === "string" && typeof candidate.to_date === "string" && isDirection(candidate.outgoing) && isDirection(candidate.incoming);
+  return typeof candidate.reference_at === "string" && typeof candidate.from_date === "string" && typeof candidate.to_date === "string" && isDirection(candidate.outgoing) && isDirection(candidate.incoming) && Array.isArray(candidate.attention) && candidate.attention.every(isAttention);
 }
 
 export async function loadDashboardWorkload(

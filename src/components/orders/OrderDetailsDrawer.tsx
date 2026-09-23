@@ -13,6 +13,8 @@ import {
   formatCentsToEuros,
   formatRentalPeriod,
 } from "@/src/utils/formatters";
+import { CurrentWorkshopTaskList } from "./CurrentWorkshopTaskList";
+import type { CurrentOrderTask } from "@/src/lib/orders/actions/current-task-actions";
 import type { OrderDetails, OrderItemRow } from "@/src/lib/orders";
 import {
   isSafeExternalLink,
@@ -24,6 +26,9 @@ interface OrderDetailsDrawerProps {
   order: OrderDetails | null;
   error: string | null;
   loading?: boolean;
+  tasks: CurrentOrderTask[];
+  taskError: string | null;
+  tasksLoading: boolean;
 }
 
 type BadgeVariant = React.ComponentProps<typeof Badge>["variant"];
@@ -223,6 +228,9 @@ export function OrderDetailsDrawer({
   order,
   error,
   loading = false,
+  tasks,
+  taskError,
+  tasksLoading,
 }: OrderDetailsDrawerProps) {
   const router = useRouter();
   const canOpenCustomerDetails = useHasRole("admin", "manager", "mechanic");
@@ -370,6 +378,10 @@ export function OrderDetailsDrawer({
           >
             <OrderItemsList items={order.order_items} />
           </Section>
+
+          {canOpenCustomerDetails ? <Section title="Current Workshop tasks">
+            <CurrentWorkshopTaskList tasks={tasks} error={taskError} loading={tasksLoading} />
+          </Section> : null}
 
           <Section title="Pricing">
             <DetailRow label="Order amount">
