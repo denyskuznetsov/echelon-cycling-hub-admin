@@ -100,11 +100,15 @@ deferred: []
 
 Story 1.3 adds independently loaded approximate drive times beside supported outgoing delivery destinations. A staff-only action rereads current orders under the caller's Supabase session, resolves the existing destination precedence, and sends only bounded duration requests to Google Routes v2. Unsupported, missing, failed and stale inputs remain distinct from the core workload.
 
+Browser feedback follow-up (2026-09-23): Drive estimates now also appear for incoming delivery orders because staff drive to the destination to collect the bikes. Both directions show the approximate drive **from the shop**; duplicate outgoing/incoming appearances of one order share one request. The plain address shown in the feedback is accepted as a route input, but the local environment has no Routes API key, so live duration remains unavailable. Earlier Story 1.2 notices now align their severity label with the message baseline and distinguish Booqable pickup ahead of preparation from a returned order with no Workshop pickup record.
+
 Files changed: `src/lib/dashboard/route-destination.ts` parses explicit safe destinations; `src/lib/dashboard/google-routes.ts` performs bounded server-only requests; `src/lib/dashboard/actions/delivery-estimates.ts` authorizes, rereads and deduplicates; `src/lib/dashboard/estimate-state.ts` binds results to the current display; `src/lib/delivery.ts` matches SQL trim semantics; `src/app/dashboard/_components/DashboardWorkload.tsx` and its CSS show independent row states and attribution; `src/dashboard-routing.test.mts`, `src/dashboard-ui.test.mts`, `src/delivery.test.mts` and `package.json` register focused fixtures and rendered component checks.
 
 Review: 9 patches applied (high 2, medium 7); 0 deferred; 5 rejected as existing recorded rollout gates, self-limited caller behavior or a bounded serial-work tradeoff. Follow-up review recommended: true; patched medium/low score is 21, and high findings also trigger the recommendation.
 
 Verification: `npm run test:dashboard` passed 21/21, focused routing tests 5/5, `npx tsc --noEmit`, focused ESLint and `git diff --check` passed. No remote database, live provider, deployment or production change was made. Interactive browser/device behavior, real saved destination formats, integrated staff/RLS requests, physical shop origin, restricted credential, billing/quota, attribution and applicable terms/privacy remain unverified release gates.
+
+Browser feedback verification (2026-09-23): `npm run test:dashboard` passed 22/22, `npx tsc --noEmit`, focused ESLint and `git diff --check` passed. The local authenticated browser shows drive-time state for both outgoing and incoming delivery rows, with the revised pickup/return warnings and aligned row labels. It still shows unavailable durations because no local Routes API key is configured; no live provider request was made.
 
 ## Verification
 

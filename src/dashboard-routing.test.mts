@@ -24,6 +24,10 @@ const routeModule = load("src/lib/dashboard/route-destination.ts", {
 test("only explicit, precise Maps destinations are routed", () => {
   const route = routeModule.routeDestination as (source: { kind: string; value: string }) => unknown;
   assert.deepEqual(route({ kind: "address", value: " Carrer del Cardenal Rossell 35, Palma " }), { address: "Carrer del Cardenal Rossell 35, Palma" });
+  const customerAddress = "Diseminado Polígono 2, 76, 07320 Santa Maria del Camí, Illes Balears, Spanien 07320 Santa Maria del Camí Balears Spain";
+  assert.deepEqual(route({ kind: "address", value: customerAddress }), { address: customerAddress });
+  const collectionAddress = "Carretera Lluc, Ma-10, km45 07100 Soller Balears Spain";
+  assert.deepEqual(route({ kind: "address", value: collectionAddress }), { address: collectionAddress });
   assert.deepEqual(route({ kind: "maps", value: "https://www.google.com/maps/dir/?api=1&destination=Carrer+del+Cardenal+Rossell+35%2C+Palma" }), { address: "Carrer del Cardenal Rossell 35, Palma" });
   assert.deepEqual(route({ kind: "maps", value: "https://www.google.com/maps/search/?api=1&query=Carrer+del+Cardenal+Rossell+35%2C+Palma" }), { address: "Carrer del Cardenal Rossell 35, Palma" });
   assert.deepEqual(route({ kind: "maps", value: "https://www.google.com/maps/dir/?api=1&destination=39.5726%2C2.6992" }), { location: { latLng: { latitude: 39.5726, longitude: 2.6992 } } });

@@ -7,8 +7,8 @@ const CONDITION_TEXT: Record<DashboardCondition["kind"], string> = {
   configuration_warning: "Configuration warning",
   source_mixed: "Partial Booqable pickup or return",
   source_unknown: "Booqable pickup could not be confirmed",
-  source_pickup_ahead: "Booqable pickup is ahead of Workshop",
-  source_missed_pickup: "Booqable return is ahead of Workshop",
+  source_pickup_ahead: "Booqable shows pickup; Workshop is still preparing",
+  source_missed_pickup: "Booqable shows return; Workshop has no pickup record",
   source_reversal: "Booqable status moved backward",
   source_local_ahead: "Workshop is ahead of Booqable",
 };
@@ -64,7 +64,7 @@ export function Attention({ items }: { items: DashboardAttention[] }) {
 export function OrderNotices({ conditions }: { conditions: DashboardCondition[] }) {
   if (conditions.length === 0) return null;
   return <ul className="mt-3 flex w-full list-none flex-col gap-2 p-0" aria-label="Order notices">
-    {conditions.map((condition) => <li key={condition.kind} className={`flex w-full items-start gap-3 rounded-md border-l-2 px-3 py-2 ${ROW_SEVERITY_STYLES[condition.severity].container}`}>
+    {conditions.map((condition) => <li key={condition.kind} className={`flex w-full items-baseline gap-3 rounded-md border-l-2 px-3 py-2 ${ROW_SEVERITY_STYLES[condition.severity].container}`}>
       <span className={`flex-none text-caption-bold font-caption-bold uppercase ${ROW_SEVERITY_STYLES[condition.severity].label}`}>
         {severityLabel(condition.severity)}
       </span>

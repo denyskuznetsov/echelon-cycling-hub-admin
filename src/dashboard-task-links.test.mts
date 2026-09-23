@@ -43,6 +43,7 @@ test("rendered Dashboard notices use exact singular count, text severity and pri
   assert.match(row, /border-error-600 bg-error-50/);
   assert.match(row, /border-warning-600 bg-warning-50/);
   assert.match(row, /list-none/);
+  assert.match(row, /items-baseline/);
   const attention = renderToStaticMarkup(React.createElement(Attention as React.ComponentType<{ items: unknown[] }>, {
     items: [{ kind: "preparation", severity: "critical", affected_bikes: 2, orders: 1 }],
   }));
@@ -50,6 +51,14 @@ test("rendered Dashboard notices use exact singular count, text severity and pri
   assert.match(attention, /1 priority in this period/);
   assert.match(attention, /2 bikes still to prepare/);
   assert.match(attention, /1 order/);
+  const sourceAttention = renderToStaticMarkup(React.createElement(Attention as React.ComponentType<{ items: unknown[] }>, {
+    items: [
+      { kind: "source_missed_pickup", severity: "warning", affected_bikes: 1, orders: 1 },
+      { kind: "source_pickup_ahead", severity: "warning", affected_bikes: 4, orders: 4 },
+    ],
+  }));
+  assert.match(sourceAttention, /Booqable shows return; Workshop has no pickup record.*1 order/s);
+  assert.match(sourceAttention, /Booqable shows pickup; Workshop is still preparing.*4 orders/s);
 });
 
 test("rendered Workshop task list separates loading, error, empty and stable links", () => {

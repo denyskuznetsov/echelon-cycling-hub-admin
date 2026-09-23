@@ -81,7 +81,7 @@ export function DriveTime({ estimate }: { estimate: DeliveryEstimate | null }) {
   if (estimate.minutes === null) return <span className="text-caption font-caption text-subtext-color">Drive time unavailable</span>;
   const minutes = estimate.minutes;
   const duration = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
-  return <span className={styles.driveTime}>Approx. {duration} · Google Maps</span>;
+  return <span className={styles.driveTime}>Approx. {duration} from shop · Google Maps</span>;
 }
 
 function DirectionList({ direction, data, idPrefix, estimates }: { direction: Direction; data: DashboardDirection; idPrefix: string; estimates: Record<string, DeliveryEstimate> }) {
@@ -120,7 +120,7 @@ function DirectionList({ direction, data, idPrefix, estimates }: { direction: Di
                           {row.fulfillment_type === "delivery" ? "Delivery" : row.fulfillment_type === "pickup" ? "Pickup" : "Fulfillment unknown"}
                         </Badge>
                       </div>
-                      <DeliveryDetail row={row} estimate={estimates[row.order_id] ?? null} showEstimate={direction === "outgoing" && row.fulfillment_type === "delivery"} />
+                      <DeliveryDetail row={row} estimate={estimates[row.order_id] ?? null} showEstimate={row.fulfillment_type === "delivery"} />
                       <OrderNotices conditions={row.conditions} />
                     </div>
                     <Button variant="brand-secondary" className={styles.orderAction} onClick={() => openOrder(row.order_id)} aria-label={`Open ${identity(row)}`}>Open order</Button>
@@ -163,9 +163,12 @@ export function DashboardWorkload({ period, workload, showWorkload = true }: { p
   const searchParams = useSearchParams();
   const [activeDirection, setActiveDirection] = useState<Direction>("outgoing");
   const [estimateState, setEstimateState] = useState<{ signature: string; rows: Record<string, DeliveryEstimate> }>({ signature: "", rows: {} });
-  const deliveryInputs = showWorkload ? workload.outgoing.days.flatMap((day) => day.rows)
-    .filter((row) => row.fulfillment_type === "delivery" && row.delivery_kind !== "missing" && row.delivery_kind !== "none")
-    .map((row) => ({ orderId: row.order_id, kind: row.delivery_kind, value: row.delivery_value })) : [];
+  const deliveryInputs = showWorkload ? [...new Map(
+    [...workload.outgoing.days, ...workload.incoming.days]
+      .flatMap((day) => day.rows)
+      .filter((row) => row.fulfillment_type === "delivery" && row.delivery_kind !== "missing" && row.delivery_kind !== "none")
+      .map((row) => [row.order_id, { orderId: row.order_id, kind: row.delivery_kind, value: row.delivery_value }] as const),
+  ).values()] : [];
   const signature = estimateSignature(period.preset, period.from, period.to, deliveryInputs);
   useEffect(() => {
     const { inputs } = JSON.parse(signature) as { inputs: typeof deliveryInputs };

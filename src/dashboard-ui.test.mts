@@ -56,7 +56,8 @@ test("drive estimates are independent of drawer navigation and workload renderin
   assert.match(component, /if \(!active\) return/);
   assert.match(component, /Drive time unavailable/);
   assert.match(component, /Approx\. .*Google Maps/);
-  assert.match(component, /showEstimate=\{direction === "outgoing" && row\.fulfillment_type === "delivery"\}/);
+  assert.match(component, /showEstimate=\{row\.fulfillment_type === "delivery"\}/);
+  assert.match(component, /\[\.\.\.workload\.outgoing\.days, \.\.\.workload\.incoming\.days\]/);
   assert.match(component, /onClick=\{\(\) => openOrder\(row\.order_id\)\}/);
   assert.match(component, /\}, \[signature\]\);/);
   assert.doesNotMatch(page, /fetchDeliveryEstimates|computeDriveMinutes/);
@@ -66,7 +67,7 @@ test("rendered drive-time states move from loading to duration or unavailable", 
   const { DriveTime } = loadDeliveryComponents() as { DriveTime: React.ComponentType<{ estimate: { minutes: number | null } | null }> };
   const render = (estimate: { minutes: number | null } | null) => renderToStaticMarkup(React.createElement(DriveTime, { estimate }));
   assert.match(render(null), /Checking drive time…/);
-  assert.match(render({ minutes: 7 }), /Approx\. 7 min · Google Maps/);
+  assert.match(render({ minutes: 7 }), /Approx\. 7 min from shop · Google Maps/);
   assert.match(render({ minutes: null }), /Drive time unavailable/);
 });
 
@@ -81,4 +82,14 @@ test("rendered unsupported address keeps its text and shows unavailable immediat
   const pickup = renderToStaticMarkup(React.createElement(DeliveryDetail, { row, estimate: null, showEstimate: false }));
   assert.match(pickup, /TBD/);
   assert.doesNotMatch(pickup, /drive time/i);
+});
+
+test("rendered incoming delivery keeps its address and shows the same shop drive estimate", () => {
+  const { DeliveryDetail } = loadDeliveryComponents() as { DeliveryDetail: React.ComponentType<{ row: unknown; estimate: unknown; showEstimate: boolean }> };
+  const row = { delivery_kind: "address", delivery_value: "Carretera Lluc, Ma-10, km45 07100 Soller Balears Spain" };
+  const incoming = renderToStaticMarkup(React.createElement(DeliveryDetail, {
+    row, estimate: { minutes: 42 }, showEstimate: true,
+  }));
+  assert.match(incoming, /Carretera Lluc, Ma-10, km45 07100 Soller Balears Spain/);
+  assert.match(incoming, /Approx\. 42 min from shop · Google Maps/);
 });
