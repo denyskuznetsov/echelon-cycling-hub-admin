@@ -129,7 +129,7 @@ function DirectionList({ direction, data, idPrefix, estimates }: { direction: Di
                       <DeliveryDetail row={row} estimate={estimates[row.order_id] ?? null} showEstimate={row.fulfillment_type === "delivery"} />
                       <OrderNotices conditions={row.conditions} />
                     </div>
-                    <Button variant="brand-secondary" className={styles.orderAction} onClick={() => openOrder(row.order_id)} aria-label={`Open ${identity(row)}`}>Open order</Button>
+                    <Button variant="neutral-secondary" className={styles.orderAction} onClick={() => openOrder(row.order_id)} aria-label={`Open ${identity(row)}`}>Open order</Button>
                   </li>
                 ))}
               </ul>
