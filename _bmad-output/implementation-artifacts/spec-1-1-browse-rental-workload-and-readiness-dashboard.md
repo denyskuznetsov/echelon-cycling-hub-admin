@@ -28,7 +28,7 @@ deferred:
 
 **Always:** Allow only admin, manager, and mechanic at the page and RPC boundary; preserve partner/pending flows. Resolve all presets and custom dates in Europe/Madrid from one captured reference instant, with inclusive local dates and independently converted DST-safe boundaries. Start from eligible orders, then left-join separately aggregated current `rental_turnaround` tasks on open assignments; count completed current tasks and exclude cancelled/history/add-on/checklist records. Resolve delivery as nonblank `delivery_address`, then nonblank `maps_link_order`, else missing. Reuse `?order=<local UUID>` and make core load errors visibly distinct from empty lists.
 
-**Block If:** Current schema or RLS evidence conflicts with the canonical order, task, delivery, or role predicates; a required local migration cannot be applied safely; or an existing explicit internal-destination policy conflicts with redirecting malformed/external `next` values to the role default.
+**Block If:** Current schema or RLS evidence conflicts with the canonical order, task, delivery, or role predicates; or a required local migration cannot be applied safely.
 
 **Never:** Aggregate workload business data in Node or the browser; use `bookings_view` or `workshop_tasks_view` as the workload source; silently truncate rows; create a second drawer, task workflow, sync engine, ETA adapter, delivery editor, booked-unit audit, or hosted database change.
 
@@ -65,11 +65,11 @@ deferred:
 - `src/lib/dashboard/period.ts` and `src/dashboard-period.test.mts` -- define validated URL parsing, preset/date resolution, URL-preserving href construction, Madrid display data, and tests for rollover, both DST changes, malformed/reversed ranges, and `order` preservation -- give page and SQL inputs one tested contract.
 - `src/lib/dashboard/workload.ts` -- call and runtime-validate the RPC with the authenticated server client, returning typed safe fallback data plus `error` -- keep DTO mapping and failures outside page rendering.
 - `src/app/dashboard/layout.tsx`, `src/app/dashboard/page.tsx`, `src/app/dashboard/loading.tsx`, and `src/app/dashboard/_components/DashboardWorkload.tsx` -- implement protected staff shell, one shared drawer host, server URL loading, skeleton/error/empty states, summary, chronological day groups, side-by-side desktop lists, and a keyboard-operable phone tablist -- make the workload usable without stale rows or hover-only content.
-- `src/ui/layouts/nav-config.ts`, `src/utils/auth/postLogin.ts`, `src/utils/auth/safe-internal-next.ts`, and their focused Node tests -- put Dashboard first, default all staff roles to Dashboard Today, retain valid internal next paths, and reject malformed/external paths to the role default -- preserve safe login and partner/pending routing.
+- `src/ui/layouts/nav-config.ts`, `src/utils/auth/postLogin.ts`, and their focused Node tests -- put Dashboard first and default all staff roles to Dashboard Today while preserving partner and pending routing.
 - `src/lib/orders.ts` and `src/components/orders/OrderDetailsDrawer.tsx` -- extend selected-order delivery data and presentation with the same address/maps precedence and safe link/address treatment as the workload -- prevent contradictory dashboard and drawer information.
 
 **Acceptance Criteria:**
-- Given an admin, manager, or mechanic without a valid internal destination, when root/password/OAuth landing resolves, then Dashboard Today is first in staff navigation; partners, pending users, and anonymous users retain their current routing and cannot read workload data directly.
+- Given an admin, manager, or mechanic without an explicit destination, when root/password/OAuth landing resolves, then Dashboard Today is first in staff navigation; partners, pending users, and anonymous users retain their current routing and cannot read workload data directly.
 - Given each preset or a valid custom range, when the dashboard loads or its period URL changes, then outgoing/incoming rows, day groups, totals, labels, and reference time share Madrid boundaries; malformed/reversed input shows a correctable error and never runs an unbounded query.
 - Given qualifying and excluded orders plus repeated task-related joins, when the RPC runs under the caller’s RLS, then only reserved/started/stopped qualify independently by `starts_at` and `stops_at`, rows/totals agree without fan-out, and no client/server business aggregation or per-row detail request occurs.
 - Given current, closed, cancelled, completed, partner, and zero-task cases, when readiness renders, then every current task counts once; ready is only `ready_for_pickup`; preparation and later lifecycle counts are explicit; zero tasks reads “No Workshop tasks” without an all-ready claim.
@@ -79,7 +79,7 @@ deferred:
 
 ## Design Notes
 
-Use `/dashboard` consistently as the canonical staff route. An invalid `next` cannot be preserved as an explicit valid internal destination, so it resolves to the trusted role default. Treat unknown fulfillment as evidence absence, never as pickup or delivery. Story 1.1 shows existing sync evidence only when it has proven scope; otherwise it states “Sync confidence unavailable.”
+Use `/dashboard` consistently as the canonical staff route. Treat unknown fulfillment as evidence absence, never as pickup or delivery. Story 1.1 shows existing sync evidence only when it has proven scope; otherwise it states “Sync confidence unavailable.”
 
 ## Verification
 
@@ -95,15 +95,15 @@ Use `/dashboard` consistently as the canonical staff route. An invalid `next` ca
 
 ## Review Triage Log
 
-- **Resolved (11):** Corrected stale custom-date input defaults, tab focus movement, runtime DTO validation, pickup delivery display, invalid-period controls, production error copy, touch targets, delivery provenance, login callback-error handling, direct role/incoming SQL coverage, and a reusable dashboard test command.
+- **Resolved (10):** Corrected stale custom-date input defaults, tab focus movement, runtime DTO validation, pickup delivery display, invalid-period controls, production error copy, touch targets, delivery provenance, direct role/incoming SQL coverage, and a reusable dashboard test command.
 - **Deferred (2):** Browser-level responsive/auth/drawer interaction evidence and representative query-plan/performance evidence remain release checks. No browser runner or representative operational fixture is available in this local implementation pass.
 - **Rejected (2):** A user-visible custom-range cap conflicts with the approved contract, and an incoming-deliveries summary conflicts with the approved outgoing-only delivery measure.
 - **Follow-up review:** Recommended. Residual score is 6 (two medium verification gaps); implementation defects found in this review are resolved.
 
 ## Auto Run Result
 
-Implemented Story 1.1 as a staff-only `/dashboard` landing route. A single local PostgreSQL `dashboard_workload` RPC owns Madrid date membership, order/task aggregation, day groups, totals, direct role authorization, and delivery precedence. The page retains URL-owned period and selected-order state, reuses the existing drawer, and preserves safe role routing.
+Implemented Story 1.1 as a staff-only `/dashboard` landing route. A single local PostgreSQL `dashboard_workload` RPC owns Madrid date membership, order/task aggregation, day groups, totals, direct role authorization, and delivery precedence. The page retains URL-owned period and selected-order state, reuses the existing drawer, and preserves the existing role-routing behavior outside the new Dashboard defaults.
 
-Verification passed: `npm run test:db` (8 files, 535 tests), `npm run test:dashboard` (10 tests), `npm run test:trusted-role-assignment`, `npm run test:pending-layout`, `npx tsc --noEmit`, focused ESLint (no errors), and `git diff --check`. The focused lint command still reports four pre-existing image warnings in `LoginForm`; the repository-wide lint command has pre-existing unrelated errors and is not a clean global gate.
+Verification passed: `npm run test:db` (8 files, 535 tests), `npm run test:dashboard` (8 tests), `npm run test:trusted-role-assignment`, `npm run test:pending-layout`, `npx tsc --noEmit`, focused ESLint (no errors), and `git diff --check`. The focused lint command still reports four pre-existing image warnings in `LoginForm`; the repository-wide lint command has pre-existing unrelated errors and is not a clean global gate.
 
 No hosted database, provider, deployment, or production action was taken. The migration was revised and reapplied only to the local Supabase database under the explicit authorization to amend this un-deployed migration.

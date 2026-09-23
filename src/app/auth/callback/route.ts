@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
 import { getPostLoginPath } from "@/src/utils/auth/postLogin";
-import { resolveSafeInternalNext } from "@/src/utils/auth/safe-internal-next";
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
@@ -29,12 +28,14 @@ export async function GET(request: Request) {
   }
 
   if (!errorMessage) {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    const fallback = user ? await getPostLoginPath(supabase, user.id) : "/login";
-    const next = resolveSafeInternalNext(explicitNext, fallback);
-    return NextResponse.redirect(new URL(next, origin));
+    let next = explicitNext;
+    if (!next) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      next = user ? await getPostLoginPath(supabase, user.id) : "/login";
+    }
+    return NextResponse.redirect(`${origin}${next}`);
   }
 
   console.error("[auth/callback] verification failed:", errorMessage);

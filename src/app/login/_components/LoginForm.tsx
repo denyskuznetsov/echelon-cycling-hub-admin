@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/src/utils/supabase/client";
 import { getPostLoginPath } from "@/src/utils/auth/postLogin";
-import { resolveSafeInternalNext } from "@/src/utils/auth/safe-internal-next";
 import { Button } from "@/ui/components/Button";
 import { LinkButton } from "@/ui/components/LinkButton";
 import { TextField } from "@/ui/components/TextField";
@@ -17,8 +16,14 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const callbackError = searchParams.get("error") ?? "";
   const [errorMessage, setErrorMessage] = useState("");
+
+  useEffect(() => {
+    const callbackError = searchParams.get("error");
+    if (callbackError) {
+      setErrorMessage(decodeURIComponent(callbackError));
+    }
+  }, [searchParams]);
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,10 +47,11 @@ export function LoginForm() {
       // An explicit ?next= (e.g. set by a protected layout that bounced the
       // user here) wins; otherwise route based on the user's role.
       const explicitNext = searchParams.get("next");
-      const fallback = data.user
-        ? await getPostLoginPath(supabase, data.user.id)
-        : "/login";
-      const nextPath = resolveSafeInternalNext(explicitNext, fallback);
+      const nextPath =
+        explicitNext ||
+        (data.user
+          ? await getPostLoginPath(supabase, data.user.id)
+          : "/login");
 
       router.push(nextPath);
       router.refresh();
@@ -161,9 +167,9 @@ export function LoginForm() {
             >
               {isLoading ? "Signing in..." : "Sign in"}
             </Button>
-            {errorMessage || callbackError ? (
+            {errorMessage ? (
               <span className="text-caption font-caption text-error-700">
-                {errorMessage || callbackError}
+                {errorMessage}
               </span>
             ) : null}
           </form>
