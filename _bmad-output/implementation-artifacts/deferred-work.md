@@ -89,3 +89,7 @@
 - source_spec: none
   summary: After dest landing, backfill the Mailchimp `review-request` tag for customers whose Booqable order has already stopped.
   evidence: Split from the historical dest backfill. Order is land first, then tag (tagger does not create a member). No review email campaign exists yet, so journey-fire risk is accepted. Zapier is already off.
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-dashboard-visual-hierarchy.md`
+  summary: Correct existing dashboard mobile tab accessibility references and keyboard entry behavior.
+  evidence: Desktop and mobile DirectionList instances reuse heading IDs; inactive tab aria-controls references an unmounted panel and both tabs remain in the Tab sequence. These patterns predate this visual refinement.
