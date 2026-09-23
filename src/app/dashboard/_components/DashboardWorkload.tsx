@@ -7,6 +7,7 @@ import { Button } from "@/ui/components/Button";
 import { buildDashboardPeriodHref, type DashboardPeriod, type DashboardPreset } from "@/src/lib/dashboard/period";
 import type { DashboardDirection, DashboardRow, DashboardWorkload as Workload } from "@/src/lib/dashboard/workload";
 import { useOpenOrderDetails } from "@/src/components/orders/useOpenOrderDetails";
+import styles from "./DashboardWorkload.module.css";
 import { isSafeExternalLink } from "@/src/lib/delivery";
 
 type Direction = "outgoing" | "incoming";
@@ -42,32 +43,31 @@ function DirectionList({ direction, data }: { direction: Direction; data: Dashbo
   const openOrder = useOpenOrderDetails();
   const heading = direction === "outgoing" ? "Going out" : "Coming back";
   return (
-    <section aria-labelledby={`${direction}-heading`} className="min-w-0 rounded-lg border border-neutral-200 bg-white p-4">
-      <div className="mb-4 flex items-start justify-between gap-3">
+    <section aria-labelledby={`${direction}-heading`} className="min-w-0 overflow-hidden rounded-lg bg-white">
+      <div className="flex flex-wrap items-start justify-between gap-3 p-4">
         <div>
           <h2 id={`${direction}-heading`} className="text-heading-3 font-heading-3 text-default-font">{heading}</h2>
-          <p className="text-caption font-caption text-subtext-color">{data.totals.orders} orders · {data.totals.bikes} bikes</p>
+          <p className="text-caption font-caption text-subtext-color">{data.totals.orders} {data.totals.orders === 1 ? "order" : "orders"} · {data.totals.bikes} {data.totals.bikes === 1 ? "bike" : "bikes"}</p>
         </div>
-        {data.totals.outstanding_preparation > 0 ? <Badge variant="warning">{data.totals.outstanding_preparation} need preparation</Badge> : null}
       </div>
-      {data.days.length === 0 ? <p className="py-8 text-body font-body text-subtext-color">No {direction === "outgoing" ? "departures" : "returns"} in this period.</p> : (
+      {data.days.length === 0 ? <p className="px-4 py-8 text-body font-body text-subtext-color">No {direction === "outgoing" ? "departures" : "returns"} in this period.</p> : (
         <div className="flex flex-col gap-5">
           {data.days.map((day) => (
             <div key={day.date}>
-              <h3 className="mb-2 text-body-bold font-body-bold text-default-font">{DAY_FORMATTER.format(new Date(`${day.date}T12:00:00Z`))}</h3>
-              <ul className="flex flex-col gap-2" aria-label={`${heading} on ${day.date}`}>
+              <h3 className="bg-brand-50 px-4 py-2 text-body-bold font-body-bold text-default-font">{DAY_FORMATTER.format(new Date(`${day.date}T12:00:00Z`))}</h3>
+              <ul className="divide-y divide-neutral-100" aria-label={`${heading} on ${day.date}`}>
                 {day.rows.map((row) => (
-                  <li key={`${direction}-${row.order_id}-${row.scheduled_at}`} className="rounded-md border border-neutral-200 p-3">
-                    <div className="flex flex-wrap items-start justify-between gap-3">
-                      <div className="min-w-0">
+                  <li key={`${direction}-${row.order_id}-${row.scheduled_at}`} className="p-4">
+                    <div className={styles.orderRow}>
+                      <div className={styles.orderContent}>
                         <p className="text-body-bold font-body-bold text-default-font">{TIME_FORMATTER.format(new Date(row.scheduled_at))} · {identity(row)}</p>
                         <p className="mt-1 text-caption font-caption text-subtext-color">{readiness(row)}</p>
                         <p className="mt-1 text-caption font-caption text-subtext-color">{fulfillment(row)}</p>
-                        {row.delivery_kind === "missing" ? <p className="mt-1 break-words text-caption font-caption text-subtext-color">Delivery address missing</p> : null}
-                        {row.delivery_kind === "address" ? <p className="mt-1 break-words text-caption font-caption text-subtext-color">Address: {row.delivery_value}</p> : null}
-                        {row.delivery_kind === "maps" ? <p className="mt-1 break-words text-caption font-caption text-subtext-color">Maps link: {isSafeExternalLink(row.delivery_value ?? "") ? <a className="text-brand-700 underline" href={row.delivery_value!} target="_blank" rel="noreferrer">{row.delivery_value}</a> : row.delivery_value}</p> : null}
+                        {row.delivery_kind === "missing" ? <p className={styles.missingAddress}>Delivery address missing</p> : null}
+                        {row.delivery_kind === "address" ? <div className={styles.deliveryAddress}><p className="text-caption-bold font-caption-bold">Delivery address</p><p>{row.delivery_value}</p></div> : null}
+                        {row.delivery_kind === "maps" ? <p className={styles.deliveryAddress}><strong>Delivery location: </strong> {isSafeExternalLink(row.delivery_value ?? "") ? <a className="text-brand-700 underline" href={row.delivery_value!} target="_blank" rel="noreferrer">{row.delivery_value}</a> : row.delivery_value}</p> : null}
                       </div>
-                      <Button variant="neutral-secondary" size="small" className="min-h-11" onClick={() => openOrder(row.order_id)} aria-label={`Open ${identity(row)}`}>Open order</Button>
+                      <Button variant="brand-secondary" size="large" className={styles.orderAction} onClick={() => openOrder(row.order_id)} aria-label={`Open ${identity(row)}`}>Open order</Button>
                     </div>
                   </li>
                 ))}
@@ -89,26 +89,32 @@ export function DashboardWorkload({ period, workload }: { period: DashboardPerio
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="rounded-lg border border-neutral-200 bg-white p-4" aria-label="Dashboard period">
+      <section className="rounded-lg bg-white p-4" aria-label="Dashboard period">
         <div className="flex flex-wrap items-center gap-2">
-          {PRESETS.map((preset) => <Button key={preset.value} size="small" className="min-h-11" variant={period.preset === preset.value ? "brand-primary" : "neutral-secondary"} onClick={() => pushPeriod({ period: preset.value })}>{preset.label}</Button>)}
+          {PRESETS.map((preset) => <Button key={preset.value} size="small" aria-pressed={period.preset === preset.value} className={styles.control} variant={period.preset === preset.value ? "brand-primary" : "neutral-tertiary"} onClick={() => pushPeriod({ period: preset.value })}>{preset.label}</Button>)}
         </div>
-        <form key={`${period.from}-${period.to}`} className="mt-4 flex flex-wrap items-end gap-3" onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); pushPeriod({ period: "custom", from: String(form.get("from") ?? ""), to: String(form.get("to") ?? "") }); }}>
-          <label className="flex flex-col gap-1 text-caption font-caption text-subtext-color">From<input name="from" type="date" defaultValue={period.from} className="h-10 rounded-md border border-neutral-300 px-2 text-body text-default-font" /></label>
-          <label className="flex flex-col gap-1 text-caption font-caption text-subtext-color">To<input name="to" type="date" defaultValue={period.to} className="h-10 rounded-md border border-neutral-300 px-2 text-body text-default-font" /></label>
-          <Button type="submit" variant="neutral-secondary">Apply dates</Button>
-          <span className="text-body font-body text-subtext-color">{period.label} · Madrid</span>
+        <form key={`${period.from}-${period.to}`} className={styles.dateForm} onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); pushPeriod({ period: "custom", from: String(form.get("from") ?? ""), to: String(form.get("to") ?? "") }); }}>
+          <label className="flex min-w-0 flex-col gap-1 text-caption font-caption text-subtext-color">From<input name="from" type="date" defaultValue={period.from} className={`${styles.dateInput} rounded-md border border-neutral-300 bg-white px-2 text-body text-default-font`} /></label>
+          <label className="flex min-w-0 flex-col gap-1 text-caption font-caption text-subtext-color">To<input name="to" type="date" defaultValue={period.to} className={`${styles.dateInput} rounded-md border border-neutral-300 bg-white px-2 text-body text-default-font`} /></label>
+          <Button type="submit" variant="brand-primary" size="large" className={styles.applyButton}>Apply dates</Button>
         </form>
       </section>
 
-      <section aria-label="Workload summary" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <Summary label="Going out" value={workload.outgoing.totals.orders} />
-        <Summary label="Outgoing bikes" value={workload.outgoing.totals.bikes} />
-        <Summary label="Coming back" value={workload.incoming.totals.orders} />
-        <Summary label="Incoming bikes" value={workload.incoming.totals.bikes} />
-        <Summary label="Delivery orders" value={workload.outgoing.totals.deliveries} />
-        <Summary label="Preparation outstanding" value={workload.outgoing.totals.outstanding_preparation} />
-        <Summary label="Delivery addresses missing" value={workload.outgoing.totals.missing_delivery_addresses} />
+      <section aria-label="Workload summary" className="flex flex-col gap-3">
+        <div className="grid grid-cols-2 gap-3">
+          <Summary label="Going out" totals={workload.outgoing.totals} />
+          <Summary label="Coming back" totals={workload.incoming.totals} />
+        </div>
+        <div aria-label="Outgoing details" className={`${styles.outgoingDetails} text-caption font-caption text-subtext-color`}>
+          <span className="text-caption-bold font-caption-bold text-default-font">Going out:</span>
+          <span>{workload.outgoing.totals.deliveries} {workload.outgoing.totals.deliveries === 1 ? "delivery order" : "delivery orders"}</span>
+          <AttentionCount value={workload.outgoing.totals.outstanding_preparation}>
+            {workload.outgoing.totals.outstanding_preparation} {workload.outgoing.totals.outstanding_preparation === 1 ? "bike needs" : "bikes need"} preparation
+          </AttentionCount>
+          <AttentionCount value={workload.outgoing.totals.missing_delivery_addresses}>
+            {workload.outgoing.totals.missing_delivery_addresses} {workload.outgoing.totals.missing_delivery_addresses === 1 ? "delivery address" : "delivery addresses"} missing
+          </AttentionCount>
+        </div>
       </section>
 
       <div className="hidden gap-4 md:grid md:grid-cols-2">
@@ -117,7 +123,7 @@ export function DashboardWorkload({ period, workload }: { period: DashboardPerio
       </div>
       <div className="md:hidden">
         <div role="tablist" aria-label="Workload direction" className="mb-3 grid grid-cols-2 gap-2">
-          {(["outgoing", "incoming"] as Direction[]).map((direction) => <button key={direction} type="button" role="tab" aria-selected={activeDirection === direction} aria-controls={`${direction}-panel`} id={`${direction}-tab`} className="min-h-11 rounded-md border border-neutral-300 px-3 text-body-bold font-body-bold text-default-font aria-selected:border-brand-600 aria-selected:bg-brand-50" onClick={() => setActiveDirection(direction)} onKeyDown={(event) => {
+          {(["outgoing", "incoming"] as Direction[]).map((direction) => <button key={direction} type="button" role="tab" aria-selected={activeDirection === direction} aria-controls={`${direction}-panel`} id={`${direction}-tab`} className="min-h-11 rounded-md bg-white px-3 text-body-bold font-body-bold text-default-font aria-selected:bg-brand-100 aria-selected:text-brand-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-neutral-700" onClick={() => setActiveDirection(direction)} onKeyDown={(event) => {
             if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
               event.preventDefault();
               const nextDirection = direction === "outgoing" ? "incoming" : "outgoing";
@@ -133,6 +139,19 @@ export function DashboardWorkload({ period, workload }: { period: DashboardPerio
   );
 }
 
-function Summary({ label, value }: { label: string; value: number }) {
-  return <div className="rounded-lg border border-neutral-200 bg-white p-3"><p className="text-caption font-caption text-subtext-color">{label}</p><p className="text-heading-2 font-heading-2 text-default-font">{value}</p></div>;
+function Summary({ label, totals }: { label: string; totals: DashboardDirection["totals"] }) {
+  return (
+    <div className="min-w-0 rounded-lg bg-brand-50 p-3 sm:p-4">
+      <p className="text-caption font-caption text-subtext-color">{label}</p>
+      <p className="mt-1 text-body-bold font-body-bold text-default-font sm:text-heading-2 sm:font-heading-2">
+        {totals.orders} {totals.orders === 1 ? "order" : "orders"} · {totals.bikes} {totals.bikes === 1 ? "bike" : "bikes"}
+      </p>
+    </div>
+  );
+}
+
+function AttentionCount({ value, children }: { value: number; children: React.ReactNode }) {
+  return value > 0
+    ? <Badge variant="warning" className="h-auto min-h-6 max-w-full py-1 [&>span]:whitespace-normal">{children}</Badge>
+    : <span>{children}</span>;
 }

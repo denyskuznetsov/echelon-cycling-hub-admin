@@ -15,11 +15,11 @@ export default async function DashboardPage({
   const { workload, error } = await loadDashboardWorkload(period);
 
   return (
-    <div className="container max-w-none flex w-full flex-col gap-6 bg-default-background py-8">
+    <div className="flex min-w-0 w-full flex-col gap-6 bg-default-background px-4 py-6 sm:px-6 sm:py-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-heading-1 font-heading-1 text-default-font">Rental dashboard</h1>
         <p className="text-body font-body text-subtext-color">
-          Departures, returns, preparation, and delivery information for Madrid.
+          Departures, returns, preparation, and delivery information.
         </p>
       </div>
       {period.error ? <DataLoadError title="Check the selected dates" message={period.error} /> : null}

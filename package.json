@@ -33,7 +33,7 @@
     "@react-email/components": "^1.0.12",
     "@react-email/tailwind": "^2.0.7",
     "@react-pdf/renderer": "^4.5.1",
-    "@subframe/core": "^1.154.0",
+    "@subframe/core": "^1.155.0",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.102.1",
     "@tailwindcss/typography": "^0.5.19",

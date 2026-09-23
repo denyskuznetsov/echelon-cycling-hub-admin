@@ -1,0 +1,91 @@
+.dateForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 10rem));
+  align-items: end;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.control,
+.dateInput,
+.applyButton,
+.orderAction {
+  height: 44px;
+  min-height: 44px;
+}
+
+.dateInput {
+  width: 100%;
+  min-width: 0;
+}
+
+.applyButton,
+.orderAction {
+  width: max-content;
+  justify-self: start;
+  white-space: nowrap;
+}
+
+.applyButton {
+  grid-column: 1 / -1;
+}
+
+.orderRow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+}
+
+.orderContent {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.deliveryAddress,
+.missingAddress {
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  overflow-wrap: anywhere;
+  @apply bg-brand-50 text-default-font text-body;
+}
+
+.missingAddress {
+  @apply bg-error-50 text-error-800 font-body-bold;
+}
+
+.outgoingDetails {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 16px;
+}
+
+.control:focus-visible,
+.dateInput:focus-visible,
+.applyButton:focus-visible,
+.orderAction:focus-visible {
+  outline: 2px solid theme('colors.brand-700');
+  outline-offset: 2px;
+}
+
+@media (min-width: 640px) {
+  .dateForm {
+    grid-template-columns: 10rem 10rem max-content;
+  }
+
+  .applyButton {
+    grid-column: auto;
+  }
+}
+
+@media (min-width: 768px) {
+  .orderRow {
+    grid-template-columns: minmax(0, 1fr) max-content;
+  }
+
+  .orderAction {
+    justify-self: end;
+  }
+}

@@ -1,4 +1,5 @@
 export * from "./components/Badge"
+export * from "./components/Pagination"
 export * from "./components/TopbarWithLeftNav"
 export * from "./components/TopbarWithRightNav"
 export * from "./layouts/DefaultPageLayout"
