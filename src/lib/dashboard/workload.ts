@@ -4,6 +4,7 @@ import type { DashboardPeriod } from "./period";
 export type DashboardRow = {
   order_id: string;
   scheduled_at: string;
+  minutes_from_reference: number | null;
   order_number: number | null;
   customer_name: string | null;
   order_status: string;
@@ -61,6 +62,7 @@ function isRow(value: unknown): value is DashboardRow {
   return (
     typeof value.order_id === "string" &&
     typeof value.scheduled_at === "string" &&
+    (typeof value.minutes_from_reference === "number" || value.minutes_from_reference === null) &&
     (typeof value.order_number === "number" || value.order_number === null) &&
     (typeof value.customer_name === "string" || value.customer_name === null) &&
     typeof value.order_status === "string" &&

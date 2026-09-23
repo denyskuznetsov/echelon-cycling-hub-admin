@@ -34,12 +34,21 @@ function identity(row: DashboardRow): string {
 function TaskBadges({ row }: { row: DashboardRow }) {
   if (row.task_count === 0) return <Badge variant="neutral">No Workshop tasks</Badge>;
   return <>
+    <Badge variant="neutral" className={styles.statusBadge}>{row.ready_task_count}/{row.task_count} ready for pickup</Badge>
     {Object.entries(row.lifecycle_counts).map(([status, count]) => (
       <Badge key={status} variant={status === "ready_for_pickup" ? "mint" : ["to_prepare", "being_prepared", "needs_recheck"].includes(status) ? "warning" : "neutral"} className={styles.statusBadge}>
         {count} {status.replaceAll("_", " ")}
       </Badge>
     ))}
   </>;
+}
+
+function relativeTime(minutes: number | null): string | null {
+  if (minutes === null) return null;
+  if (minutes === 0) return "Now";
+  const distance = Math.abs(minutes);
+  const duration = distance < 60 ? `${distance} min` : `${Math.floor(distance / 60)}h${distance % 60 ? ` ${distance % 60}m` : ""}`;
+  return minutes > 0 ? `In ${duration}` : `${duration} ago`;
 }
 
 function DeliveryDetail({ row }: { row: DashboardRow }) {
@@ -87,7 +96,10 @@ function DirectionList({ direction, data, idPrefix }: { direction: Direction; da
               <ul className="divide-y divide-neutral-border overflow-hidden rounded-lg border border-neutral-border bg-white" aria-label={`${heading} on ${day.date}`}>
                 {day.rows.map((row) => (
                   <li key={`${direction}-${row.order_id}-${row.scheduled_at}`} className={styles.orderRow}>
-                    <time className="text-heading-3 font-heading-3 text-default-font" dateTime={row.scheduled_at}>{TIME_FORMATTER.format(new Date(row.scheduled_at))}</time>
+                    <div className="flex flex-col gap-1">
+                      <time className="text-heading-3 font-heading-3 text-default-font" dateTime={row.scheduled_at}>{TIME_FORMATTER.format(new Date(row.scheduled_at))}</time>
+                      {relativeTime(row.minutes_from_reference) ? <span className="text-caption font-caption text-subtext-color">{relativeTime(row.minutes_from_reference)}</span> : null}
+                    </div>
                     <div className="min-w-0 break-words">
                       <p className="text-body-bold font-body-bold text-default-font">{identity(row)}</p>
                       <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -133,12 +145,11 @@ function Summary({ direction, totals }: { direction: Direction; totals: Dashboar
   </div>;
 }
 
-export function DashboardWorkload({ period, workload }: { period: DashboardPeriod; workload: Workload }) {
+export function DashboardWorkload({ period, workload, showWorkload = true }: { period: DashboardPeriod; workload: Workload; showWorkload?: boolean }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeDirection, setActiveDirection] = useState<Direction>("outgoing");
   const pushPeriod = (next: { period: DashboardPreset; from?: string; to?: string }) => router.push(buildDashboardPeriodHref(searchParams, next));
-  const activeData = activeDirection === "outgoing" ? workload.outgoing : workload.incoming;
   return (
     <div className="flex flex-col gap-8">
       <section className={`${styles.periodToolbar} flex flex-wrap items-end gap-4 rounded-lg border border-neutral-border bg-white px-4 py-3`} aria-label="Dashboard period">
@@ -155,6 +166,7 @@ export function DashboardWorkload({ period, workload }: { period: DashboardPerio
           <Button type="submit" variant="neutral-primary" className={styles.applyButton}>Apply dates</Button>
         </form>
       </section>
+      {showWorkload ? <>
       <section aria-label="Workload summary" className="grid gap-4 md:grid-cols-2">
         <Summary direction="outgoing" totals={workload.outgoing.totals} />
         <Summary direction="incoming" totals={workload.incoming.totals} />
@@ -165,7 +177,7 @@ export function DashboardWorkload({ period, workload }: { period: DashboardPerio
       </div>
       <div className="md:hidden">
         <div role="tablist" aria-label="Workload direction" className="mb-4 flex border-b border-neutral-border">
-          {(["outgoing", "incoming"] as Direction[]).map((direction) => <button key={direction} type="button" role="tab" aria-selected={activeDirection === direction} aria-controls={`${direction}-panel`} id={`${direction}-tab`} className={styles.directionTab} onClick={() => setActiveDirection(direction)} onKeyDown={(event) => {
+          {(["outgoing", "incoming"] as Direction[]).map((direction) => <button key={direction} type="button" role="tab" tabIndex={activeDirection === direction ? 0 : -1} aria-selected={activeDirection === direction} aria-controls={`${direction}-panel`} id={`${direction}-tab`} className={styles.directionTab} onClick={() => setActiveDirection(direction)} onKeyDown={(event) => {
             if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
               event.preventDefault();
               const nextDirection = direction === "outgoing" ? "incoming" : "outgoing";
@@ -174,8 +186,11 @@ export function DashboardWorkload({ period, workload }: { period: DashboardPerio
             }
           }}>{direction === "outgoing" ? "Going out" : "Coming back"}</button>)}
         </div>
-        <div role="tabpanel" id={`${activeDirection}-panel`} aria-labelledby={`${activeDirection}-tab`}><DirectionList direction={activeDirection} data={activeData} idPrefix="mobile" /></div>
+        {(["outgoing", "incoming"] as Direction[]).map((direction) => <div key={direction} role="tabpanel" id={`${direction}-panel`} aria-labelledby={`${direction}-tab`} hidden={activeDirection !== direction} tabIndex={0}>
+          <DirectionList direction={direction} data={workload[direction]} idPrefix="mobile" />
+        </div>)}
       </div>
+      </> : null}
     </div>
   );
 }

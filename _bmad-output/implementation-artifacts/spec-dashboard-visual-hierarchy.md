@@ -62,6 +62,9 @@ Order actions must also have consistent placement: long names or delivery addres
 
 ## Spec Change Log
 
+- 2026-09-23: During Story 1.1 review fixes, the user directed that the existing Subframe dashboard design remain unchanged. Proposed changes to colors, surfaces, summary layout, date button width, tablet row layout, and navigation styling were reverted. Treat those visual review suggestions as superseded by this direction; functional and data corrections continue separately.
+- 2026-09-23: The user requested one specific exception: on mobile, each dashboard Open order button spans the full order-row width. The desktop button width stays content-sized.
+
 ## Design Notes
 
 Primary summary example: **Going out — 1 order · 3 bikes** alongside **Coming back — 2 orders · 5 bikes**. Below, compact outgoing details show **1 delivery order**, **2 bikes need preparation**, and **0 delivery addresses missing**. These are presentations of existing aggregates, not new calculations. Reserve stronger warning color for actionable positive counts; retain text labels so color never carries meaning alone.

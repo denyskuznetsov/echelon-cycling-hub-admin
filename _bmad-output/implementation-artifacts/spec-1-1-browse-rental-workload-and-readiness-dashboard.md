@@ -107,3 +107,19 @@ Implemented Story 1.1 as a staff-only `/dashboard` landing route. A single local
 Verification passed: `npm run test:db` (8 files, 535 tests), `npm run test:dashboard` (8 tests), `npm run test:trusted-role-assignment`, `npm run test:pending-layout`, `npx tsc --noEmit`, focused ESLint (no errors), and `git diff --check`. The focused lint command still reports four pre-existing image warnings in `LoginForm`; the repository-wide lint command has pre-existing unrelated errors and is not a clean global gate.
 
 No hosted database, provider, deployment, or production action was taken. The migration was revised and reapplied only to the local Supabase database under the explicit authorization to amend this un-deployed migration.
+
+### Review Findings (2026-09-23)
+
+- [x] [Review][Patch][High] Hide workload totals and empty-list messages for an invalid custom period; the date error previously rendered with fabricated zero results. [src/app/dashboard/page.tsx:30]
+- [x] [Review][Patch][Medium] Keep period controls available after an RPC failure so staff can correct the range or retry without editing the URL. [src/app/dashboard/page.tsx:31]
+- [x] [Review][Patch][Medium] Restore the ready/current-task ratio for nonzero rows while retaining explicit mixed lifecycle counts and the zero-task label. [src/app/dashboard/_components/DashboardWorkload.tsx:34]
+- [x] [Review][Patch][Medium] Align SQL delivery whitespace handling with the drawer's JavaScript trim behavior for tab/newline-only inputs. [supabase/migrations/20260922100000_dashboard_workload.sql:54]
+- [x] [Review][Dismiss] Keep the existing phone summary layout. User directed that the Subframe design remain unchanged. [src/app/dashboard/_components/DashboardWorkload.tsx:158]
+- [x] [Review][Dismiss] Keep the existing phone Apply dates button width. User directed that the Subframe design remain unchanged. [src/app/dashboard/_components/DashboardWorkload.module.css:47]
+- [x] [Review][Dismiss] Keep the existing tablet order-action layout. User directed that the Subframe design remain unchanged. [src/app/dashboard/_components/DashboardWorkload.module.css:132]
+- [x] [Review][Dismiss] Keep the existing canvas, Madrid subtitle, and outlined list styling. User directed that the Subframe design remain unchanged. [src/app/dashboard/page.tsx:18]
+- [x] [Review][Patch][Medium] Give mobile tabs stable panel relationships and one Tab stop with arrow-key selection. [src/app/dashboard/_components/DashboardWorkload.tsx:167]
+- [x] [Review][Patch][Medium] Show useful today-relative time from the shared workload reference instant in today's rows. [src/app/dashboard/_components/DashboardWorkload.tsx:90]
+- [x] [Review][Patch][Medium] Verify rendered invalid-date/error and mobile-tab behavior and add SQL fixtures for Madrid DST boundaries and large-result completeness. [src/dashboard-ui.test.mts:9]
+
+**Follow-up verification:** Reapplied the amended function only to the local Supabase container. `supabase test db --local` passed (8 files, 540 tests). In an authenticated local browser, invalid dates showed the correction controls without zero totals; an RPC failure kept those controls; phone tab click and ArrowLeft changed the visible panel; opening and closing the shared order drawer preserved the period URL. The browser checks used the existing local fixture data and do not establish production performance or all role journeys.

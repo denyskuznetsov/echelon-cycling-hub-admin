@@ -1,7 +1,7 @@
 import React from "react";
 import { DataLoadError } from "@/src/components/DataLoadError";
 import { resolveDashboardPeriod } from "@/src/lib/dashboard/period";
-import { EMPTY_DASHBOARD_WORKLOAD, loadDashboardWorkload } from "@/src/lib/dashboard/workload";
+import { loadDashboardWorkload } from "@/src/lib/dashboard/workload";
 import { DashboardWorkload, SyncConfidenceUnavailable } from "./_components/DashboardWorkload";
 
 export default async function DashboardPage({
@@ -29,7 +29,7 @@ export default async function DashboardPage({
       </header>
       {period.error ? <DataLoadError title="Check the selected dates" message={period.error} /> : null}
       {error ? <DataLoadError title="Couldn't load dashboard workload" message={process.env.NODE_ENV === "development" ? error : "The dashboard workload could not be loaded. Please try again."} /> : null}
-      {!error || period.error ? <DashboardWorkload period={period} workload={period.error ? EMPTY_DASHBOARD_WORKLOAD : workload} /> : null}
+      <DashboardWorkload period={period} workload={workload} showWorkload={!period.error && !error} />
     </main>
   );
 }

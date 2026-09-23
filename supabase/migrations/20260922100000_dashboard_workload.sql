@@ -51,14 +51,14 @@ BEGIN
         CASE
           WHEN o.fulfillment_type <> 'delivery'::public.fulfillment_type
             OR o.fulfillment_type IS NULL THEN 'none'
-          WHEN NULLIF(btrim(o.delivery_address), '') IS NOT NULL THEN 'address'
-          WHEN NULLIF(btrim(o.maps_link_order), '') IS NOT NULL THEN 'maps'
+          WHEN NULLIF(btrim(o.delivery_address, E' \t\n\r\f\v'), '') IS NOT NULL THEN 'address'
+          WHEN NULLIF(btrim(o.maps_link_order, E' \t\n\r\f\v'), '') IS NOT NULL THEN 'maps'
           ELSE 'missing'
         END AS delivery_kind,
         CASE WHEN o.fulfillment_type = 'delivery'::public.fulfillment_type THEN
           COALESCE(
-            NULLIF(btrim(o.delivery_address), ''),
-            NULLIF(btrim(o.maps_link_order), '')
+            NULLIF(btrim(o.delivery_address, E' \t\n\r\f\v'), ''),
+            NULLIF(btrim(o.maps_link_order, E' \t\n\r\f\v'), '')
           )
         END AS delivery_value
       FROM public.orders o
@@ -98,6 +98,9 @@ BEGIN
         'outgoing'::text AS direction,
         o.starts_at AS scheduled_at,
         (o.starts_at AT TIME ZONE 'Europe/Madrid')::date AS local_date,
+        CASE WHEN (o.starts_at AT TIME ZONE 'Europe/Madrid')::date = (p_reference_at AT TIME ZONE 'Europe/Madrid')::date
+          THEN floor(extract(epoch FROM (o.starts_at - p_reference_at)) / 60)::integer
+        END AS minutes_from_reference,
         o.id AS order_id,
         o.order_number,
         o.customer_name,
@@ -119,6 +122,9 @@ BEGIN
         'incoming'::text AS direction,
         o.stops_at AS scheduled_at,
         (o.stops_at AT TIME ZONE 'Europe/Madrid')::date AS local_date,
+        CASE WHEN (o.stops_at AT TIME ZONE 'Europe/Madrid')::date = (p_reference_at AT TIME ZONE 'Europe/Madrid')::date
+          THEN floor(extract(epoch FROM (o.stops_at - p_reference_at)) / 60)::integer
+        END AS minutes_from_reference,
         o.id AS order_id,
         o.order_number,
         o.customer_name,
@@ -142,6 +148,7 @@ BEGIN
           jsonb_build_object(
             'order_id', r.order_id,
             'scheduled_at', r.scheduled_at,
+            'minutes_from_reference', r.minutes_from_reference,
             'order_number', r.order_number,
             'customer_name', r.customer_name,
             'order_status', r.order_status,

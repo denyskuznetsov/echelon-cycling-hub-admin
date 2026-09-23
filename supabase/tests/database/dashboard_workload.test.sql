@@ -75,7 +75,27 @@ INSERT INTO public.orders (
    NULL, NULL, NULL),
   ('70000000-0000-4000-8000-000000000104', 'dashboard-draft', 104, 'draft', 'delivery',
    timestamptz '2034-06-18 12:00:00+02', timestamptz '2034-06-18 14:00:00+02',
+   NULL, NULL, NULL),
+  ('70000000-0000-4000-8000-000000000106', 'dashboard-tab-whitespace', 106, 'reserved', 'delivery',
+   timestamptz '2034-06-18 13:00:00+02', timestamptz '2034-06-18 18:00:00+02',
+   NULL, E'\t\n', E'\r\n'),
+  ('70000000-0000-4000-8000-000000000107', 'dashboard-dst-spring-in', 107, 'reserved', 'pickup',
+   timestamptz '2026-03-28 23:30:00+00', timestamptz '2026-03-29 21:30:00+00',
+   NULL, NULL, NULL),
+  ('70000000-0000-4000-8000-000000000108', 'dashboard-dst-spring-out', 108, 'reserved', 'pickup',
+   timestamptz '2026-03-29 22:30:00+00', timestamptz '2026-03-30 21:30:00+00',
+   NULL, NULL, NULL),
+  ('70000000-0000-4000-8000-000000000109', 'dashboard-dst-autumn-in', 109, 'reserved', 'pickup',
+   timestamptz '2026-10-24 22:30:00+00', timestamptz '2026-10-25 22:30:00+00',
+   NULL, NULL, NULL),
+  ('70000000-0000-4000-8000-000000000110', 'dashboard-dst-autumn-out', 110, 'reserved', 'pickup',
+   timestamptz '2026-10-25 23:30:00+00', timestamptz '2026-10-26 22:30:00+00',
    NULL, NULL, NULL);
+
+INSERT INTO public.orders (id, booqable_order_id, status, fulfillment_type, starts_at, stops_at)
+SELECT gen_random_uuid(), 'dashboard-bulk-' || n, 'reserved', 'pickup',
+  timestamptz '2034-06-20 09:00:00+02', timestamptz '2034-06-21 09:00:00+02'
+FROM generate_series(1, 1001) AS n;
 
 INSERT INTO public.booqable_assignment_instances (
   id, order_id, booqable_stock_item_id, bike_display_id, bike_title, closed_at
@@ -107,11 +127,11 @@ SET LOCAL ROLE authenticated;
 WITH workload AS (
   SELECT public.dashboard_workload('2034-06-18', '2034-06-18', timestamptz '2034-06-18 08:00:00+02') AS result
 )
-SELECT is((result #>> '{outgoing,totals,orders}')::integer, 3, 'eligible outgoing orders include reserved, started, and stopped but not draft') FROM workload;
+SELECT is((result #>> '{outgoing,totals,orders}')::integer, 4, 'eligible outgoing orders include reserved, started, and stopped but not draft') FROM workload;
 WITH workload AS (
   SELECT public.dashboard_workload('2034-06-18', '2034-06-18', timestamptz '2034-06-18 08:00:00+02') AS result
 )
-SELECT is((result #>> '{incoming,totals,orders}')::integer, 3, 'incoming workload independently includes orders that stop in the selected period') FROM workload;
+SELECT is((result #>> '{incoming,totals,orders}')::integer, 4, 'incoming workload independently includes orders that stop in the selected period') FROM workload;
 WITH workload AS (
   SELECT public.dashboard_workload('2034-06-18', '2034-06-18', timestamptz '2034-06-18 08:00:00+02') AS result
 )
@@ -130,11 +150,11 @@ SELECT is((result #>> '{outgoing,totals,outstanding_preparation}')::integer, 2, 
 WITH workload AS (
   SELECT public.dashboard_workload('2034-06-18', '2034-06-18', timestamptz '2034-06-18 08:00:00+02') AS result
 )
-SELECT is((result #>> '{outgoing,totals,deliveries}')::integer, 2, 'delivery totals exclude pickup rows') FROM workload;
+SELECT is((result #>> '{outgoing,totals,deliveries}')::integer, 3, 'delivery totals exclude pickup rows') FROM workload;
 WITH workload AS (
   SELECT public.dashboard_workload('2034-06-18', '2034-06-18', timestamptz '2034-06-18 08:00:00+02') AS result
 )
-SELECT is((result #>> '{outgoing,totals,missing_delivery_addresses}')::integer, 1, 'only blank delivery inputs count as missing') FROM workload;
+SELECT is((result #>> '{outgoing,totals,missing_delivery_addresses}')::integer, 2, 'all-whitespace delivery inputs count as missing') FROM workload;
 WITH workload AS (
   SELECT public.dashboard_workload('2034-06-18', '2034-06-18', timestamptz '2034-06-18 08:00:00+02') AS result
 )
@@ -150,6 +170,33 @@ SELECT ok(
   jsonb_path_exists(result, '$.outgoing.days[*].rows[*] ? (@.order_number == null && @.task_count == 0)'),
   'missing order number and zero-task order remain in the workload'
 ) FROM workload;
+WITH workload AS (
+  SELECT public.dashboard_workload('2034-06-18', '2034-06-18', timestamptz '2034-06-18 08:00:00+02') AS result
+)
+SELECT ok(
+  jsonb_path_exists(result, '$.outgoing.days[*].rows[*] ? (@.order_number == 106 && @.delivery_kind == "missing")'),
+  'tab and newline-only delivery values are missing in SQL as in the drawer'
+) FROM workload;
+WITH workload AS (
+  SELECT public.dashboard_workload('2034-06-18', '2034-06-18', timestamptz '2034-06-18 08:00:00+02') AS result
+)
+SELECT is((result #>> '{outgoing,days,0,rows,0,minutes_from_reference}')::integer, 60,
+  'today-relative minutes come from the same reference instant as the workload') FROM workload;
+WITH workload AS (
+  SELECT public.dashboard_workload('2026-03-29', '2026-03-29', timestamptz '2026-03-29 12:00:00+02') AS result
+)
+SELECT is((result #>> '{outgoing,totals,orders}')::integer, 1,
+  'spring DST day includes its local start and excludes the next local day') FROM workload;
+WITH workload AS (
+  SELECT public.dashboard_workload('2026-10-25', '2026-10-25', timestamptz '2026-10-25 12:00:00+01') AS result
+)
+SELECT is((result #>> '{outgoing,totals,orders}')::integer, 1,
+  'autumn DST day includes its local start and excludes the next local day') FROM workload;
+WITH workload AS (
+  SELECT public.dashboard_workload('2034-06-20', '2034-06-20', timestamptz '2034-06-20 08:00:00+02') AS result
+)
+SELECT is(jsonb_array_length(result #> '{outgoing,days,0,rows}'), 1001,
+  'the JSON workload retains more than one API page of rows') FROM workload;
 
 RESET ROLE;
 SELECT pg_temp.become('70000000-0000-4000-8000-000000000002');
