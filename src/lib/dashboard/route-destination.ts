@@ -10,7 +10,8 @@ export type RouteTarget =
 export function routeDestination(source: DeliveryDestination): RouteTarget | null {
   if (source.kind === "missing") return null;
   if (source.kind === "address") {
-    const address = safeText(source.value);
+    // Saved addresses can contain line breaks between address fields.
+    const address = safeText(source.value.replace(/[ \t\n\r\f\v]+/g, " "));
     return address && !isPlaceholder(address) ? { address } : null;
   }
 

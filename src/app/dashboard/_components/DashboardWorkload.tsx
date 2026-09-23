@@ -24,7 +24,13 @@ const PRESETS: Array<{ value: Exclude<DashboardPreset, "custom">; label: string 
   { value: "next_month", label: "Next month" },
 ];
 const TIME_FORMATTER = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", hour: "2-digit", minute: "2-digit" });
-const DAY_FORMATTER = new Intl.DateTimeFormat("en-GB", { timeZone: "Europe/Madrid", weekday: "long", day: "numeric", month: "short" });
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+function dayLabel(isoDate: string): string {
+  const date = new Date(`${isoDate}T12:00:00Z`);
+  return `${WEEKDAYS[date.getUTCDay()]} ${date.getUTCDate()} ${MONTHS[date.getUTCMonth()]}`;
+}
 
 function plural(value: number, singular: string, pluralForm: string): string {
   return `${value} ${value === 1 ? singular : pluralForm}`;
@@ -103,7 +109,7 @@ function DirectionList({ direction, data, idPrefix, estimates }: { direction: Di
           {data.days.map((day) => (
             <div key={day.date} className="min-w-0">
               <h3 className="py-3 text-caption-bold font-caption-bold uppercase tracking-widest text-subtext-color">
-                {DAY_FORMATTER.format(new Date(`${day.date}T12:00:00Z`))}
+                {dayLabel(day.date)}
               </h3>
               <ul className="divide-y divide-neutral-border overflow-hidden rounded-lg border border-neutral-border bg-white" aria-label={`${heading} on ${day.date}`}>
                 {day.rows.map((row) => (
