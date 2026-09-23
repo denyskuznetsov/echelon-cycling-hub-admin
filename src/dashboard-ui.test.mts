@@ -23,3 +23,8 @@ test("dashboard mobile direction control has tab semantics and keyboard switchin
   assert.match(component, /nextDirection.*focus/);
   assert.match(component, /aria-labelledby/);
 });
+
+test("dashboard places attention before chronological lists", () => {
+  const component = read("src/app/dashboard/_components/DashboardWorkload.tsx");
+  assert.ok(component.indexOf("<Attention items={workload.attention}") < component.indexOf("<DirectionList direction=\"outgoing\""));
+});

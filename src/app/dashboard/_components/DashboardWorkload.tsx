@@ -10,6 +10,7 @@ import type { DashboardDirection, DashboardRow, DashboardWorkload as Workload } 
 import { useOpenOrderDetails } from "@/src/components/orders/useOpenOrderDetails";
 import { isSafeExternalLink } from "@/src/lib/delivery";
 import styles from "./DashboardWorkload.module.css";
+import { Attention, OrderNotices } from "./DashboardNotices";
 
 type Direction = "outgoing" | "incoming";
 const PRESETS: Array<{ value: Exclude<DashboardPreset, "custom">; label: string }> = [
@@ -52,9 +53,7 @@ function relativeTime(minutes: number | null): string | null {
 }
 
 function DeliveryDetail({ row }: { row: DashboardRow }) {
-  if (row.delivery_kind === "missing") {
-    return <div className={styles.missingAddress}><strong>Delivery address missing</strong></div>;
-  }
+  if (row.delivery_kind === "missing") return null;
   if (row.delivery_kind === "address") {
     return <div className={styles.deliveryAddress}>
       <span className="flex items-center gap-1 text-caption font-caption text-subtext-color"><FeatherMapPin aria-hidden /> Delivery address</span>
@@ -109,6 +108,7 @@ function DirectionList({ direction, data, idPrefix }: { direction: Direction; da
                         </Badge>
                       </div>
                       <DeliveryDetail row={row} />
+                      <OrderNotices conditions={row.conditions} />
                     </div>
                     <Button variant="brand-secondary" className={styles.orderAction} onClick={() => openOrder(row.order_id)} aria-label={`Open ${identity(row)}`}>Open order</Button>
                   </li>
@@ -171,6 +171,7 @@ export function DashboardWorkload({ period, workload, showWorkload = true }: { p
         <Summary direction="outgoing" totals={workload.outgoing.totals} />
         <Summary direction="incoming" totals={workload.incoming.totals} />
       </section>
+      <Attention items={workload.attention} />
       <div className="hidden gap-8 md:grid md:grid-cols-2">
         <DirectionList direction="outgoing" data={workload.outgoing} idPrefix="desktop" />
         <DirectionList direction="incoming" data={workload.incoming} idPrefix="desktop" />
