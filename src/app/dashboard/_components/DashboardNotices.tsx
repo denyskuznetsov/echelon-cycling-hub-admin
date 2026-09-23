@@ -39,7 +39,13 @@ const ROW_SEVERITY_STYLES: Record<DashboardCondition["severity"], { container: s
   low: { container: "border-neutral-500 bg-neutral-50", label: "text-neutral-700" },
 };
 
+function hasNotice(condition: DashboardCondition): boolean {
+  // Missing destinations and source errors remain real even when no bikes are affected.
+  return !["preparation", "configuration_warning"].includes(condition.kind) || condition.affected_bikes !== 0;
+}
+
 export function Attention({ items }: { items: DashboardAttention[] }) {
+  items = items.filter((item) => item.orders !== 0 && hasNotice(item));
   if (items.length === 0) return null;
   return <section aria-labelledby="dashboard-attention-heading" className="flex w-full flex-col rounded-lg border border-neutral-border bg-default-background">
     <div className="flex w-full flex-wrap items-center justify-between gap-2 border-b border-neutral-border px-5 py-4 mobile:px-4">
@@ -62,6 +68,7 @@ export function Attention({ items }: { items: DashboardAttention[] }) {
 }
 
 export function OrderNotices({ conditions }: { conditions: DashboardCondition[] }) {
+  conditions = conditions.filter(hasNotice);
   if (conditions.length === 0) return null;
   return <ul className="mt-3 flex w-full list-none flex-col gap-2 p-0" aria-label="Order notices">
     {conditions.map((condition) => <li key={condition.kind} className={`flex w-full items-baseline gap-3 rounded-md border-l-2 px-3 py-2 ${ROW_SEVERITY_STYLES[condition.severity].container}`}>

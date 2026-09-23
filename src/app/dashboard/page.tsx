@@ -1,10 +1,13 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { DataLoadError } from "@/src/components/DataLoadError";
-import { resolveDashboardPeriod } from "@/src/lib/dashboard/period";
+import { resolveDashboardPeriod, type DashboardPeriod } from "@/src/lib/dashboard/period";
 import { loadDashboardWorkload } from "@/src/lib/dashboard/workload";
 import { loadSelectedPeriodSyncHealth } from "@/src/lib/workshop/data/sync-health";
 import { workshopSyncAllowed } from "@/src/lib/workshop/application/sync-env";
 import { DashboardWorkload } from "./_components/DashboardWorkload";
+
+import DashboardLoading from "./loading";
+import { DashboardNavigation } from "./_components/DashboardNavigation";
 
 export default async function DashboardPage({
   searchParams,
@@ -14,8 +17,16 @@ export default async function DashboardPage({
   const params = await searchParams;
   // Every portion of this request receives this exact reference instant.
   const period = resolveDashboardPeriod(params, new Date());
+  return <DashboardNavigation>
+    <Suspense key={`${period.preset}-${period.from}-${period.to}-${period.error ?? ""}`} fallback={<DashboardLoading />}>
+      <DashboardContent period={period} />
+    </Suspense>
+  </DashboardNavigation>;
+}
+
+async function DashboardContent({ period }: { period: DashboardPeriod }) {
   const [{ workload, error }, selectedSync] = await Promise.all([
-    loadDashboardWorkload(period), loadSelectedPeriodSyncHealth(),
+    loadDashboardWorkload(period), loadSelectedPeriodSyncHealth(period.from, period.to),
   ]);
 
   return (
@@ -32,9 +43,8 @@ export default async function DashboardPage({
       </header>
       {period.error ? <DataLoadError title="Check the selected dates" message={period.error} /> : null}
       {error ? <DataLoadError title="Couldn't load dashboard workload" message={process.env.NODE_ENV === "development" ? error : "The dashboard workload could not be loaded. Please try again."} /> : null}
-      {selectedSync.error ? <DataLoadError title="Couldn't load refresh progress" message={process.env.NODE_ENV === "development" ? selectedSync.error : "Refresh progress could not be loaded. Please try again."} /> : null}
       <DashboardWorkload period={period} workload={workload} showWorkload={!period.error && !error}
-        selectedSync={selectedSync.health} recoverableRuns={selectedSync.recoverableRuns} syncHealthError={selectedSync.error} syncAllowed={workshopSyncAllowed()} />
+        selectedSync={selectedSync.health} lastSuccessAt={selectedSync.lastSuccessAt} syncHealthError={selectedSync.error ? process.env.NODE_ENV === "development" ? selectedSync.error : "Sync history could not be loaded. Please try again." : null} syncAllowed={workshopSyncAllowed()} />
     </main>
   );
 }

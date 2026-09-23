@@ -6,24 +6,38 @@
   width: 100%;
 }
 
-.periodDivider {
-  width: 1px;
-  flex: none;
-  align-self: stretch;
-  background: theme('colors.neutral-border');
+.periodToolbar {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid theme('colors.neutral-border');
+  border-radius: theme('borderRadius.lg');
+  background: white;
 }
 
-@media (max-width: 1099px) {
-  .periodToolbar {
-    flex-direction: column;
-    align-items: stretch;
-  }
+.syncSection {
+  display: flex;
+  flex: 0 1 18rem;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  border-left: 1px solid theme('colors.neutral-border');
+  overflow-wrap: anywhere;
+}
 
-  .periodDivider {
-    width: 100%;
-    height: 1px;
-    align-self: auto;
+@media (max-width: 767px) {
+  .periodToolbar { flex-direction: column; }
+  .syncSection {
+    flex-basis: auto;
+    border-left: 0;
+    border-top: 1px solid theme('colors.neutral-border');
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .syncLoader, .syncLoader * { animation: none !important; }
 }
 
 .control,
@@ -126,7 +140,7 @@
 
 @media (min-width: 768px) {
   .dateForm {
-    grid-template-columns: 10rem 10rem max-content;
+    grid-template-columns: minmax(0, 10rem) minmax(0, 10rem) max-content;
     width: auto;
   }
   .applyButton {

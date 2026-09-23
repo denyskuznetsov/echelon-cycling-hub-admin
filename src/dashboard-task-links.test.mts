@@ -94,3 +94,14 @@ test("task action authenticates, authorizes staff and requests only selected ord
   assert.match(action, /p_order_id: orderId/);
   assert.match(action, /return \{ tasks: \[\], error:/);
 });
+
+
+test("empty priorities and zero count notices hide while missing-address warnings survive zero bikes", () => {
+  const { OrderNotices, Attention } = loadPresentationalComponent("src/app/dashboard/_components/DashboardNotices.tsx");
+  const notice = { kind: "preparation", severity: "warning", affected_bikes: 0, orders: 1 };
+  const renderAttention = (items: unknown[]) => renderToStaticMarkup(React.createElement(Attention as React.ComponentType<{ items: unknown[] }>, { items }));
+  assert.equal(renderAttention([]), "");
+  assert.equal(renderAttention([notice]), "");
+  assert.equal(renderToStaticMarkup(React.createElement(OrderNotices as React.ComponentType<{ conditions: unknown[] }>, { conditions: [notice] })), "");
+  assert.match(renderAttention([{ ...notice, kind: "missing_delivery_address" }]), /Delivery address missing/);
+});

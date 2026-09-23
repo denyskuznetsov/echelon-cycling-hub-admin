@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/src/utils/supabase/server";
 import {
   isManualSyncScope,
@@ -130,48 +131,51 @@ function parseSelectedHealth(data: Record<string, unknown>): SelectedPeriodSyncH
   };
 }
 
-/** Latest selected-period run, read with the signed-in user's RLS client. */
-export async function loadSelectedPeriodSyncHealth(): Promise<{
+/** Select in PostgreSQL before considering recovery: completed newer runs supersede older attempts. */
+export async function loadLatestSelectedPeriodRun(supabase: SupabaseClient, from: string, to: string): Promise<{
   health: SelectedPeriodSyncHealth | null;
-  recoverableRuns: SelectedPeriodSyncHealth[];
   error: string | null;
 }> {
-  const supabase = await createClient();
   const { data, error } = await supabase.from("booqable_sync_runs")
     .select(SELECTED_COLUMNS)
     .eq("scope", "selected_period")
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .eq("from_date", from).eq("to_date", to)
+    .order("created_at", { ascending: false }).order("id", { ascending: false })
+    .limit(1).maybeSingle();
   if (error) {
-    console.error("loadSelectedPeriodSyncHealth:", error);
-    return { health: null, recoverableRuns: [], error: error.message };
+    console.error("loadLatestSelectedPeriodRun:", error);
+    return { health: null, error: error.message };
   }
   const health = data ? parseSelectedHealth(data) : null;
   if (data && !health) {
-    console.error("loadSelectedPeriodSyncHealth: invalid run metadata", data.id);
-    return { health: null, recoverableRuns: [], error: "Saved refresh metadata is incomplete." };
+    console.error("loadLatestSelectedPeriodRun: invalid run metadata", data.id);
+    return { health: null, error: "Saved refresh metadata is incomplete." };
   }
-  const recoverableRuns: SelectedPeriodSyncHealth[] = [];
-  for (let offset = 0; ; offset += 100) {
-    const query = supabase.from("booqable_sync_runs").select(SELECTED_COLUMNS)
-      .eq("scope", "selected_period").in("state", ["in_progress", "failed"])
-      .order("created_at", { ascending: false }).order("id", { ascending: false }).range(offset, offset + 99);
-    const page = await query;
-    if (page.error) {
-      console.error("loadSelectedPeriodSyncHealth: recoverable runs", page.error);
-      return { health, recoverableRuns: [], error: page.error.message };
-    }
-    for (const row of page.data ?? []) {
-      if (row.id === health?.runId) continue;
-      const parsed = parseSelectedHealth(row);
-      if (!parsed) {
-        console.error("loadSelectedPeriodSyncHealth: invalid recoverable run metadata", row.id);
-        return { health, recoverableRuns: [], error: "Saved refresh metadata is incomplete." };
-      }
-      recoverableRuns.push(parsed);
-    }
-    if ((page.data?.length ?? 0) < 100) break;
-  }
-  return { health, recoverableRuns, error: null };
+  return { health, error: null };
+}
+
+/** Independent, bounded user-RLS reads for recovery and historical Dashboard success. */
+export async function loadSelectedPeriodSyncHealth(from: string, to: string): Promise<{
+  health: SelectedPeriodSyncHealth | null;
+  lastSuccessAt: string | null;
+  error: string | null;
+}> {
+  const supabase = await createClient();
+  const [latest, success] = await Promise.all([
+    loadLatestSelectedPeriodRun(supabase, from, to),
+    supabase.from("booqable_sync_runs").select("finished_at")
+      .eq("scope", "selected_period").eq("policy_version", 1).eq("state", "succeeded")
+      .not("finished_at", "is", null)
+      .order("finished_at", { ascending: false }).order("id", { ascending: false })
+      .limit(1).maybeSingle(),
+  ]);
+  if (success.error) console.error("loadSelectedPeriodSyncHealth: success history", success.error);
+  const finishedAt = success.data?.finished_at;
+  const invalidSuccess = finishedAt != null && (typeof finishedAt !== "string" || !Number.isFinite(Date.parse(finishedAt)));
+  if (invalidSuccess) console.error("loadSelectedPeriodSyncHealth: invalid success timestamp");
+  return {
+    health: latest.health,
+    lastSuccessAt: !success.error && !invalidSuccess ? finishedAt ?? null : null,
+    error: [latest.error, success.error?.message, invalidSuccess ? "Sync history is incomplete." : null].filter(Boolean).join(" ") || null,
+  };
 }

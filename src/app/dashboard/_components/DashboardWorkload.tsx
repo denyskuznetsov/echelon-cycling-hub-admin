@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { FeatherArrowDownLeft, FeatherArrowUpRight, FeatherMapPin } from "@subframe/core";
 import { Badge } from "@/ui/components/Badge";
 import { Button } from "@/ui/components/Button";
@@ -15,6 +15,8 @@ import styles from "./DashboardWorkload.module.css";
 import { Attention, OrderNotices } from "./DashboardNotices";
 import { DashboardSync } from "./DashboardSync";
 import type { SelectedPeriodSyncHealth } from "@/src/lib/workshop/data/sync-health";
+
+import { useDashboardNavigation } from "./DashboardNavigation";
 
 type Direction = "outgoing" | "incoming";
 const ESTIMATE_BATCH_SIZE = 10;
@@ -43,11 +45,11 @@ function identity(row: DashboardRow): string {
   return row.customer_name?.trim() ? `${number} · ${row.customer_name.trim()}` : `${number} · Customer name missing`;
 }
 
-function TaskBadges({ row }: { row: DashboardRow }) {
+export function TaskBadges({ row }: { row: DashboardRow }) {
   if (row.task_count === 0) return <Badge variant="neutral">No Workshop tasks</Badge>;
   return <>
-    <Badge variant="neutral" className={styles.statusBadge}>{row.ready_task_count}/{row.task_count} ready for pickup</Badge>
-    {Object.entries(row.lifecycle_counts).map(([status, count]) => (
+    <Badge variant={row.ready_task_count === row.task_count ? "mint" : "neutral"} className={styles.statusBadge}>{row.ready_task_count}/{row.task_count} ready for pickup</Badge>
+    {Object.entries(row.lifecycle_counts).filter(([status, count]) => status !== "ready_for_pickup" && count > 0).map(([status, count]) => (
       <Badge key={status} variant={status === "ready_for_pickup" ? "mint" : ["to_prepare", "being_prepared", "needs_recheck"].includes(status) ? "warning" : "neutral"} className={styles.statusBadge}>
         {count} {status.replaceAll("_", " ")}
       </Badge>
@@ -68,7 +70,9 @@ export function DeliveryDetail({ row, estimate, showEstimate }: { row: Dashboard
   if (row.delivery_kind === "address") {
     return <div className={styles.deliveryAddress}>
       <span className="flex items-center gap-1 text-caption font-caption text-subtext-color"><FeatherMapPin aria-hidden /> Delivery address</span>
-      <span className="text-body font-body text-default-font">{row.delivery_value}</span>
+      {row.delivery_value?.trim()
+        ? <a className="text-body font-body text-brand-700 underline" href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(row.delivery_value)}`} target="_blank" rel="noopener noreferrer" aria-label={`Open delivery address in Google Maps: ${row.delivery_value}`}>{row.delivery_value}</a>
+        : <span className="text-body font-body text-default-font">{row.delivery_value}</span>}
       {showEstimate ? <DriveTime estimate={estimate} /> : null}
     </div>;
   }
@@ -76,7 +80,7 @@ export function DeliveryDetail({ row, estimate, showEstimate }: { row: Dashboard
     return <div className={styles.deliveryAddress}>
       <span className="flex items-center gap-1 text-caption font-caption text-subtext-color"><FeatherMapPin aria-hidden /> Delivery location</span>
       {isSafeExternalLink(row.delivery_value ?? "")
-        ? <a className="break-all text-body font-body text-brand-700 underline" href={row.delivery_value!} target="_blank" rel="noreferrer">{row.delivery_value}</a>
+        ? <a className="break-all text-body font-body text-brand-700 underline" href={row.delivery_value!} target="_blank" rel="noopener noreferrer" aria-label={`Open delivery location in Google Maps: ${row.delivery_value}`}>{row.delivery_value}</a>
         : <span className="text-body font-body text-default-font">{row.delivery_value}</span>}
       {showEstimate ? <DriveTime estimate={estimate} /> : null}
     </div>;
@@ -143,7 +147,7 @@ function DirectionList({ direction, data, idPrefix, estimates }: { direction: Di
   );
 }
 
-function Summary({ direction, totals }: { direction: Direction; totals: DashboardDirection["totals"] }) {
+export function Summary({ direction, totals }: { direction: Direction; totals: DashboardDirection["totals"] }) {
   const outgoing = direction === "outgoing";
   return <div className="min-w-0 rounded-lg border border-neutral-border bg-white px-5 py-5">
     <div className="flex items-center gap-2 text-body-bold font-body-bold text-default-font">
@@ -154,20 +158,20 @@ function Summary({ direction, totals }: { direction: Direction; totals: Dashboar
       <p className="flex items-baseline gap-1 text-body font-body text-subtext-color"><span className="text-heading-1 font-heading-1 text-default-font">{totals.orders}</span> {totals.orders === 1 ? "order" : "orders"}</p>
       <p className="flex items-baseline gap-1 text-body font-body text-subtext-color"><span className="text-heading-1 font-heading-1 text-default-font">{totals.bikes}</span> {totals.bikes === 1 ? "bike" : "bikes"}</p>
     </div>
-    {outgoing ? <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-border pt-3">
-      <Badge variant="neutral" className={styles.statusBadge}>{plural(totals.deliveries, "delivery order", "delivery orders")}</Badge>
-      <Badge variant={totals.outstanding_preparation > 0 ? "warning" : "neutral"} className={styles.statusBadge}>
+    {outgoing ? (totals.deliveries > 0 || totals.outstanding_preparation > 0 || totals.missing_delivery_addresses > 0) && <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-neutral-border pt-3">
+      {totals.deliveries > 0 ? <Badge variant="neutral" className={styles.statusBadge}>{plural(totals.deliveries, "delivery order", "delivery orders")}</Badge> : null}
+      {totals.outstanding_preparation > 0 ? <Badge variant="warning" className={styles.statusBadge}>
         {totals.outstanding_preparation} {totals.outstanding_preparation === 1 ? "bike needs" : "bikes need"} preparation
-      </Badge>
-      <Badge variant={totals.missing_delivery_addresses > 0 ? "error" : "neutral"} className={styles.statusBadge}>
+      </Badge> : null}
+      {totals.missing_delivery_addresses > 0 ? <Badge variant="error" className={styles.statusBadge}>
         {plural(totals.missing_delivery_addresses, "delivery address", "delivery addresses")} missing
-      </Badge>
+      </Badge> : null}
     </div> : <p className="mt-4 border-t border-neutral-border pt-3 text-caption font-caption text-subtext-color">Returns are checked in by the Workshop on arrival.</p>}
   </div>;
 }
 
-export function DashboardWorkload({ period, workload, showWorkload = true, selectedSync, recoverableRuns, syncHealthError, syncAllowed }: { period: DashboardPeriod; workload: Workload; showWorkload?: boolean; selectedSync: SelectedPeriodSyncHealth | null; recoverableRuns: SelectedPeriodSyncHealth[]; syncHealthError: string | null; syncAllowed: boolean }) {
-  const router = useRouter();
+export function DashboardWorkload({ period, workload, showWorkload = true, selectedSync, lastSuccessAt, syncHealthError, syncAllowed }: { period: DashboardPeriod; workload: Workload; showWorkload?: boolean; selectedSync: SelectedPeriodSyncHealth | null; lastSuccessAt: string | null; syncHealthError: string | null; syncAllowed: boolean }) {
+  const navigate = useDashboardNavigation();
   const searchParams = useSearchParams();
   const [activeDirection, setActiveDirection] = useState<Direction>("outgoing");
   const [estimateState, setEstimateState] = useState<{ signature: string; rows: Record<string, DeliveryEstimate> }>({ signature: "", rows: {} });
@@ -222,24 +226,25 @@ export function DashboardWorkload({ period, workload, showWorkload = true, selec
     const unavailable = immediateUnavailable(input);
     if (unavailable) estimates[input.orderId] = unavailable;
   }
-  const pushPeriod = (next: { period: DashboardPreset; from?: string; to?: string }) => router.push(buildDashboardPeriodHref(searchParams, next));
+  const pushPeriod = (next: { period: DashboardPreset; from?: string; to?: string }) => navigate(buildDashboardPeriodHref(searchParams, next));
   return (
     <div className="flex flex-col gap-8">
-      <section className={`${styles.periodToolbar} flex flex-wrap items-end gap-4 rounded-lg border border-neutral-border bg-white px-4 py-3`} aria-label="Dashboard period">
+      <div className={styles.periodToolbar}>
+      <section className="flex min-w-0 flex-1 flex-col gap-4 p-4" aria-label="Dashboard period">
         <div className="min-w-0 flex-1">
           <p className="mb-1 text-caption-bold font-caption-bold text-subtext-color">Period</p>
           <div className="flex flex-wrap items-center gap-1">
             {PRESETS.map((preset) => <Button key={preset.value} aria-pressed={period.preset === preset.value} className={styles.control} variant={period.preset === preset.value ? "brand-primary" : "neutral-tertiary"} onClick={() => pushPeriod({ period: preset.value })}>{preset.label}</Button>)}
           </div>
         </div>
-        <div className={styles.periodDivider} aria-hidden="true" />
         <form key={`${period.from}-${period.to}`} className={styles.dateForm} onSubmit={(event) => { event.preventDefault(); const form = new FormData(event.currentTarget); pushPeriod({ period: "custom", from: String(form.get("from") ?? ""), to: String(form.get("to") ?? "") }); }}>
           <label className="flex min-w-0 flex-col gap-1 text-caption-bold font-caption-bold text-default-font">From<input name="from" type="date" defaultValue={period.from} className={styles.dateInput} /></label>
           <label className="flex min-w-0 flex-col gap-1 text-caption-bold font-caption-bold text-default-font">To<input name="to" type="date" defaultValue={period.to} className={styles.dateInput} /></label>
           <Button type="submit" variant="neutral-primary" className={styles.applyButton}>Apply dates</Button>
         </form>
       </section>
-      <DashboardSync key={`${period.from}-${period.to}`} period={period} health={selectedSync} recoverableRuns={recoverableRuns} healthError={syncHealthError} allowed={syncAllowed} />
+      <DashboardSync key={`${period.from}-${period.to}`} period={period} health={selectedSync} lastSuccessAt={lastSuccessAt} healthError={syncHealthError} allowed={syncAllowed} />
+      </div>
       {showWorkload ? <>
       <section aria-label="Workload summary" className="grid gap-4 md:grid-cols-2">
         <Summary direction="outgoing" totals={workload.outgoing.totals} />
