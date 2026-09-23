@@ -1,33 +1,52 @@
 .dateForm {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 10rem));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
   gap: 12px;
-  margin-top: 16px;
+  width: 100%;
+}
+
+.periodDivider {
+  width: 1px;
+  flex: none;
+  align-self: stretch;
+  background: theme('colors.neutral-border');
+}
+
+@media (max-width: 1099px) {
+  .periodToolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .periodDivider {
+    width: 100%;
+    height: 1px;
+    align-self: auto;
+  }
 }
 
 .control,
 .dateInput,
 .applyButton,
 .orderAction {
-  height: 44px;
   min-height: 44px;
 }
 
 .dateInput {
   width: 100%;
   min-width: 0;
-}
-
-.applyButton,
-.orderAction {
-  width: max-content;
-  justify-self: start;
-  white-space: nowrap;
+  padding: 0 10px;
+  border: 1px solid theme('colors.neutral-border');
+  border-radius: theme('borderRadius.md');
+  background: theme('colors.default-background');
+  color: theme('colors.default-font');
+  font-size: 14px;
 }
 
 .applyButton {
   grid-column: 1 / -1;
+  width: 100%;
 }
 
 .orderRow {
@@ -35,57 +54,83 @@
   grid-template-columns: minmax(0, 1fr);
   align-items: start;
   gap: 12px;
+  padding: 20px;
 }
 
-.orderContent {
-  min-width: 0;
+.orderAction {
+  width: max-content;
+  white-space: nowrap;
+}
+
+.statusBadge {
+  height: auto;
+  min-height: 24px;
+  max-width: 100%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+.statusBadge > span {
+  white-space: normal;
   overflow-wrap: anywhere;
 }
 
 .deliveryAddress,
 .missingAddress {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 100%;
   margin-top: 12px;
-  padding: 12px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: theme('borderRadius.md');
   overflow-wrap: anywhere;
-  @apply bg-brand-50 text-default-font text-body;
+  background: theme('colors.neutral-50');
 }
 
 .missingAddress {
-  @apply bg-error-50 text-error-800 font-body-bold;
+  border: 1px solid theme('colors.error-100');
+  background: theme('colors.error-50');
+  color: theme('colors.error-800');
+  font-size: 14px;
 }
 
-.outgoingDetails {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px 16px;
+.directionTab {
+  min-height: 44px;
+  padding: 8px 12px;
+  border-bottom: 2px solid transparent;
+  color: theme('colors.subtext-color');
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.directionTab[aria-selected="true"] {
+  border-bottom-color: theme('colors.brand-600');
+  color: theme('colors.brand-700');
 }
 
 .control:focus-visible,
 .dateInput:focus-visible,
 .applyButton:focus-visible,
-.orderAction:focus-visible {
+.orderAction:focus-visible,
+.directionTab:focus-visible {
   outline: 2px solid theme('colors.brand-700');
   outline-offset: 2px;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
   .dateForm {
     grid-template-columns: 10rem 10rem max-content;
+    width: auto;
   }
-
   .applyButton {
     grid-column: auto;
+    width: max-content;
   }
 }
 
-@media (min-width: 768px) {
+@media (min-width: 1100px) {
   .orderRow {
-    grid-template-columns: minmax(0, 1fr) max-content;
-  }
-
-  .orderAction {
-    justify-self: end;
+    grid-template-columns: 4rem minmax(0, 1fr) max-content;
   }
 }
