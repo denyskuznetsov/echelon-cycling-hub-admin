@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FeatherArrowDownLeft, FeatherArrowUpRight, FeatherCloudOff, FeatherMapPin } from "@subframe/core";
 import { Badge } from "@/ui/components/Badge";
@@ -9,10 +9,13 @@ import { buildDashboardPeriodHref, type DashboardPeriod, type DashboardPreset } 
 import type { DashboardDirection, DashboardRow, DashboardWorkload as Workload } from "@/src/lib/dashboard/workload";
 import { useOpenOrderDetails } from "@/src/components/orders/useOpenOrderDetails";
 import { isSafeExternalLink } from "@/src/lib/delivery";
+import { fetchDeliveryEstimates, type DeliveryEstimate } from "@/src/lib/dashboard/actions/delivery-estimates";
+import { estimateSignature, immediateUnavailable, inputRouteKey, matchingEstimate, rememberSuccessfulEstimate } from "@/src/lib/dashboard/estimate-state";
 import styles from "./DashboardWorkload.module.css";
 import { Attention, OrderNotices } from "./DashboardNotices";
 
 type Direction = "outgoing" | "incoming";
+const ESTIMATE_BATCH_SIZE = 10;
 const PRESETS: Array<{ value: Exclude<DashboardPreset, "custom">; label: string }> = [
   { value: "today", label: "Today" },
   { value: "tomorrow", label: "Tomorrow" },
@@ -52,12 +55,13 @@ function relativeTime(minutes: number | null): string | null {
   return minutes > 0 ? `In ${duration}` : `${duration} ago`;
 }
 
-function DeliveryDetail({ row }: { row: DashboardRow }) {
+export function DeliveryDetail({ row, estimate, showEstimate }: { row: DashboardRow; estimate: DeliveryEstimate | null; showEstimate: boolean }) {
   if (row.delivery_kind === "missing") return null;
   if (row.delivery_kind === "address") {
     return <div className={styles.deliveryAddress}>
       <span className="flex items-center gap-1 text-caption font-caption text-subtext-color"><FeatherMapPin aria-hidden /> Delivery address</span>
       <span className="text-body font-body text-default-font">{row.delivery_value}</span>
+      {showEstimate ? <DriveTime estimate={estimate} /> : null}
     </div>;
   }
   if (row.delivery_kind === "maps") {
@@ -66,12 +70,21 @@ function DeliveryDetail({ row }: { row: DashboardRow }) {
       {isSafeExternalLink(row.delivery_value ?? "")
         ? <a className="break-all text-body font-body text-brand-700 underline" href={row.delivery_value!} target="_blank" rel="noreferrer">{row.delivery_value}</a>
         : <span className="text-body font-body text-default-font">{row.delivery_value}</span>}
+      {showEstimate ? <DriveTime estimate={estimate} /> : null}
     </div>;
   }
   return null;
 }
 
-function DirectionList({ direction, data, idPrefix }: { direction: Direction; data: DashboardDirection; idPrefix: string }) {
+export function DriveTime({ estimate }: { estimate: DeliveryEstimate | null }) {
+  if (!estimate) return <span className="text-caption font-caption text-subtext-color">Checking drive time…</span>;
+  if (estimate.minutes === null) return <span className="text-caption font-caption text-subtext-color">Drive time unavailable</span>;
+  const minutes = estimate.minutes;
+  const duration = minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
+  return <span className={styles.driveTime}>Approx. {duration} · Google Maps</span>;
+}
+
+function DirectionList({ direction, data, idPrefix, estimates }: { direction: Direction; data: DashboardDirection; idPrefix: string; estimates: Record<string, DeliveryEstimate> }) {
   const openOrder = useOpenOrderDetails();
   const heading = direction === "outgoing" ? "Going out" : "Coming back";
   const headingId = `${idPrefix}-${direction}-heading`;
@@ -107,7 +120,7 @@ function DirectionList({ direction, data, idPrefix }: { direction: Direction; da
                           {row.fulfillment_type === "delivery" ? "Delivery" : row.fulfillment_type === "pickup" ? "Pickup" : "Fulfillment unknown"}
                         </Badge>
                       </div>
-                      <DeliveryDetail row={row} />
+                      <DeliveryDetail row={row} estimate={estimates[row.order_id] ?? null} showEstimate={direction === "outgoing" && row.fulfillment_type === "delivery"} />
                       <OrderNotices conditions={row.conditions} />
                     </div>
                     <Button variant="brand-secondary" className={styles.orderAction} onClick={() => openOrder(row.order_id)} aria-label={`Open ${identity(row)}`}>Open order</Button>
@@ -149,6 +162,55 @@ export function DashboardWorkload({ period, workload, showWorkload = true }: { p
   const router = useRouter();
   const searchParams = useSearchParams();
   const [activeDirection, setActiveDirection] = useState<Direction>("outgoing");
+  const [estimateState, setEstimateState] = useState<{ signature: string; rows: Record<string, DeliveryEstimate> }>({ signature: "", rows: {} });
+  const deliveryInputs = showWorkload ? workload.outgoing.days.flatMap((day) => day.rows)
+    .filter((row) => row.fulfillment_type === "delivery" && row.delivery_kind !== "missing" && row.delivery_kind !== "none")
+    .map((row) => ({ orderId: row.order_id, kind: row.delivery_kind, value: row.delivery_value })) : [];
+  const signature = estimateSignature(period.preset, period.from, period.to, deliveryInputs);
+  useEffect(() => {
+    const { inputs } = JSON.parse(signature) as { inputs: typeof deliveryInputs };
+    let active = true;
+    const expected = new Map(inputs.filter((input) => inputRouteKey(input) !== null).map((input) => [input.orderId, input]));
+    const ids = [...expected.keys()];
+    const priorMinutes = new Map<string, number>();
+    async function load() {
+      for (let offset = 0; offset < ids.length; offset += ESTIMATE_BATCH_SIZE) {
+        if (!active) return;
+        const batch = ids.slice(offset, offset + ESTIMATE_BATCH_SIZE);
+        const priorRouteKeys = [...new Set(batch.map((id) => inputRouteKey(expected.get(id)!))
+          .filter((key): key is string => key !== null && priorMinutes.has(key)))];
+        let estimates: DeliveryEstimate[] = [];
+        try {
+          const result = await fetchDeliveryEstimates(batch, priorRouteKeys);
+          if (result.ok) estimates = result.estimates;
+          else console.error("DashboardWorkload: drive estimates unavailable", result.error);
+        } catch (error) {
+          console.error("DashboardWorkload: drive estimate request failed", error);
+        }
+        if (!active) return;
+        const returned = new Map(estimates.map((estimate) => [estimate.orderId, estimate]));
+        const updates: Record<string, DeliveryEstimate> = {};
+        for (const orderId of batch) {
+          const source = expected.get(orderId)!;
+          const result = returned.get(orderId);
+          const matched = matchingEstimate(source, result);
+          const routeKey = inputRouteKey(source);
+          rememberSuccessfulEstimate(priorMinutes, source, matched);
+          updates[orderId] = matched
+            ? { ...matched, minutes: matched.reused && routeKey ? (priorMinutes.get(routeKey) ?? null) : matched.minutes }
+            : { orderId, kind: source.kind, value: source.value, minutes: null, routeKey };
+        }
+        setEstimateState((current) => ({ signature, rows: { ...(current.signature === signature ? current.rows : {}), ...updates } }));
+      }
+    }
+    void load();
+    return () => { active = false; };
+  }, [signature]);
+  const estimates: Record<string, DeliveryEstimate> = estimateState.signature === signature ? { ...estimateState.rows } : {};
+  for (const input of deliveryInputs) {
+    const unavailable = immediateUnavailable(input);
+    if (unavailable) estimates[input.orderId] = unavailable;
+  }
   const pushPeriod = (next: { period: DashboardPreset; from?: string; to?: string }) => router.push(buildDashboardPeriodHref(searchParams, next));
   return (
     <div className="flex flex-col gap-8">
@@ -173,8 +235,8 @@ export function DashboardWorkload({ period, workload, showWorkload = true }: { p
       </section>
       <Attention items={workload.attention} />
       <div className="hidden gap-8 md:grid md:grid-cols-2">
-        <DirectionList direction="outgoing" data={workload.outgoing} idPrefix="desktop" />
-        <DirectionList direction="incoming" data={workload.incoming} idPrefix="desktop" />
+        <DirectionList direction="outgoing" data={workload.outgoing} idPrefix="desktop" estimates={estimates} />
+        <DirectionList direction="incoming" data={workload.incoming} idPrefix="desktop" estimates={estimates} />
       </div>
       <div className="md:hidden">
         <div role="tablist" aria-label="Workload direction" className="mb-4 flex border-b border-neutral-border">
@@ -188,7 +250,7 @@ export function DashboardWorkload({ period, workload, showWorkload = true }: { p
           }}>{direction === "outgoing" ? "Going out" : "Coming back"}</button>)}
         </div>
         {(["outgoing", "incoming"] as Direction[]).map((direction) => <div key={direction} role="tabpanel" id={`${direction}-panel`} aria-labelledby={`${direction}-tab`} hidden={activeDirection !== direction} tabIndex={0}>
-          <DirectionList direction={direction} data={workload[direction]} idPrefix="mobile" />
+          <DirectionList direction={direction} data={workload[direction]} idPrefix="mobile" estimates={estimates} />
         </div>)}
       </div>
       </> : null}
