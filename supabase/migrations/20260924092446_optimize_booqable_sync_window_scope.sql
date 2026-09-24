@@ -1,5 +1,7 @@
 -- Shared bounded page sync and terminal legacy-scope retirement. Local only.
 
+BEGIN;
+
 ALTER TABLE public.booqable_sync_runs
   ADD COLUMN IF NOT EXISTS retirement_reason text;
 ALTER TABLE public.booqable_sync_runs
@@ -449,3 +451,5 @@ GRANT EXECUTE ON FUNCTION private.workshop_start_window_sync() TO authenticated;
 GRANT EXECUTE ON FUNCTION private.workshop_resume_window_sync(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.workshop_start_window_sync() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.workshop_resume_window_sync(uuid) TO authenticated;
+
+COMMIT;
