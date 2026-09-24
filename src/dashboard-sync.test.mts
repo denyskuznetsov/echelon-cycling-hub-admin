@@ -14,12 +14,13 @@ function load(path: string, mocks: Record<string, unknown>): Record<string, (...
 }
 const run = (id: string, state = "failed", from = "2026-10-25", created = id) => ({
   id, scope: "selected_period", policy_version: 1, from_date: from, to_date: from,
+  retired_at: null as string | null,
   state, discovery_phase: "reconcile", discovery_page: 1, listed: 1, succeeded: state === "succeeded" ? 1 : 0,
   failed: state === "failed" ? 1 : 0, skipped: 0, last_error: "Provider unavailable", last_attempt_at: "2026-10-25T10:00:00Z",
   created_at: created, finished_at: state === "succeeded" ? "2026-10-25T10:00:00Z" : null,
 });
 type Row = ReturnType<typeof run>;
-function fixture(rows: Row[], failedRead: string | null = null) {
+function fixture(rows: Row[], failedRead: string | null = null, workshopHealth: { run_id: string | null; state: string | null } | null = null) {
   const queries: { method: string; args: unknown[] }[][] = [];
   const client = { from(table: string) {
     const calls = [{ method: "from", args: [table] }]; queries.push(calls);
@@ -30,11 +31,13 @@ function fixture(rows: Row[], failedRead: string | null = null) {
     const q = {
       select(value: string) { columns = value; calls.push({ method: "select", args: [value] }); return q; },
       eq(key: string, value: unknown) { calls.push({ method: "eq", args: [key, value] }); filters.push((r) => r[key as keyof Row] === value); return q; },
+      is(key: string, value: null) { calls.push({ method: "is", args: [key, value] }); filters.push((r) => r[key as keyof Row] === value); return q; },
       not(key: string, op: string, value: unknown) { calls.push({ method: "not", args: [key, op, value] }); filters.push((r) => r[key as keyof Row] !== value); return q; },
       order(key: string, options: { ascending: boolean }) { calls.push({ method: "order", args: [key, options] }); sorts.push({ key, ...options }); return q; },
       limit(value: number) { cap = value; calls.push({ method: "limit", args: [value] }); return q; },
       async maybeSingle() {
         if (failedRead === columns || failedRead === "all") return { data: null, error: { message: "Fixture read failure" } };
+        if (table === "workshop_sync_health") return { data: workshopHealth, error: null };
         const matches = rows.filter((r) => filters.every((f) => f(r))).sort((a, b) => {
           for (const s of sorts) { const v = String(a[s.key as keyof Row]).localeCompare(String(b[s.key as keyof Row])); if (v) return s.ascending ? v : -v; }
           return 0;
@@ -58,12 +61,26 @@ function fixture(rows: Row[], failedRead: string | null = null) {
     "@/src/lib/dashboard/period": { resolveDashboardPeriod },
     "@/src/lib/workshop/application/sync-env": { workshopSyncAllowed: () => allowed },
     "@/src/lib/workshop/application/manual-sync": {
+      runManualSyncStart: async () => { calls.push("workshop-start"); return workerResult; },
+      runManualSyncResume: async (_c: unknown, id: string) => { calls.push(`workshop-resume:${id}`); return workerResult; },
       runSelectedPeriodStart: async (_c: unknown, from: string, to: string) => { calls.push(`start:${from}:${to}`); return workerResult; },
       runSelectedPeriodResume: async (_c: unknown, id: string) => { calls.push(`resume:${id}`); return workerResult; },
     },
   });
   return { client, health, queries, actions, calls, setResult: (r: unknown) => { workerResult = r; } };
 }
+
+test("Workshop action resumes only the current database window and starts after a completed run", async () => {
+  for (const state of ["in_progress", "failed", "succeeded"]) {
+    const f = fixture([], null, { run_id: "saved", state });
+    await f.actions().startManualSync("next_7_days");
+    assert.deepEqual(f.calls, [state === "succeeded" ? "workshop-start" : "workshop-resume:saved"]);
+    assert.equal(f.queries[0][0].args[0], "workshop_sync_health");
+  }
+  const fresh = fixture([]);
+  await fresh.actions().startManualSync("next_7_days");
+  assert.deepEqual(fresh.calls, ["workshop-start"]);
+});
 
 test("bounded exact-date selection uses latest run before recovery and independent Dashboard success history", async () => {
   const f = fixture([run("01"), run("02", "succeeded"), run("03", "failed", "2026-11-01"),
@@ -91,6 +108,12 @@ test("success history survives newer failure and distinguishes no history from f
   assert.equal(failed.lastSuccessAt, null); assert.equal(failed.error, "Fixture read failure");
 });
 
+test("retired selected runs do not trap a new action in failed recovery", async () => {
+  const f = fixture([{ ...run("02"), retired_at: "2026-10-25T11:00:00Z" }]);
+  await f.actions().startSelectedPeriodSync("2026-10-25", "2026-10-25");
+  assert.deepEqual(f.calls, ["start:2026-10-25:2026-10-25"]);
+});
+
 test("one start action selects exact-date recovery at action time and never falls back after resume failure", async () => {
   for (const state of ["failed", "in_progress", "succeeded"]) {
     const f = fixture([run("01", "failed"), run("02", state), run("03", "failed", "2026-11-01")]);
@@ -111,6 +134,14 @@ test("terminal failed worker results surface persisted failure detail and honest
   assert.equal(result.ok, false); assert.equal(result.error, "Provider unavailable");
   f.setResult({ ok: true, state: "failed", runId: "missing" });
   assert.match((await f.actions().resumeSelectedPeriodSync("missing")).error, /could not refresh all required orders/);
+});
+
+test("Workshop failed continuation surfaces its saved cause", async () => {
+  const f = fixture([{ ...run("workshop-01"), scope: "next_7_days" }]);
+  f.setResult({ ok: true, state: "failed", runId: "workshop-01" });
+  const result = await f.actions().resumeManualSync("workshop-01");
+  assert.equal(result.ok, false);
+  assert.equal(result.error, "Provider unavailable");
 });
 
 test("invalid periods, disabled environments, malformed metadata and read failures cannot start work", async () => {

@@ -1,0 +1,31 @@
+{
+  "scope": "Three reserved orders, live read-only comparison; no raw payloads persisted",
+  "requests": [
+    {"label":"discover three reserved orders","status":200,"elapsed_ms":500,"bytes":368,"primary_count":3,"included_types":{},"has_next":false},
+    {"label":"individual baseline 1","status":200,"elapsed_ms":618,"bytes":57899,"primary_count":1,"included_types":{"customers":1,"coupons":1,"lines":13,"bundles":1,"plannings":13,"products":12},"has_next":false},
+    {"label":"individual baseline 2","status":200,"elapsed_ms":307,"bytes":37270,"primary_count":1,"included_types":{"customers":1,"lines":8,"bundles":1,"plannings":7,"products":6,"stock_item_plannings":1,"stock_items":1},"has_next":false},
+    {"label":"individual baseline 3","status":200,"elapsed_ms":311,"bytes":51745,"primary_count":1,"included_types":{"customers":1,"lines":10,"bundles":1,"plannings":10,"products":9},"has_next":false},
+    {"label":"collection full includes with multi-ID filter","status":200,"elapsed_ms":308,"bytes":9821,"primary_count":3,"included_types":{"customers":3,"coupons":1},"has_next":false},
+    {"label":"search full includes for same IDs","status":400,"elapsed_ms":475,"bytes":2},
+    {"label":"collection page size one, page 1","status":200,"elapsed_ms":267,"bytes":3568,"primary_count":1,"included_types":{"customers":1,"coupons":1},"has_next":false},
+    {"label":"collection page size one, page 2","status":200,"elapsed_ms":269,"bytes":3234,"primary_count":1,"included_types":{"customers":1},"has_next":false},
+    {"label":"collection page size one, page 3","status":200,"elapsed_ms":274,"bytes":3085,"primary_count":1,"included_types":{"customers":1},"has_next":false},
+    {"label":"individual stability check 1","status":200,"elapsed_ms":298,"bytes":57899,"primary_count":1,"included_types":{"customers":1,"coupons":1,"lines":13,"bundles":1,"plannings":13,"products":12},"has_next":false},
+    {"label":"individual stability check 2","status":200,"elapsed_ms":439,"bytes":37270,"primary_count":1,"included_types":{"customers":1,"lines":8,"bundles":1,"plannings":7,"products":6,"stock_item_plannings":1,"stock_items":1},"has_next":false},
+    {"label":"individual stability check 3","status":200,"elapsed_ms":352,"bytes":51745,"primary_count":1,"included_types":{"customers":1,"lines":10,"bundles":1,"plannings":10,"products":9},"has_next":false}
+  ],
+  "comparisons": [
+    {"label":"collection","sample":1,"order_present":true,"baseline_types":{"lines":13,"plannings":13,"products":12,"orders":1,"bundles":1,"customers":1,"coupons":1},"candidate_types":{"coupons":1,"orders":1,"customers":1},"missing_resources":{"lines":13,"plannings":13,"products":12,"bundles":1},"extra_resources":{},"different_resources":{"orders":1},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":false},
+    {"label":"collection","sample":2,"order_present":true,"baseline_types":{"lines":8,"orders":1,"products":6,"plannings":7,"customers":1,"bundles":1,"stock_item_plannings":1,"stock_items":1},"candidate_types":{"customers":1,"orders":1},"missing_resources":{"lines":8,"products":6,"plannings":7,"bundles":1,"stock_item_plannings":1,"stock_items":1},"extra_resources":{},"different_resources":{"orders":1},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":false},
+    {"label":"collection","sample":3,"order_present":true,"baseline_types":{"lines":10,"plannings":10,"products":9,"bundles":1,"orders":1,"customers":1},"candidate_types":{"customers":1,"orders":1},"missing_resources":{"lines":10,"plannings":10,"products":9,"bundles":1},"extra_resources":{},"different_resources":{"orders":1},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":false},
+    {"label":"collection paginated","sample":1,"order_present":true,"baseline_types":{"lines":13,"plannings":13,"products":12,"orders":1,"bundles":1,"customers":1,"coupons":1},"candidate_types":{"coupons":1,"orders":1,"customers":1},"missing_resources":{"lines":13,"plannings":13,"products":12,"bundles":1},"extra_resources":{},"different_resources":{"orders":1},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":false},
+    {"label":"collection paginated","sample":2,"order_present":true,"baseline_types":{"lines":8,"orders":1,"products":6,"plannings":7,"customers":1,"bundles":1,"stock_item_plannings":1,"stock_items":1},"candidate_types":{"customers":1,"orders":1},"missing_resources":{"lines":8,"products":6,"plannings":7,"bundles":1,"stock_item_plannings":1,"stock_items":1},"extra_resources":{},"different_resources":{"orders":1},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":false},
+    {"label":"collection paginated","sample":3,"order_present":true,"baseline_types":{"lines":10,"plannings":10,"products":9,"bundles":1,"orders":1,"customers":1},"candidate_types":{"customers":1,"orders":1},"missing_resources":{"lines":10,"plannings":10,"products":9,"bundles":1},"extra_resources":{},"different_resources":{"orders":1},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":false}
+  ],
+  "pagination_unique_orders": 3,
+  "stability": [
+    {"sample":1,"unchanged":true},
+    {"sample":2,"unchanged":true},
+    {"sample":3,"unchanged":true}
+  ]
+}
