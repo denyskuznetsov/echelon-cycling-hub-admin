@@ -25,4 +25,10 @@ The successful search took 487 ms in this run; its three immediately preceding i
 
 Before implementation, the next bounded experiment should report only differing field paths for the unmatched order, compare normalized parser snapshots, exercise multiple allocated bikes and started/stopped orders, and force search pagination. An independently known fixture inventory or provider confirmation is still needed for completeness. Preserve lease-before-authoritative-read sequencing when considering bulk integration.
 
+## 2026-09-24 documentation follow-up
+
+[Booqable's API v4 documentation](https://developers.booqable.com/) lists `POST /api/4/orders/search` with filtering, includes and pagination. Its documented search includes are coupon, customer, properties and locations. The documented single-order `GET /api/4/orders/{id}` includes also cover lines, plannings and stock-item allocations. The earlier three-order search response contained some of those deeper relationships, but the published search contract does not establish that they are supported or complete across the cases needed for authoritative reconciliation.
+
+CAP-3 therefore remains unproven. Keep individual detail reads in the shared sync. A later read-only tenant experiment needs separate authorization and should check the differing field paths, normalized snapshots, multi-allocation and fulfillment cases, forced pagination and independent completeness evidence described above. This follow-up made no tenant calls.
+
 Evidence: result.json (12 requests) and followup-result.json (8 requests); reproducible probe scripts are stored alongside them. Do not rerun these live scripts as ordinary automated tests.

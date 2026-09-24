@@ -12,7 +12,7 @@ export const WORKSHOP_STAFF_COMMANDS = [
   "workshop_resume_manual_sync",
 ] as const;
 
-export const MANUAL_SYNC_SCOPES = ["next_7_days", "all_reserved"] as const;
+export const MANUAL_SYNC_SCOPES = ["next_7_days"] as const;
 
 export type ManualSyncScope = (typeof MANUAL_SYNC_SCOPES)[number];
 
@@ -62,7 +62,6 @@ export function isEligibleManualSyncOrder(
   now = new Date(),
 ): boolean {
   if (order.status !== "reserved") return false;
-  if (scope === "all_reserved") return true;
   const start = madridDateFromStartsAt(order.startsAt);
   if (!start) return false;
   const today = madridIsoDate(now);
@@ -94,7 +93,7 @@ export function decodeSyncCursor(raw: string | null | undefined): SyncCursorV1 |
     if (!isCursorRecord(parsed)) return null;
     if (
       parsed.v === 1 &&
-      isManualSyncScope(parsed.scope) &&
+      parsed.scope === "next_7_days" &&
       typeof parsed.runId === "string" &&
       Number.isInteger(parsed.page) &&
       (parsed.page as number) >= 1

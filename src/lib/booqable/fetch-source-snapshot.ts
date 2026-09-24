@@ -290,6 +290,21 @@ export async function fetchSelectedPeriodOrderListPage(
   }, env);
 }
 
+/** Workshop discovery asks Booqable for reserved starts in the saved interval. */
+export async function fetchWorkshopWindowOrderListPage(
+  page: number,
+  fromInclusive: string,
+  toExclusive: string,
+  env: EnvMap = process.env,
+): Promise<ReservedListPage> {
+  return fetchOrderListPage(page, {
+    "filter[status]": "reserved",
+    "filter[starts_at][gte]": fromInclusive,
+    "filter[starts_at][lt]": toExclusive,
+    sort: "id",
+  }, env);
+}
+
 /** GET one customer. `include=properties` is required for structured address. */
 export async function fetchLandingCustomerDocument(
   booqableCustomerId: string,

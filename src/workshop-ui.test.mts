@@ -727,7 +727,7 @@ test("queue I/O matrix: empty today, status isolate/clear, completed, page clamp
   assert.match(queue, /syncStatusLabel && !syncInFlight/);
 });
 
-test("queue sync overlay locks next-7-days without Resume", () => {
+test("queue sync overlay continues saved next-7-days runs", () => {
   const queue = readFileSync(
     join(root, "src/app/workshop/_components/WorkshopQueue.tsx"),
     "utf8",
@@ -746,7 +746,7 @@ test("queue sync overlay locks next-7-days without Resume", () => {
   assert.match(next7Button, /startManualSync\("next_7_days"\)/);
 
   assert.doesNotMatch(queue, /Resume sync/);
-  assert.doesNotMatch(queue, /resumeManualSync/);
+  assert.match(queue, /resumeManualSync\(result\.runId\)/);
   assert.doesNotMatch(queue, /pendingScope === "resume"/);
   assert.doesNotMatch(queue, /resumable/);
   assert.doesNotMatch(queue, /more reserved orders remain/);
@@ -760,7 +760,7 @@ test("queue sync overlay locks next-7-days without Resume", () => {
   assert.match(queue, /WorkshopQueueSyncOverlay/);
   assert.match(queue, /fixed inset-0 z-50 flex items-center justify-center/);
   assert.match(queue, /syncInFlight \? \(/);
-  assert.match(queue, /workshopSyncOverlayListed\(health\)/);
+  assert.match(queue, /syncInFlight \? health\.counts\.listed : 0/);
   assert.match(queue, /inert=\{syncInFlight \|\| undefined\}/);
   assert.match(queue, /disabled=\{syncInFlight\}/);
   assert.match(queue, /Stay on this page until it finishes/);
@@ -819,7 +819,7 @@ test("queue surface: All-first tabs, status tiles, columns, sync help, load erro
   assert.doesNotMatch(queue, /bg-warning-100/);
   assert.doesNotMatch(queue, /text-warning-800/);
   assert.match(queue, /text-heading-3 font-heading-3 text-default-font/);
-  assert.match(queue, /Last full sync:/);
+  assert.match(queue, /Last successful seven-day sync:/);
   assert.match(queue, /\/workshop\/\$\{taskId\}/);
   assert.match(tasks, /status=completed|status\)/);
   assert.match(tasks, /neq\("status", "completed"\)/);
@@ -845,7 +845,7 @@ test("queue refreshes use a table-local transition skeleton, separate from sync"
     /const \[isSyncPending, startSyncTransition\] = useTransition\(\);/,
   );
   assert.match(queue, /startQueueNavigationTransition\(\(\) => \{\s*router\.push/s);
-  assert.match(queue, /shouldBlockQueueNavigation\(isSyncPending, health\)/);
+  assert.match(queue, /const syncInFlight = isSyncPending/);
   assert.match(queue, /isQueueNavigationPending \? \(\s*<WorkshopTaskTableSkeleton \/>\s*\)/s);
   assert.match(queue, /syncInFlight \? \(\s*<WorkshopQueueSyncOverlay/s);
   assert.match(queue, /<SearchField/);
