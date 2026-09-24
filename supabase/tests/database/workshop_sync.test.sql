@@ -264,8 +264,8 @@ SET ROLE authenticated;
 
 SELECT is(
   public.workshop_start_manual_sync('all_reserved')->>'code',
-  'SYNC_IN_PROGRESS',
-  'overlapping start returns SYNC_IN_PROGRESS'
+  'SOURCE_UNAVAILABLE',
+  'retired all_reserved start is rejected before lease acquisition'
 );
 
 RESET ROLE;
@@ -426,9 +426,9 @@ SELECT is(
     NULL,
     NULL,
     false
-  )->>'ok',
-  'true',
-  'record success for an order'
+  )->>'code',
+  'SOURCE_UNAVAILABLE',
+  'retired all_reserved run rejects new results'
 );
 
 SELECT is(
@@ -437,15 +437,15 @@ SELECT is(
     NULL,
     NULL,
     false
-  )->>'state',
-  'succeeded',
-  'full-success finish marks succeeded'
+  )->>'code',
+  'SOURCE_UNAVAILABLE',
+  'retired all_reserved run cannot finish as succeeded'
 );
 
-SELECT isnt(
+SELECT is(
   (SELECT last_success_at FROM public.booqable_sync_health WHERE id = 'workshop'),
   (SELECT last_success_at FROM health_before),
-  'full success advances last_success_at'
+  'retired all_reserved does not advance last_success_at'
 );
 
 INSERT INTO public.booqable_sync_runs (id, scope, state)
@@ -564,7 +564,7 @@ SELECT is(
 INSERT INTO public.booqable_sync_runs (id, scope, state)
 VALUES (
   'ffffffff-ffff-4fff-8fff-ffffffffffff',
-  'all_reserved',
+  'next_7_days',
   'in_progress'
 );
 
@@ -660,7 +660,7 @@ SELECT is(
 INSERT INTO public.booqable_sync_runs (id, scope, state)
 VALUES (
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
-  'all_reserved',
+  'next_7_days',
   'in_progress'
 );
 
@@ -901,7 +901,8 @@ SELECT is(public.dashboard_start_selected_sync('2030-10-27', '2030-10-27')->>'ok
 RESET ROLE;
 CREATE TEMP TABLE empty_selected_run AS
 SELECT id FROM public.booqable_sync_runs WHERE scope = 'selected_period'
-  AND id <> (SELECT id FROM selected_run) LIMIT 1;
+  AND id <> (SELECT id FROM selected_run)
+ORDER BY created_at DESC, id DESC LIMIT 1;
 GRANT SELECT ON empty_selected_run TO authenticated;
 SELECT is(public.dashboard_checkpoint_selected_sync(
   (SELECT id FROM empty_selected_run), l.token, l.fence,
@@ -968,6 +969,117 @@ SELECT is((SELECT count(*)::integer FROM private.booqable_run_leases
 SELECT ok((SELECT scope IN ('next_7_days', 'all_reserved')
   FROM public.workshop_sync_health),
   'Workshop health continues to report a legacy reserved-list run');
+
+-- A pre-update cursor cannot be interpreted as a bounded window. Closing it
+-- preserves its recorded result and allows a fresh run on the next click.
+INSERT INTO public.booqable_sync_runs (id, scope, state, cursor)
+VALUES ('99999999-9999-4999-8999-999999999999', 'next_7_days', 'in_progress', 'legacy-page-4');
+SELECT is(private.booqable_record_sync_result(
+  '99999999-9999-4999-8999-999999999999', 'legacy-order', true, NULL, NULL, false)->>'ok',
+  'true', 'legacy fixture retains a prior order result');
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+SELECT is(public.workshop_start_window_sync()->>'code', 'SOURCE_UNAVAILABLE',
+  'first start closes incompatible legacy Workshop runs');
+RESET ROLE;
+SELECT is((SELECT state FROM public.booqable_sync_runs
+  WHERE id = '99999999-9999-4999-8999-999999999999'), 'failed',
+  'legacy run closes unsuccessfully');
+SELECT is((SELECT cursor FROM public.booqable_sync_runs
+  WHERE id = '99999999-9999-4999-8999-999999999999'), 'legacy-page-4',
+  'legacy cursor remains historical evidence');
+SELECT ok((SELECT retired_at IS NOT NULL FROM public.booqable_sync_runs
+  WHERE id = '99999999-9999-4999-8999-999999999999'),
+  'retirement time is recorded');
+SELECT is((SELECT count(*)::integer FROM public.booqable_sync_order_results
+  WHERE run_id = '99999999-9999-4999-8999-999999999999'), 1,
+  'legacy result history remains intact');
+
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+CREATE TEMP TABLE workshop_window_start AS
+SELECT public.workshop_start_window_sync() AS result;
+SELECT is((SELECT result->>'ok' FROM workshop_window_start), 'true',
+  'staff can start the new bounded Workshop run');
+RESET ROLE;
+CREATE TEMP TABLE workshop_window_run AS
+SELECT id, from_date, to_date, from_instant, to_instant_exclusive, policy_version
+FROM public.booqable_sync_runs WHERE id =
+  (SELECT (result->>'runId')::uuid FROM workshop_window_start);
+SELECT is((SELECT policy_version FROM workshop_window_run), 2,
+  'Workshop run records current policy version');
+SELECT is((SELECT to_date - from_date FROM workshop_window_run), 6,
+  'Workshop run freezes seven Madrid dates');
+SELECT ok((SELECT from_instant = (from_date::timestamp AT TIME ZONE 'Europe/Madrid')
+  AND to_instant_exclusive = ((to_date + 1)::timestamp AT TIME ZONE 'Europe/Madrid')
+  FROM workshop_window_run), 'saved Workshop bounds use Madrid midnight');
+SELECT ok((SELECT count(*) > 0 FROM private.dashboard_sync_candidates
+  WHERE run_id = (SELECT id FROM workshop_window_run)),
+  'Workshop captures locally eligible stale candidates before provider listing');
+DELETE FROM private.dashboard_sync_candidates
+WHERE run_id = (SELECT id FROM workshop_window_run);
+SELECT is(public.dashboard_checkpoint_selected_sync(
+  (SELECT id FROM workshop_window_run), l.token, l.fence,
+  'starts_at', 1, ARRAY['window-order', 'window-order'], false)->>'phase',
+  'reconcile', 'Workshop has one discovery pass and deduplicates candidates'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_selected_sync_work(
+  (SELECT id FROM workshop_window_run), l.token, l.fence, 10)->'ids',
+  '["window-order"]'::jsonb, 'shared worker returns Workshop candidate'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_record_selected_result(
+  (SELECT id FROM workshop_window_run), l.token, l.fence,
+  'window-order', true, NULL, NULL)->>'ok', 'true',
+  'shared worker records Workshop order success'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT is(public.dashboard_finish_selected_sync(
+  (SELECT id FROM workshop_window_run), l.token, l.fence, NULL)->>'state',
+  'succeeded', 'completed Workshop window is successful'
+) FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT private.booqable_release_run_lease('manual_sync', l.token, l.fence)
+FROM private.booqable_run_leases l WHERE l.lock_key = 'manual_sync';
+SELECT ok((SELECT last_success_at IS NOT NULL FROM public.workshop_sync_health),
+  'current exact Workshop window supplies freshness evidence');
+
+INSERT INTO public.booqable_sync_runs (
+  id, scope, state, policy_version, from_date, to_date,
+  from_instant, to_instant_exclusive, discovery_phase, discovery_page)
+SELECT '77777777-7777-4777-8777-777777777777', 'next_7_days', 'failed', 2,
+  from_date, to_date, NULL, to_instant_exclusive, 'starts_at', 1
+FROM workshop_window_run;
+SELECT pg_temp.become('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa');
+SET ROLE authenticated;
+SELECT is(public.workshop_resume_window_sync(
+  '77777777-7777-4777-8777-777777777777')->>'code',
+  'SOURCE_UNAVAILABLE', 'malformed saved Workshop run cannot resume');
+RESET ROLE;
+SELECT ok((SELECT retired_at IS NOT NULL FROM public.booqable_sync_runs
+  WHERE id = '77777777-7777-4777-8777-777777777777'),
+  'malformed Workshop run is closed for a fresh start');
+SELECT is((SELECT count(*)::integer FROM private.booqable_run_leases
+  WHERE lock_key = 'manual_sync' AND expires_at > now()), 0,
+  'malformed resume releases its lease');
+
+INSERT INTO public.booqable_sync_runs (id, scope, state)
+VALUES ('88888888-8888-4888-8888-888888888888', 'next_7_days', 'in_progress');
+SELECT is(private.booqable_record_sync_result(
+  '88888888-8888-4888-8888-888888888888', 'counter-order', true, NULL, NULL, true)->>'ok',
+  'true', 'first skipped result records');
+SELECT is(private.booqable_record_sync_result(
+  '88888888-8888-4888-8888-888888888888', 'counter-order', false, 'SOURCE_UNAVAILABLE', 'failure', false)->>'ok',
+  'true', 'skipped result can become failed');
+SELECT is(private.booqable_record_sync_result(
+  '88888888-8888-4888-8888-888888888888', 'counter-order', false, 'SOURCE_UNAVAILABLE', 'failure', false)->>'ok',
+  'true', 'duplicate failed result is idempotent');
+SELECT is((SELECT (listed, succeeded, failed, skipped) FROM public.booqable_sync_runs
+  WHERE id = '88888888-8888-4888-8888-888888888888')::text,
+  '(1,0,1,0)', 'duplicate keeps exact latest-result counters');
+SELECT is(private.booqable_record_sync_result(
+  '88888888-8888-4888-8888-888888888888', 'counter-order', true, NULL, NULL, false)->>'ok',
+  'true', 'failed result can become successful');
+SELECT is((SELECT (listed, succeeded, failed, skipped) FROM public.booqable_sync_runs
+  WHERE id = '88888888-8888-4888-8888-888888888888')::text,
+  '(1,1,0,0)', 'failure to success keeps exact counters');
 
 SELECT finish();
 

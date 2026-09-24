@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useTransition } from "react";
+import React, { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { FeatherAlertTriangle, FeatherSearch } from "@subframe/core";
 import { Alert } from "@/ui/components/Alert";
@@ -18,6 +18,7 @@ import {
   WORKSHOP_QUEUE_STATUSES,
   type ManualSyncScope,
   type WorkshopErrorCode,
+  type WorkshopSyncResult,
   type WorkshopQueueFilter,
   type WorkshopQueueStatus,
   type WorkshopQueueStatusCounts,
@@ -29,10 +30,7 @@ import {
   formatMadridDateTime,
   formatWorkshopQueueWhen,
   queueStatusSelectValue,
-  isLiveQueueSyncInProgress,
-  shouldBlockQueueNavigation,
   WORKSHOP_QUEUE_REALTIME_REFRESH_MS,
-  workshopSyncOverlayListed,
   statusFromQueueSelectValue,
   statusTileClassName,
   workshopStatusBadgeProps,
@@ -161,10 +159,13 @@ export function WorkshopQueue({
     error: string;
   } | null>(null);
   const [pendingScope, setPendingScope] = useState<ManualSyncScope | null>(null);
-  const syncInFlight = shouldBlockQueueNavigation(isSyncPending, health);
-  const overlayListed = workshopSyncOverlayListed(health);
+  const syncBusy = useRef(false);
+  const mounted = useRef(true);
+  const syncInFlight = isSyncPending;
+  const overlayListed = syncInFlight ? health.counts.listed : 0;
 
   useEffect(() => {
+    mounted.current = true;
     const supabase = createClient();
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
     const scheduleRefresh = () => {
@@ -194,6 +195,7 @@ export function WorkshopQueue({
       .subscribe();
 
     return () => {
+      mounted.current = false;
       if (refreshTimer != null) clearTimeout(refreshTimer);
       supabase.removeChannel(channel);
     };
@@ -220,12 +222,7 @@ export function WorkshopQueue({
   };
 
   const syncStatusLabel = (() => {
-    if (isLiveQueueSyncInProgress(health)) return "Sync in progress";
-    if (health.state === "failed" && health.cursor) {
-      return health.lastError
-        ? `Partial sync failed: ${health.lastError}`
-        : "Partial sync failed";
-    }
+    if (health.state === "in_progress") return "A saved sync can be continued. Click Sync to resume it.";
     if (health.state === "failed") {
       return health.lastError ? `Sync failed: ${health.lastError}` : "Sync failed";
     }
@@ -233,26 +230,39 @@ export function WorkshopQueue({
   })();
 
   const runSync = (
-    fn: () => Promise<{ ok: true } | { ok: false; code: WorkshopErrorCode; error: string }>,
+    fn: () => Promise<WorkshopSyncResult>,
     pending: ManualSyncScope,
   ) => {
-    if (syncInFlight) return;
+    if (syncBusy.current || syncInFlight) return;
+    syncBusy.current = true;
     setSyncError(null);
     setPendingScope(pending);
     startSyncTransition(async () => {
       try {
-        const result = await fn();
-        if (!result.ok) {
-          setSyncError({ code: result.code, error: result.error });
+        let result = await fn();
+        while (mounted.current) {
+          if (!result.ok) {
+            setSyncError({ code: result.code, error: result.error });
+            break;
+          }
+          if (result.state === "failed") {
+            setSyncError({ code: "SOURCE_UNAVAILABLE", error: "Sync could not refresh all required orders. Click Sync to try again." });
+            break;
+          }
+          if (result.state === "succeeded") break;
+          result = await workshopActions.resumeManualSync(result.runId);
         }
-        router.refresh();
+        if (mounted.current) router.refresh();
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Workshop sync failed.";
-        setSyncError({ code: "SOURCE_UNAVAILABLE", error: message });
-        router.refresh();
+        if (mounted.current) {
+          setSyncError({ code: "SOURCE_UNAVAILABLE", error: message });
+          router.refresh();
+        }
       } finally {
-        setPendingScope(null);
+        syncBusy.current = false;
+        if (mounted.current) setPendingScope(null);
       }
     });
   };
@@ -296,7 +306,7 @@ export function WorkshopQueue({
               <span
                 className={`${queueCopyClass(tabletMode)} text-default-font`}
               >
-                Last full sync: {formatSyncTime(health.lastSuccessAt)}
+                Last successful seven-day sync: {formatSyncTime(health.lastSuccessAt)}
               </span>
               <span className="text-body font-body text-subtext-color">
                 Pulls reserved orders starting in the next 7 days onto this list.

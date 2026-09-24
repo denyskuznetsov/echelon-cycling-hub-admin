@@ -1,0 +1,23 @@
+{
+  "scope": "Three reserved orders, live read-only comparison; no raw payloads persisted",
+  "requests": [
+    {"label":"discover small reserved sample","status":200,"elapsed_ms":541,"bytes":368,"primary_count":3,"included_types":{},"has_next":false},
+    {"label":"individual baseline 1","status":200,"elapsed_ms":298,"bytes":57899,"primary_count":1,"included_types":{"customers":1,"coupons":1,"lines":13,"bundles":1,"plannings":13,"products":12},"has_next":false},
+    {"label":"individual baseline 2","status":200,"elapsed_ms":303,"bytes":37270,"primary_count":1,"included_types":{"customers":1,"lines":8,"bundles":1,"plannings":7,"products":6,"stock_item_plannings":1,"stock_items":1},"has_next":false},
+    {"label":"individual baseline 3","status":200,"elapsed_ms":523,"bytes":51745,"primary_count":1,"included_types":{"customers":1,"lines":10,"bundles":1,"plannings":10,"products":9},"has_next":false},
+    {"label":"lines collection for three order IDs","status":200,"elapsed_ms":498,"bytes":60311,"primary_count":31,"included_types":{"plannings":30},"has_next":false},
+    {"label":"allocation collection for three order IDs","status":200,"elapsed_ms":267,"bytes":1325,"primary_count":1,"included_types":{"stock_items":1},"has_next":false},
+    {"label":"search using simple multi-ID filter and full includes","status":200,"elapsed_ms":487,"bytes":133235,"primary_count":3,"included_types":{"customers":3,"coupons":1,"lines":31,"products":17,"plannings":30,"bundles":3,"stock_item_plannings":1,"stock_items":1},"has_next":false},
+    {"label":"reserved next seven Madrid dates, bounded list","status":200,"elapsed_ms":336,"bytes":509,"primary_count":3,"included_types":{},"has_next":false}
+  ],
+  "comparisons": [
+    {"label":"search simple filter","sample":1,"order_present":true,"baseline_types":{"plannings":13,"lines":13,"customers":1,"products":12,"coupons":1,"bundles":1,"orders":1},"candidate_types":{"plannings":13,"lines":13,"customers":1,"products":12,"coupons":1,"bundles":1,"orders":1},"missing_resources":{},"extra_resources":{},"different_resources":{"orders":1},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":false},
+    {"label":"search simple filter","sample":2,"order_present":true,"baseline_types":{"lines":8,"products":6,"orders":1,"plannings":7,"stock_item_plannings":1,"bundles":1,"customers":1,"stock_items":1},"candidate_types":{"lines":8,"products":6,"orders":1,"plannings":7,"stock_item_plannings":1,"bundles":1,"customers":1,"stock_items":1},"missing_resources":{},"extra_resources":{},"different_resources":{},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":true},
+    {"label":"search simple filter","sample":3,"order_present":true,"baseline_types":{"lines":10,"bundles":1,"products":9,"plannings":10,"orders":1,"customers":1},"candidate_types":{"lines":10,"bundles":1,"products":9,"plannings":10,"orders":1,"customers":1},"missing_resources":{},"extra_resources":{},"different_resources":{},"baseline_unresolved_refs":{},"candidate_unresolved_refs":{},"exact_graph_equal":true}
+  ],
+  "child_collections": [
+    {"label":"lines","expected_primary":31,"received_primary":31,"missing_primary":0,"extra_primary":0,"included_types":{"plannings":30}},
+    {"label":"allocations","expected_primary":1,"received_primary":1,"missing_primary":0,"extra_primary":0,"included_types":{"stock_items":1}}
+  ],
+  "date_filter": {"returned": 3, "all_returned_match": true, "scope": "First page only; no complete enumeration claim"}
+}

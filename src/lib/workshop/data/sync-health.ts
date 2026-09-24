@@ -139,6 +139,7 @@ export async function loadLatestSelectedPeriodRun(supabase: SupabaseClient, from
   const { data, error } = await supabase.from("booqable_sync_runs")
     .select(SELECTED_COLUMNS)
     .eq("scope", "selected_period")
+    .is("retired_at", null)
     .eq("from_date", from).eq("to_date", to)
     .order("created_at", { ascending: false }).order("id", { ascending: false })
     .limit(1).maybeSingle();

@@ -10,6 +10,7 @@ import {
   paginationNextUrl,
   parseOrderListDocument,
   fetchSelectedPeriodOrderListPage,
+  fetchWorkshopWindowOrderListPage,
   SOURCE_ORDER_INCLUDE,
 } from "./lib/booqable/fetch-source-snapshot.ts";
 import {
@@ -72,9 +73,33 @@ test("selected-period listing requests the saved start or return interval and pa
   }
 });
 
+test("Workshop listing filters reserved starts within saved bounds upstream", async () => {
+  const originalFetch = globalThis.fetch;
+  let requested: URL | null = null;
+  globalThis.fetch = async (input) => {
+    requested = new URL(String(input));
+    return new Response(JSON.stringify({ data: [] }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  try {
+    const from = "2026-10-24T22:00:00Z";
+    const to = "2026-10-31T23:00:00Z";
+    const page = await fetchWorkshopWindowOrderListPage(3, from, to, {
+      BOOQABLE_COMPANY_SLUG: "fixture", BOOQABLE_API_KEY: "fixture-key",
+    });
+    assert.deepEqual(page.orders, []);
+    assert.equal((requested as URL | null)?.searchParams.get("filter[status]"), "reserved");
+    assert.equal((requested as URL | null)?.searchParams.get("filter[starts_at][gte]"), from);
+    assert.equal((requested as URL | null)?.searchParams.get("filter[starts_at][lt]"), to);
+    assert.equal((requested as URL | null)?.searchParams.get("page[number]"), "3");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 const testRequire = createRequire(import.meta.url);
 const selectedRunId = "11111111-1111-4111-8111-111111111111";
 type SelectedFixture = {
+  scope?: "selected_period" | "next_7_days";
   allowed?: boolean;
   serviceError?: boolean;
   finishError?: boolean;
@@ -85,30 +110,31 @@ type SelectedFixture = {
 };
 
 function selectedWorker(fixture: SelectedFixture = {}) {
+  const scope = fixture.scope ?? "selected_period";
   const calls: { name: string; args: Record<string, unknown> }[] = [];
   const fetched: { direction: string; page: number; from: string; to: string }[] = [];
   const candidates = new Map<string, "pending" | "failed" | "succeeded">();
   const saved = {
     phase: "starts_at", page: 1, state: "in_progress", error: "" as string,
-    from: "2026-10-24T22:00:00Z", to: "2026-10-25T23:00:00Z",
+    from: "2026-10-24T22:00:00Z", to: scope === "next_7_days" ? "2026-10-31T23:00:00Z" : "2026-10-25T23:00:00Z",
   };
   const payload = () => ({
-    ok: true, runId: selectedRunId, state: saved.state, cursor: null,
+    ok: true, runId: selectedRunId, scope, state: saved.state, cursor: null,
     counts: { listed: candidates.size, succeeded: [...candidates.values()].filter((v) => v === "succeeded").length,
       failed: [...candidates.values()].filter((v) => v === "failed").length, skipped: 0 },
     token: "lease", fence: 1, phase: saved.phase, page: saved.page,
-    fromInstant: saved.from, toInstantExclusive: saved.to, policyVersion: 1,
+    fromInstant: saved.from, toInstantExclusive: saved.to, policyVersion: scope === "selected_period" ? 1 : 2,
   });
   const user = { rpc: async (name: string, args: Record<string, unknown>) => {
     calls.push({ name, args });
     if (name === "dashboard_abort_selected_sync") {
       saved.state = "failed"; saved.error = String(args.reason); return { data: { ok: true }, error: null };
     }
-    if (name === "dashboard_resume_selected_sync") {
+    if (name === "dashboard_resume_selected_sync" || name === "workshop_resume_window_sync") {
       assert.equal(args.run_id, selectedRunId);
       return { data: payload(), error: null };
     }
-    assert.equal(name, "dashboard_start_selected_sync");
+    assert.equal(name, scope === "selected_period" ? "dashboard_start_selected_sync" : "workshop_start_window_sync");
     return { data: fixture.malformedStart ? { ...payload(), page: null } :
       fixture.missingRunId ? { ...payload(), runId: null } : payload(), error: null };
   } };
@@ -119,7 +145,7 @@ function selectedWorker(fixture: SelectedFixture = {}) {
       assert.equal(args.page, saved.page);
       for (const id of args.candidate_ids as string[]) candidates.set(id, candidates.get(id) ?? "pending");
       if (args.has_more) saved.page += 1;
-      else { saved.phase = saved.phase === "starts_at" ? "stops_at" : "reconcile"; saved.page = 1; }
+      else { saved.phase = saved.phase === "starts_at" && scope === "selected_period" ? "stops_at" : "reconcile"; saved.page = 1; }
       return { data: { ok: true }, error: null };
     }
     if (name === "dashboard_selected_sync_work") {
@@ -147,6 +173,10 @@ function selectedWorker(fixture: SelectedFixture = {}) {
         fetched.push({ direction, page, from, to });
         return fixture.pages?.[`${direction}:${page}`] ?? { orders: [], hasMore: false };
       },
+      fetchWorkshopWindowOrderListPage: async (page: number, from: string, to: string) => {
+        fetched.push({ direction: "starts_at", page, from, to });
+        return fixture.pages?.[`starts_at:${page}`] ?? { orders: [], hasMore: false };
+      },
     };
     if (id === "@/src/lib/dashboard/period") return { resolveDashboardPeriod };
     if (id === "@/src/lib/workshop/domain/commands") return { selectedPeriodEligible };
@@ -166,6 +196,8 @@ function selectedWorker(fixture: SelectedFixture = {}) {
   return {
     start: module.exports.runSelectedPeriodStart as (client: unknown, from: string, to: string) => Promise<Record<string, unknown>>,
     resume: module.exports.runSelectedPeriodResume as (client: unknown, id: string) => Promise<Record<string, unknown>>,
+    workshopStart: module.exports.runManualSyncStart as (client: unknown, scope: string) => Promise<Record<string, unknown>>,
+    workshopResume: module.exports.runManualSyncResume as (client: unknown, id: string) => Promise<Record<string, unknown>>,
     user, calls, fetched, candidates, saved,
   };
 }
@@ -186,7 +218,7 @@ test("selected worker discovers return pages, resumes saved bounds, and continue
   for (let i = 0; i < 3; i += 1) result = await worker.resume(worker.user, selectedRunId);
   assert.equal(result.state, "in_progress");
   result = await worker.resume(worker.user, selectedRunId);
-  assert.equal(result.state, "succeeded");
+  assert.equal(result.state, "succeeded", JSON.stringify(result));
   assert.equal(worker.candidates.size, 12);
   assert.deepEqual(worker.fetched.map((v) => `${v.direction}:${v.page}`), ["starts_at:1", "stops_at:1", "stops_at:2"]);
   assert.ok(worker.fetched.every((v) => v.from === worker.saved.from && v.to === worker.saved.to));
@@ -226,6 +258,22 @@ test("disabled selected sync never starts or resumes a lease", async () => {
   assert.equal((await worker.start(worker.user, "2026-10-25", "2026-10-25")).ok, false);
   assert.equal((await worker.resume(worker.user, selectedRunId)).ok, false);
   assert.equal(worker.calls.length, 0);
+});
+
+test("Workshop worker saves two discovery pages, ignores unrelated rows, and resumes in ten-order chunks", async () => {
+  const orders = Array.from({ length: 12 }, (_, i) => selectedOrder(`workshop-${i}`));
+  const worker = selectedWorker({ scope: "next_7_days", pages: {
+    "starts_at:1": { orders: [...orders.slice(0, 6), { ...selectedOrder("started"), status: "started" }], hasMore: true },
+    "starts_at:2": { orders: [...orders.slice(6), { ...selectedOrder("outside"), startsAt: "2026-11-01T08:00:00Z" }], hasMore: false },
+  } });
+  let result = await worker.workshopStart(worker.user, "next_7_days");
+  for (let i = 0; i < 3; i += 1) result = await worker.workshopResume(worker.user, selectedRunId);
+  assert.equal(result.state, "succeeded", JSON.stringify(result));
+  assert.equal(worker.candidates.size, 12);
+  assert.deepEqual(worker.fetched.map((v) => `${v.direction}:${v.page}`), ["starts_at:1", "starts_at:2"]);
+  assert.ok(worker.fetched.every((v) => v.from === worker.saved.from && v.to === worker.saved.to));
+  assert.equal(worker.calls.filter((v) => v.name === "dashboard_record_selected_result").length, 12);
+  assert.equal(worker.calls.filter((v) => v.name === "dashboard_checkpoint_selected_sync").length, 2);
 });
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
@@ -569,7 +617,7 @@ test("paginationNextUrl follows strings and href objects, rejects malformed next
   );
 });
 
-test("next 7 days scope skips reserved orders starting after the window", () => {
+test("next 7 days scope accepts only reserved starts in the Madrid window", () => {
   const now = new Date("2026-08-22T12:00:00Z");
   const inWindow = {
     id: "near",
@@ -585,27 +633,15 @@ test("next 7 days scope skips reserved orders starting after the window", () => 
   };
   assert.equal(isEligibleManualSyncOrder(inWindow, "next_7_days", now), true);
   assert.equal(isEligibleManualSyncOrder(later, "next_7_days", now), false);
-  assert.equal(isEligibleManualSyncOrder(later, "all_reserved", now), true);
-  assert.equal(
-    isEligibleManualSyncOrder({ ...later, status: "stopped" }, "all_reserved", now),
-    false,
-  );
   assert.equal(
     isEligibleManualSyncOrder({ ...inWindow, status: "started" }, "next_7_days", now),
-    false,
-  );
-  assert.equal(
-    isEligibleManualSyncOrder({ ...inWindow, status: "canceled" }, "all_reserved", now),
     false,
   );
   assert.equal(skipReason(later, "next_7_days", now), "outside next 7 days");
   assert.equal(skipReason({ ...inWindow, status: "started" }, "next_7_days", now), "skipped non-reserved status");
   assert.equal(skipReason(inWindow, "next_7_days", now), null);
 
-  const loop = readSrc("lib/workshop/application/manual-sync.ts");
-  assert.match(loop, /const skip = skipReason\(order, scope\)/);
-  assert.match(loop, /skipped: true/);
-  assert.match(loop, /continue;/);
+  assert.equal(decodeSyncCursor(Buffer.from(JSON.stringify({ v: 1, scope: "all_reserved", page: 1, runId: "x" })).toString("base64url")), null);
 });
 
 test("opaque sync cursor carries versioned scope and page", () => {
@@ -733,34 +769,23 @@ test("workshop queue exposes next 7 days sync", () => {
   assert.match(source, /Sync next 7 days/);
   assert.doesNotMatch(source, /Sync all reserved/);
   assert.match(source, /startManualSync/);
-  assert.doesNotMatch(source, /resumeManualSync/);
-  assert.doesNotMatch(source, /Resume sync/);
+  assert.match(source, /resumeManualSync\(result.runId\)/);
   assert.match(source, /booqable_sync_runs/);
-  assert.match(source, /Last full sync/);
+  assert.match(source, /Last successful seven-day sync/);
 });
 
-test("next 7 days start walks reserved pages until done", () => {
+test("next 7 days uses shared bounded worker and run-id continuation", () => {
   const manual = readSrc("lib/workshop/application/manual-sync.ts");
   const queue = readSrc("app/workshop/_components/WorkshopQueue.tsx");
 
-  assert.match(manual, /if \(scope === "next_7_days"\)/);
-  assert.match(manual, /return withStartedManualSync\(data, walkNext7DaysReservedPages\)/);
-  assert.match(manual, /walkNext7DaysReservedPages/);
-  assert.match(manual, /while \(hasMore\)/);
-  assert.match(manual, /booqable_finish_sync_run/);
+  assert.match(manual, /workshop_start_window_sync/);
+  assert.match(manual, /workshop_resume_window_sync/);
+  assert.match(manual, /fetchWorkshopWindowOrderListPage/);
+  assert.match(manual, /dashboard_checkpoint_selected_sync/);
   assert.match(manual, /startLeaseRenewLoop/);
-  assert.match(manual, /workshop_start_manual_sync/);
-  assert.match(
-    manual,
-    /async function walkNext7DaysReservedPages[\s\S]*const nextCursor = pageFailed\s*\?\s*encodeSyncCursor\([\s\S]*?\)\s*:\s*null/,
-  );
-  assert.match(manual, /return continueManualSync\(data, scope, 1\)/);
-  assert.match(manual, /seenIds/);
-  assert.match(manual, /Booqable reserved list repeated a page/);
-  assert.doesNotMatch(queue, /resumeManualSync/);
-  assert.match(queue, /if \(syncInFlight\) return/);
+  assert.doesNotMatch(manual, /walkNext7DaysReservedPages/);
+  assert.match(queue, /resumeManualSync\(result.runId\)/);
   assert.match(queue, /WORKSHOP_QUEUE_REALTIME_REFRESH_MS/);
-  assert.match(queue, /if \(!result\.ok\) \{\s*setSyncError\([\s\S]*?\}\s*router\.refresh\(\)/);
 });
 
 test("webhook maps busy to 200 and other reconcile failures to 500", () => {
@@ -809,7 +834,7 @@ test("staff sync and per-task sync share reconcile and gate preview", () => {
   assert.match(manual, /workshopSyncAllowed\(\)/);
   assert.match(manual, /SOURCE_UNAVAILABLE/);
   assert.match(manual, /reconcileBooqableOrder\(booqableOrderId, "task"/);
-  assert.match(manual, /reconcileBooqableOrder\(order\.id, "manual"/);
+  assert.match(manual, /reconcileBooqableOrder\(id, "manual"/);
   assert.match(reconcile, /trigger === "sandbox"/);
   assert.match(reconcile, /snapshot\.sourceStatus === "reserved"/);
   assert.match(reconcile, /booqable_release_order_lease/);

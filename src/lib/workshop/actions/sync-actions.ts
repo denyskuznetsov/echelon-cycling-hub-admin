@@ -29,18 +29,39 @@ export const startManualSync = withAuth(
         error: "Unknown sync scope.",
       };
     }
+    if (!workshopSyncAllowed()) {
+      return { ok: false, code: "SOURCE_UNAVAILABLE", error: "Booqable sync is disabled in this environment." };
+    }
     const supabase = await createClient();
-    return runManualSyncStart(supabase, scope);
+    // The view and start RPC compute the current Madrid window in PostgreSQL.
+    const { data: latest, error } = await supabase.from("workshop_sync_health")
+      .select("run_id,state").maybeSingle();
+    if (error) {
+      console.error("workshop:startManualSync:", error);
+      return { ok: false, code: "SOURCE_UNAVAILABLE", error: error.message };
+    }
+    const result = latest?.run_id && latest.state !== "succeeded"
+      ? runManualSyncResume(supabase, latest.run_id)
+      : runManualSyncStart(supabase, scope);
+    return workshopOutcome(supabase, await result);
   },
 );
 
 export const resumeManualSync = withAuth(
   "workshop:resumeManualSync",
-  async (_user: User, cursor: string): Promise<WorkshopSyncResult> => {
+  async (_user: User, runId: string): Promise<WorkshopSyncResult> => {
     const supabase = await createClient();
-    return runManualSyncResume(supabase, cursor);
+    return workshopOutcome(supabase, await runManualSyncResume(supabase, runId));
   },
 );
+
+async function workshopOutcome(supabase: SupabaseClient, result: WorkshopSyncResult): Promise<WorkshopSyncResult> {
+  if (!result.ok || result.state !== "failed") return result;
+  const { data, error } = await supabase.from("booqable_sync_runs").select("last_error")
+    .eq("id", result.runId).eq("scope", "next_7_days").maybeSingle();
+  if (error) console.error("workshop:workshopOutcome:", error);
+  return { ok: false, code: "SOURCE_UNAVAILABLE", error: data?.last_error?.trim() || "Sync could not refresh all required orders. Click Sync to try again." };
+}
 
 export const syncOrderFromBooqable = withAuth(
   "workshop:syncOrderFromBooqable",
