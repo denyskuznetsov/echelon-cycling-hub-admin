@@ -2,6 +2,8 @@
 -- The run row serializes concurrent recorders; no accumulated-result recount
 -- is needed after each order. Idempotent. Apply locally only.
 
+BEGIN;
+
 -- This function rejects retired all_reserved execution. Wait for any old
 -- worker with a live run lease before replacing the function it may still use.
 LOCK TABLE private.booqable_run_leases IN SHARE ROW EXCLUSIVE MODE;
@@ -98,3 +100,5 @@ REVOKE ALL ON FUNCTION private.booqable_record_sync_result(uuid, text, boolean, 
   FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION private.booqable_record_sync_result(uuid, text, boolean, text, text, boolean)
   TO service_role;
+
+COMMIT;
